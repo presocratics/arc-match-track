@@ -1,0 +1,4 @@
+set args ../test/creeklist ../test/creektest1.amf
+show args
+run
+where

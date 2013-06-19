@@ -65,6 +65,21 @@ class ARC_Match
             min_points = mp;
         }
 
+        void set_ratio_test ( bool tf )
+        {
+            isRatio = tf;
+        }
+
+        void set_symmetry_test ( bool tf )
+        {
+            isSym = tf;
+        }
+
+        void set_ransac_test ( bool tf )
+        {
+            isRansac = tf;
+        }
+
         // ====================  METHODS       ======================================= 
         bool match ( Mat& scene_img, Mat& object_img,
                     Mat& scene_mask, Mat& object_mask,
@@ -107,6 +122,9 @@ class ARC_Match
         double distance;
         bool refineF;
         unsigned int min_points;                         // Bails if fewer points after symmetry test.
+        bool isRatio;
+        bool isSym;
+        bool isRansac;
 
 }; // -----  end of class ARC_Match  ----- 
 

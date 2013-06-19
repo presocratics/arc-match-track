@@ -28,10 +28,14 @@ typedef struct arguments_t {
     double match_ratio;
     unsigned int min_match_points;
     string video_filename;
+    bool isRatio, isSym, isRansac;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
+Rect update_roi ( Rect roi, vector<Point2f> pts );
+void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt,
+        vector<DMatch>& matches );
 inline Point2f reflect_point ( Point2f point, Rect roi );
 void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kpt_query,
         vector<Point2f>* good_train, vector<Point2f>* good_query, 

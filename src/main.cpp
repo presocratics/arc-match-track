@@ -27,6 +27,49 @@ using std::vector;
 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  update_roi
+//  Description:  Returns the center of mass of a set of points.
+// =====================================================================================
+Rect update_roi ( Rect roi, vector<Point2f> pts )
+{
+    Point2f scm;
+    if( pts.size()==1 )
+        scm = pts[0];
+    else
+    {
+        Moments mome = moments( pts, false );
+        scm = Point2f( mome.m10/mome.m00, mome.m01/mome.m00 );
+        if( isnan( scm.x) || isnan( scm.y ) )
+            return roi;
+        //cout << "update_roi: scm: " << scm << endl;
+    }
+    Point2f tl;
+    tl.x =scm.x - roi.width/2;
+    tl.y =scm.y - roi.height/2;
+    return Rect( tl, roi.size() );
+}		// -----  end of function update_roi  ----- 
+
+// ===  FUNCTION  ======================================================================
+//         Name:  prune_keypoints
+//  Description:  Removes all keypoints that do not have an associated match.
+// =====================================================================================
+void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt, vector<DMatch>& matches )
+{
+    vector<KeyPoint> new_train_kpt, new_query_kpt;
+    for( vector<DMatch>::iterator it=matches.begin() ;
+            it!=matches.end(); ++it )
+    {
+        KeyPoint tkp, qkp;
+        tkp = (*train_kpt)[ it->trainIdx ];
+        qkp = (*query_kpt)[ it->queryIdx ];
+        new_train_kpt.push_back( tkp );
+        new_query_kpt.push_back( qkp );
+    }
+    (*train_kpt) = new_train_kpt;
+    (*query_kpt) = new_query_kpt;
+    return ;
+}		// -----  end of function prune_keypoints  ----- 
+// ===  FUNCTION  ======================================================================
 //         Name:  reflect_point
 //  Description:  Reflects point over the middle row of a roi.
 // =====================================================================================
@@ -89,7 +132,6 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
 {
     Point2f transform = -roi.tl();
     vector<Point2f> trans_train, trans_query;
-    cout << "Start good_points_to_keypoints" << endl;
     vector<DMatch>::iterator it=matches->begin();
     size_t i=0;
     while( it!=matches->end() )
@@ -201,7 +243,10 @@ Mat process_object ( Mat* frame, Rect roi, Mat* mask )
     Mat sub_mask( masked_frame, roi );
     flipped.copyTo( sub_mask );
     */
+    Mat blurred;
+    medianBlur( flipped, blurred, 5 );
 
+    //return blurred;
     return flipped;
     //return masked_frame;
 }		// -----  end of function proccess_object  ----- 
@@ -219,6 +264,9 @@ void help( string program_name )
          << ARG_SHOW_MATCHES << tab << "Show matches." << endl
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
+         << ARG_RATIO_OFF << tab << "Disable ratio test." << endl
+         << ARG_SYMTEST_OFF << tab << "Disable symmetry test (DOES NOT WORK)." << endl
+         << ARG_RANSAC_OFF << tab << "Disable ransac test." << endl
 
          << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test. "
          << "Default: " << DEFAULT_MATCH_RATIO << endl
@@ -265,7 +313,6 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
     }
     if( good_points.source.size()!=0 )
     {
-        cout << "Running source track" << endl;
         calcOpticalFlowPyrLK( prev_gray, gray, good_points.source, new_points.source,
                 object_status, object_error, win_size, 3, termcrit, 0, 0.001 );
         for( i=0; i<(new_points.source.size()); i++ )
@@ -291,6 +338,12 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
     //points.reflection = new_points.reflection;
     if( r->direction.track==DOWN )
     {
+        if( new_points.source.size()>0 )
+        {
+            cout << "ROI at " << r->roi.tl() << (Point2f) r->roi.size() << endl;
+            r->roi = update_roi( r->roi, good_points.source );
+            cout << "New ROI at " << r->roi.tl() << (Point2f) r->roi.size() << endl;
+        }
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi, 
             r->direction.match );
@@ -367,6 +420,9 @@ Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat
  */
 void arguments::arguments()
 {
+    isSym = true;
+    isRatio = true;
+    isRansac = true;
     refresh_count = DEFAULT_REFRESH_COUNT;
     min_match_points=DEFAULT_MIN_MATCH_POINTS;
     match_ratio = DEFAULT_MATCH_RATIO;
@@ -464,6 +520,9 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     if( argc==1 ) return false;
     for ( int i = 3; i < argc; i += 1 ) 
     {
+        if( !strcmp(argv[i], ARG_RATIO_OFF) ) a->isRatio = false;
+        if( !strcmp(argv[i], ARG_SYMTEST_OFF) ) a->isSym = false;
+        if( !strcmp(argv[i], ARG_RANSAC_OFF) ) a->isRansac = false;
         if( !strcmp(argv[i], ARG_DEBUG_MODE) ) a->debug=DEBUG;
         if( !strcmp(argv[i], ARG_VERBOSE) ) a->verbosity=VERBOSE;
         if( !strcmp(argv[i], ARG_VERY_VERBOSE) ) a->verbosity=VERY_VERBOSE;
@@ -561,6 +620,9 @@ int main(int argc, char** argv)
     m.set_ratio( a.match_ratio );
     m.set_refineF( rf );
     m.set_min_points( a.min_match_points );
+    m.set_ratio_test( a.isRatio );
+    m.set_symmetry_test( a.isSym );
+    m.set_ransac_test( a.isRansac );
 
     m.set_feature_detector( pfd );
     m.set_descriptor_extractor( pde );
@@ -587,13 +649,20 @@ int main(int argc, char** argv)
         {
             Mat object_mask, scene_mask;
             Mat flipped = process_object( &cur_frame, r->roi, &object_mask ); // Masks the object, does not flip
-            if( r->iter_count%a.refresh_count==0 )
+            if( r->iter_count%a.refresh_count==0 ) // Refresh match.
             {
-                if( r->keypoints.source.size()==0 )
+                if( r->keypoints.source.size()<1 )
                 {
                     // TODO: Update roi and get new object.
                     // If there are no keypoints, how do we update ROI?
-                    cout << "No keypoints." << endl;
+                    if( a.debug==DEBUG ) cout << "main: Too few keypoints." << endl;
+                }
+                else
+                {
+                    // Remove all keypoints that don't have matches.
+                    // TODO: Handle direction.
+                    prune_keypoints( &(r->keypoints.source), &(r->keypoints.reflection),
+                            r->matches );
                 }
                 // mask the search region
                 Mat masked_frame = get_masked_frame(r->roi, r->slope,
@@ -655,7 +724,7 @@ int main(int argc, char** argv)
                     r->iter_count = 0 ;
                 }
             }
-            else
+            else                                // Perform tracking.
             {
                 r->iter_count+=1;
                 PPC good_points, old_good_points;
@@ -702,10 +771,12 @@ int main(int argc, char** argv)
                              << "After: " << good_points.source[i] << endl;
                     }
                 }
+                
                             
                 draw_match_by_hand( &drawn_matches, &cur_frame,
                         &flipped, r->roi,
                         good_points.source, good_points.reflection );
+                rectangle( drawn_matches, r->roi, Scalar( 127, 127, 0 ), 1 );
                 /*
                 if( r->points_object_prev.size()>0 )
                 {

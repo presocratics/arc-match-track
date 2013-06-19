@@ -38,6 +38,9 @@
 #define DEFAULT_MATCH_RATIO 0.87             // 
 #define ARG_MIN_MATCH_POINTS "--min-match-points"            // 
 #define DEFAULT_MIN_MATCH_POINTS 7            // 
+#define ARG_RATIO_OFF "--no-ratio"
+#define ARG_SYMTEST_OFF "--no-sym"
+#define ARG_RANSAC_OFF "--no-ransac"
 
 #define UP 1                                    // match to scene above object
 #define DOWN 2                                  // match to scene below object

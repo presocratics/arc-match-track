@@ -58,6 +58,9 @@ ARC_Match::ARC_Match (void)
     ratio=-1;
     distance=-1;
     refineF=false;
+    isRatio = true;
+    isSym = true;
+    isRansac = true;
 }  /* -----  end of method ARC_Match::ARC_Match  (constructor)  ----- */
 
     void 
@@ -264,13 +267,11 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     matches.clear();
     Mat descriptors_scene, descriptors_object;
     // Only update object keypoints if we don't have any.
-    if( keypoints_object.size()==0 )
+    if( keypoints_object.size()<2 )
     {
         keypoints_object.clear();
         detector->detect( object_img, keypoints_object );
     }
-    //keypoints_object.clear();
-    //detector->detect( object_img, keypoints_object );
     extractor->compute( object_img, keypoints_object, descriptors_object );
 
     // Detect features
@@ -279,33 +280,43 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     extractor->compute( scene_img, keypoints_scene, descriptors_scene );
 
     // Match descriptors
-    // find 2 nearest-neighbors for each match point (the 2 most likely matches)
 
-    // From scene->object
     vector<vector<DMatch> > matches_scene;
-    matcher->knnMatch( descriptors_scene, descriptors_object, matches_scene, 2 );
-
-    // From object->scene
     vector<vector<DMatch> > matches_object;
+    // find 2 nearest-neighbors for each match point (the 2 most likely matches)
+    // From scene->object
+    matcher->knnMatch( descriptors_scene, descriptors_object, matches_scene, 2 );
+    // From object->scene
     matcher->knnMatch( descriptors_object, descriptors_scene, matches_object, 2 );
-
-    // Perform ratio test. If the 2 nearest neighbors are of similar
-    // distance(match quality), then the match is ambiguous, so we discard.
-    // Only matches that are much better than the second best match are kept.
-    ratio_test( matches_scene );
-    ratio_test( matches_object );
+    if( isRatio )
+    {
+        // Perform ratio test. If the 2 nearest neighbors are of similar
+        // distance(match quality), then the match is ambiguous, so we discard.
+        // Only matches that are much better than the second best match are kept.
+        ratio_test( matches_scene );
+        ratio_test( matches_object );
+    }
 
     // Perform symmetry test. For a match pair to be accepted both points
     // must be the best matching feature of the other. This is to say we
     // accept a match pair of A chose B in matches_scene and B chose A in
     // matches_object.
     vector<DMatch> sym_matches;
-    symmetry_test( matches_scene, matches_object, sym_matches );
+    if( isSym )                      
+        symmetry_test( matches_scene, matches_object, sym_matches );
+    else
+        sym_matches = matches_scene[0];
     cout << "match: sym_matches: " << sym_matches.size() << endl;
-    //matches=sym_matches;
-    if( sym_matches.size()<min_points ) return false;
-
-    ransac_test( sym_matches, keypoints_scene, keypoints_object, matches );
+    if( isRansac )
+    {
+        if( sym_matches.size()<min_points ) return false;
+        ransac_test( sym_matches, keypoints_scene, keypoints_object, matches );
+    }
+    else
+    {
+        if( sym_matches.size()>0 )
+            matches = sym_matches;
+    }
     /*
     // TODO: This is not calculating E[X] and Var(X) correctly.
     Moments mome = moments( points_scene, false );
