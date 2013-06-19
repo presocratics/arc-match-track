@@ -316,6 +316,8 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     {
         if( sym_matches.size()>0 )
             matches = sym_matches;
+        else 
+            return false;
     }
     /*
     // TODO: This is not calculating E[X] and Var(X) correctly.
