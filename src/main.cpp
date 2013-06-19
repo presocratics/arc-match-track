@@ -651,7 +651,7 @@ int main(int argc, char** argv)
             Mat flipped = process_object( &cur_frame, r->roi, &object_mask ); // Masks the object, does not flip
             if( r->iter_count%a.refresh_count==0 ) // Refresh match.
             {
-                if( r->keypoints.source.size()<1 )
+                if( r->keypoints.source.size()<2 )
                 {
                     // TODO: Update roi and get new object.
                     // If there are no keypoints, how do we update ROI?
