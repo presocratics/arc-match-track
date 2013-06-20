@@ -1,4 +1,4 @@
-set args ../test/creeklist ../test/creektest1.amf
+set args ../test/creeklist ../test/creektest1.amf -rc 55 --no-ransac --match-ratio .71
 show args
 run
 where
