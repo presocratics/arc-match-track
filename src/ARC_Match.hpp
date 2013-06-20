@@ -2,12 +2,16 @@
 #define  ARC_Match_INC
 #include <iostream>
 #include <cv.h>
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/nonfree/features2d.hpp"
-using namespace std;
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
+#include <opencv2/video/tracking.hpp>
+#include <opencv2/features2d/features2d.hpp>
+#include <opencv2/nonfree/features2d.hpp>
+#include "config.hpp"
+using std::vector;
+using std::cerr;
+using std::cout;
+using std::endl;
 using namespace cv;
 // =====================================================================================
 //        Class:  ARC_Match
@@ -80,6 +84,11 @@ class ARC_Match
             isRansac = tf;
         }
 
+        void set_verbosity ( int v )
+        {
+            verbosity = v;
+        }
+
         // ====================  METHODS       ======================================= 
         bool match ( Mat& scene_img, Mat& object_img,
                     Mat& scene_mask, Mat& object_mask,
@@ -125,6 +134,8 @@ class ARC_Match
         bool isRatio;
         bool isSym;
         bool isRansac;
+
+        int verbosity;
 
 }; // -----  end of class ARC_Match  ----- 
 

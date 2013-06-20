@@ -28,18 +28,9 @@
  * =====================================================================================
  */
 
-#include <ARC_Match.hpp>
-#include <iostream>
-#include <cv.h>
-#include "opencv2/core/core.hpp"
-#include "opencv2/highgui/highgui.hpp"
-#include "opencv2/video/tracking.hpp"
-#include "opencv2/features2d/features2d.hpp"
-#include "opencv2/nonfree/features2d.hpp"
+#include "ARC_Match.hpp"
 #define ANGLE_HIGH_DEV 1.9 // Max dx/dy deviation
 #define ANGLE_LOW_DEV 0.60 // Min dx/dy deviation
-using namespace cv;
-using std::vector;
 
 
 /*
@@ -61,8 +52,15 @@ ARC_Match::ARC_Match (void)
     isRatio = true;
     isSym = true;
     isRansac = true;
+    verbosity = NOT_VERBOSE;
 }  /* -----  end of method ARC_Match::ARC_Match  (constructor)  ----- */
 
+//--------------------------------------------------------------------------------------
+//       Class:  ARC_Match
+//      Method:  angle_test :: angle_test
+// Description:  Filters matches that deviate too far from average dx, dy.
+//               NOTE: This method does not currently work!
+//--------------------------------------------------------------------------------------
     void 
 ARC_Match::angle_test(
     const vector<KeyPoint>& keypoints_scene,
@@ -83,13 +81,6 @@ ARC_Match::angle_test(
     }
     averages.x=sums.x/matches.size();
     averages.y=sums.y/matches.size();
-    /*
-    if( verbosity>=VERY_VERY_VERBOSE )
-    {
-        cout << "angle_filter: Avg x: " << averages.x << endl;
-        cout << "angle_filter: Avg y: " << averages.y << endl;
-    }
-    */
 
     vector<DMatch>::iterator match_iterator=matches.begin() ;
     while( match_iterator!=matches.end() )
@@ -128,6 +119,11 @@ ARC_Match::angle_test(
     return;
 }
 
+//--------------------------------------------------------------------------------------
+//       Class:  ARC_Match
+//      Method:  ARC_Match :: ransac_test
+// Description:  Performs RANSAC test to remove outliers.
+//--------------------------------------------------------------------------------------
     Mat
 ARC_Match::ransac_test (
         const vector<DMatch>& matches,
@@ -187,6 +183,13 @@ ARC_Match::ransac_test (
     return fundamental;
 }		/* -----  end of method ARC_Match::ransac_test  ----- */
 
+//--------------------------------------------------------------------------------------
+//       Class:  ARC_Match
+//      Method:  ARC_Match :: symmetry_test
+// Description:  Takes matches from knnMatch run in both directions,
+// source->scene and scene->source. Keeps only those matches that have
+// agreement in both sets and stores them in sym_matches.
+//--------------------------------------------------------------------------------------
     void
 ARC_Match::symmetry_test ( 
         const vector<vector<DMatch> >& matches_scene,
@@ -223,6 +226,13 @@ ARC_Match::symmetry_test (
     return ;
 }		/* -----  end of method ARC_Match::symmetry_test  ----- */
 
+//--------------------------------------------------------------------------------------
+//       Class:  ARC_Match
+//      Method:  ARC_Match :: ratio_test
+// Description:  Takes a set of matches from 2 neighbor knnMatch. Compares each
+// pair of matches, and removes the pair if the distance between the two is too
+// similar. "Too similar" is defined by ARC_Match::ratio.
+//--------------------------------------------------------------------------------------
     int
 ARC_Match::ratio_test ( vector<vector<DMatch> > &matches)
 {
@@ -256,6 +266,12 @@ ARC_Match::ratio_test ( vector<vector<DMatch> > &matches)
     return removed;
 }		/* -----  end of method ARC_Match::ratio_test  ----- */
 
+//--------------------------------------------------------------------------------------
+//       Class:  ARC_Match
+//      Method:  ARC_Match :: match
+// Description:  Runs the matching algorithm between and object and a scene.
+// Ratio, symmetry, and RANSAC tests are performed as specified by the user.
+//--------------------------------------------------------------------------------------
     bool
 ARC_Match::match ( Mat& scene_img, Mat& object_img,
             Mat& scene_mask, Mat& object_mask,
@@ -266,7 +282,7 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
 
     matches.clear();
     Mat descriptors_scene, descriptors_object;
-    // Only update object keypoints if we don't have any.
+    // Only update object keypoints if we have too few.
     if( keypoints_object.size()<2 )
     {
         keypoints_object.clear();
@@ -274,7 +290,7 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     }
     extractor->compute( object_img, keypoints_object, descriptors_object );
 
-    // Detect features
+    // Detect scene features
     keypoints_scene.clear();
     detector->detect( scene_img, keypoints_scene );
     extractor->compute( scene_img, keypoints_scene, descriptors_scene );
@@ -306,7 +322,8 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
         symmetry_test( matches_scene, matches_object, sym_matches );
     else
         sym_matches = matches_scene[0];
-    cout << "match: sym_matches: " << sym_matches.size() << endl;
+    if( verbosity>=VERY_VERBOSE )
+        cout << "match: sym_matches: " << sym_matches.size() << endl;
     if( isRansac )
     {
         if( sym_matches.size()<min_points ) return false;
@@ -319,40 +336,6 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
         else 
             return false;
     }
-    /*
-    // TODO: This is not calculating E[X] and Var(X) correctly.
-    Moments mome = moments( points_scene, false );
-    Point2f scm( mome.m10/mome.m00, mome.m01/mome.m00 );
-    Point2f stddev( sqrt(abs(mome.mu20/mome.m00)), sqrt(abs(mome.mu02/mome.m00)) );
-    if( a.debug == DEBUG )
-        cout << "Normalized CM: " << mome.nu20 << ", " << mome.nu02<< endl;
-        */
-    /*
-    // Create an ellipse shaped contour
-    Mat ellipse_mask;
-    ellipse_mask=Mat::zeros(cur_frame.size(), CV_8UC1);
-    ellipse(ellipse_mask, scm, (Size) (3 * stddev), 0, 0, 360, 255, 1, 8);
-    vector<vector<Point> > c;
-    findContours( ellipse_mask, c, CV_RETR_LIST, CV_CHAIN_APPROX_NONE );
-
-    // Test if there are any contours (No contour if our ellipse was bad).
-    if( c.size() < 1 )
-        continue;
-    // Remove points that are not in the contour.
-    vector<Point2f>::iterator it=points_scene.begin() ;
-    while( it!=points_scene.end() )
-    {
-        if( pointPolygonTest(c[0], *it, false)>=0 )
-        {
-            circle( cur_frame,*it,2,Scalar(255) );
-            ++it;
-        }
-        else
-        {
-            it=points_scene.erase(it);
-        }
-    }
-    */
     return true;
 }		/* -----  end of method ARC_Match::match  ----- */
 
