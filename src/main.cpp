@@ -20,7 +20,6 @@
 #include "config.hpp"
 using namespace std;
 
-
 // ===  FUNCTION  ======================================================================
 //         Name:  update_roi
 //  Description:  Returns a new ROI centerd on the center of mass of the input
@@ -336,7 +335,7 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
             r->direction.match );
     }
 
-    return true;                                //TODO Should this ever be false? Maybe if there are 0 points being tracked
+    return ( new_points.source.size()>0 ) ? true : false;                                //TODO Should this ever be false? Maybe if there are 0 points being tracked
 }		// -----  end of method ARC_Pair::track  ----- 
 
 // ===  FUNCTION  ======================================================================
@@ -757,7 +756,7 @@ int main(int argc, char** argv)
                     else
                         cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
                 }
-                track(gray, prev_gray, &(*r) );
+                if ( !track(gray, prev_gray, &(*r) ) ) r->iter_count=0;
                 if( a.verbosity>=VERY_VERBOSE )
                 {
                     if( r->direction.track==DOWN )
