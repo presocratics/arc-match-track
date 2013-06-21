@@ -225,7 +225,7 @@ void extract_good_points( vector<Point2f>& in_train_pts, vector<Point2f>* out_tr
 //  Returns the flipped crop. Mask pointer input is the mask.
 //  TODO: Mask may not be necessary.
 //  =====================================================================================
-Mat process_object ( Mat* frame, Rect roi, Mat* mask, bool blur )
+Mat process_object ( Mat* frame, Rect roi, Mat* mask )
 {
     // Flip the roi
     Mat object, flipped;
@@ -233,12 +233,6 @@ Mat process_object ( Mat* frame, Rect roi, Mat* mask, bool blur )
     object = (*frame)(roi & scene_rect);
     flip(object, flipped, 0);
 
-    if( blur==true )
-    {
-        Mat blurred;
-        medianBlur( flipped, blurred, 3 );      // TODO: 3 blur is good?
-        return blurred;
-    }
     return flipped;
     //return masked_frame;
 }		// -----  end of function process_object  ----- 
@@ -259,7 +253,7 @@ void help( string program_name )
          << ARG_RATIO_OFF << tab << "Disable ratio test." << endl
          << ARG_SYMTEST_OFF << tab << "Disable symmetry test (DOES NOT WORK)." << endl
          << ARG_RANSAC_OFF << tab << "Disable ransac test." << endl
-         << ARG_BLUR << tab << "Median blur source before comparing to reflection." << endl
+         << ARG_BLUR << tab << "Median blur scene for tracking." << endl
 
          << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test. "
          << "Default: " << DEFAULT_MATCH_RATIO << endl
@@ -298,13 +292,13 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
     {
         keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
                 &good_points.source, &good_points.reflection,
-                r->matches, r->roi, r->direction.match );
+                r->matches, r->roi.source, r->direction.match );
     }
     else
     {
         keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
                 &good_points.reflection, &good_points.source,
-                r->matches, r->roi, r->direction.match );
+                r->matches, r->roi.reflection, r->direction.match );
     }
     // Do the tracking.
     size_t i;
@@ -330,19 +324,19 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
     {
         // Update ROI.
         if( new_points.source.size()>0 )
-            r->roi = update_roi( r->roi, good_points.source );
+            r->roi.source = update_roi( r->roi.source, good_points.source );
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
-            new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi, 
+            new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
             r->direction.match );
     }
     else
     {
         good_points_to_keypoints( new_points.reflection, &(r->keypoints.reflection),
-            new_points.source, &(r->keypoints.source), &(r->matches), r->roi,
+            new_points.source, &(r->keypoints.source), &(r->matches), r->roi.reflection,
             r->direction.match );
     }
 
-    return true;                                //TODO Should this ever be false?
+    return true;                                //TODO Should this ever be false? Maybe if there are 0 points being tracked
 }		// -----  end of method ARC_Pair::track  ----- 
 
 // ===  FUNCTION  ======================================================================
@@ -482,7 +476,10 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
         {
             Rect roi(loc,dim);
             ARC_Pair region;
-            region.roi = roi;
+            if( direction==DOWN )
+                region.roi.source = roi;
+            else
+                region.roi.reflection = roi;
             region.direction.track = region.direction.match = direction;
             region.slope = -slope;
             region.iter_count = 0;
@@ -564,6 +561,7 @@ int main(int argc, char** argv)
     }
     if( a.debug==DEBUG )
     {
+        string blur_status = ( a.blur ) ? "true" : "false" ;
         cout
             << "ARGUMENTS" << endl
             << "Refresh Count:" << tab << a.refresh_count << endl
@@ -573,6 +571,7 @@ int main(int argc, char** argv)
             << "Show Track:" << tab << a.show_track << endl
             << "Match Ratio:" << tab << a.match_ratio << endl
             << "Min Match Points:" << tab << a.min_match_points << endl
+            << "Blur: " << tab << blur_status << endl
             << "Video Filename:" << tab << a.video_filename <<
             endl;
     }
@@ -632,6 +631,8 @@ int main(int argc, char** argv)
             exit (EXIT_FAILURE);
         }
         cvtColor(cur_frame, gray, CV_BGR2GRAY);
+        if( a.blur )
+            medianBlur( gray, gray, 7 );
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
 
@@ -640,8 +641,12 @@ int main(int argc, char** argv)
         {
             Mat object_mask, scene_mask;
             // Prepare object for matching.
-            Mat flipped = process_object( &cur_frame, r->roi, &object_mask,
-                    ( r->direction.match==DOWN ) ? a.blur : false ); 
+            Mat flipped;
+            if( r->direction.match==DOWN )
+                flipped = process_object( &cur_frame, r->roi.source, &object_mask );
+            else
+                flipped = process_object( &cur_frame, r->roi.reflection, &object_mask );
+
             if( r->iter_count%a.refresh_count==0 ) // Refresh match.
             {
                 // Remove all keypoints that don't have matches.
@@ -652,8 +657,17 @@ int main(int argc, char** argv)
                     cout << "main: Too few keypoints." << endl;
 
                 // mask the search region
-                Mat masked_frame = get_masked_frame(r->roi, r->slope,
-                        r->direction.match, &cur_frame, &scene_mask );
+                Mat masked_frame;
+                if( r->direction.match==DOWN )
+                {
+                    masked_frame = get_masked_frame( r->roi.source, r->slope,
+                            r->direction.match, &cur_frame, &scene_mask );
+                }
+                else
+                {
+                    masked_frame = get_masked_frame( r->roi.reflection, r->slope,
+                            r->direction.match, &cur_frame, &scene_mask );
+                }
 
                 // Run matcher
                 bool isMatch;
@@ -726,34 +740,44 @@ int main(int argc, char** argv)
                         // train, query, train, query, matches, roi
                         keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
                                 &old_good_points.source, &old_good_points.reflection,
-                                r->matches, r->roi, r->direction.match );
+                                r->matches, r->roi.source, r->direction.match );
                     }
                     else
                     {
                         keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
                                 &old_good_points.reflection, &old_good_points.source,
-                                r->matches, r->roi, r->direction.match );
+                                r->matches, r->roi.reflection, r->direction.match );
                     }
                 }
 
                 if( a.verbosity>=VERY_VERBOSE )
-                    cout << "ROI at " << r->roi.tl() << (Point2f) r->roi.size() << endl;
+                {
+                    if( r->direction.track==DOWN )
+                        cout << "ROI at " << r->roi.source.tl() << (Point2f) r->roi.source.size() << endl;
+                    else
+                        cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
+                }
                 track(gray, prev_gray, &(*r) );
                 if( a.verbosity>=VERY_VERBOSE )
-                    cout << "New ROI at " << r->roi.tl() << (Point2f) r->roi.size() << endl;
+                {
+                    if( r->direction.track==DOWN )
+                        cout << "New ROI at " << r->roi.source.tl() << (Point2f) r->roi.source.size() << endl;
+                    else
+                        cout << "New ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
+                }
 
                 if( r->direction.track==DOWN )
                 {
                     // train, query, train, query, matches, roi
                     keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
                             &good_points.source, &good_points.reflection,
-                            r->matches, r->roi, r->direction.match );
+                            r->matches, r->roi.source, r->direction.match );
                 }
                 else
                 {
                     keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
                             &good_points.reflection, &good_points.source,
-                            r->matches, r->roi, r->direction.match );
+                            r->matches, r->roi.reflection, r->direction.match );
                 }
                 if( a.debug==DEBUG )
                 {
@@ -767,7 +791,7 @@ int main(int argc, char** argv)
                 
                             
                 draw_match_by_hand( &drawn_matches, &cur_frame,
-                        &flipped, r->roi,
+                        &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
                         good_points.source, good_points.reflection );
             }
         }
