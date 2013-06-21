@@ -33,7 +33,10 @@ typedef struct ARC_Pair_t
         unsigned int match;
         unsigned int track;
     } direction;
-    Rect roi;
+    struct {
+        Rect source;
+        Rect reflection;
+    } roi;
     double slope;
     struct {
         vector<KeyPoint> reflection;
