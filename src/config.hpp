@@ -29,9 +29,11 @@
 #define DEFAULT_WINDOW_NAME "Window"
 #define DEFAULT_IMG_FILENAME "out.jpg"
 #define DEFAULT_VID_FILENAME "out.avi"
+#define DEFAULT_TXT_FILENAME "matches.txt"
 
 // Options
 #define ARG_VID_FILE "-vf"                      // Set video filename.
+#define ARG_TXT_FILE "-o"                      // Set output text filename.
 
 // Match parameters
 #define ARG_MATCH_RATIO "--match-ratio"         // Set threshold for ratio_test.

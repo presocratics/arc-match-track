@@ -21,6 +21,24 @@
 using namespace std;
 
 // ===  FUNCTION  ======================================================================
+//         Name:  write_output
+//  Description:  
+// =====================================================================================
+void write_output ( ofstream ofs, string frame_name,
+        vector<KeyPoint> source_key, vector<KeyPoint> reflection_key )
+{
+    for( size_t i=0 ; i<source_key.size() ; ++i )
+    {
+        Point2f s = source_points[i];
+        Point2f r = reflection_points[i];
+        cout << frame_name << spc << base+i << spc
+             << s.x << spc << s.y << spc
+             << r.x << spc << r.y
+             << endl;
+    }
+    return ;
+}		// -----  end of function write_output  ----- 
+// ===  FUNCTION  ======================================================================
 //         Name:  update_roi
 //  Description:  Returns a new ROI centerd on the center of mass of the input
 //  set of points. If the center of mass is NaN, then the input ROI is
@@ -249,6 +267,7 @@ void help( string program_name )
          << ARG_SHOW_MATCHES << tab << "Show matches." << endl
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
+         << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
          << ARG_RATIO_OFF << tab << "Disable ratio test." << endl
          << ARG_SYMTEST_OFF << tab << "Disable symmetry test (DOES NOT WORK)." << endl
          << ARG_RANSAC_OFF << tab << "Disable ransac test." << endl
@@ -414,6 +433,7 @@ void arguments::arguments()
     show_match = NO_SHOW_MATCHES;
     show_track = SHOW_TRACKING;
     video_filename = DEFAULT_VID_FILENAME;
+    text_filename = DEFAULT_TXT_FILENAME;
     return;
 }
 
@@ -534,6 +554,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->video_filename=argv[++i];
             continue;
         }
+        if( !strcmp(argv[i], ARG_TXT_FILE) ) 
+        {
+            a->text_filename=argv[++i];
+            continue;
+        }
         if( !strcmp(argv[i], ARG_REFRESH_COUNT) ) 
         {
             a->refresh_count=atoi(argv[++i]);
@@ -577,6 +602,16 @@ int main(int argc, char** argv)
     get_image_list( argv[1], &image_list );     // Reads in the image list.
     get_regions( argv[2], &regions );           // Reads in the region list.
 
+    // Init text file
+
+    string    ofs_file_name = a.text_filename;                 // output file name 
+    ofstream  ofs;                                // create ofstream object 
+
+    ofs.open ( ofs_file_name.c_str() );           // open ofstream 
+    if (!ofs) {
+        cerr << "\nERROR : failed to open output file " << ofs_file_name << endl;
+        exit (EXIT_FAILURE);
+    }
     // Init Video
     Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
     VideoWriter vidout;
@@ -592,11 +627,10 @@ int main(int argc, char** argv)
     Ptr<FeatureDetector> pfd = new SurfFeatureDetector( 1 );
     Ptr<DescriptorExtractor> pde = new SurfDescriptorExtractor();
     Ptr<DescriptorMatcher> pdm = new FlannBasedMatcher();
-    /*
-    Ptr<FeatureDetector> pfd = new SiftFeatureDetector( );
-    Ptr<DescriptorExtractor> pde = new SiftDescriptorExtractor();
-    Ptr<DescriptorMatcher> pdm = new BFMatcher( NORM_L1, false );
-    */
+    
+    //Ptr<FeatureDetector> pfd = new SiftFeatureDetector( );
+    //Ptr<DescriptorExtractor> pde = new SiftDescriptorExtractor();
+    //Ptr<DescriptorMatcher> pdm = new BFMatcher( NORM_L1, false );
 
     double confidence = 0.99f;                  // Confidence ratio for RANSAC.
     double distance = 3.5;                      // Max distance from epipolar lines.
@@ -789,6 +823,7 @@ int main(int argc, char** argv)
                 }
                 
                             
+                write_output( ofs, image_list[i], r->keypoints.source, r->keypoints.reflection );
                 draw_match_by_hand( &drawn_matches, &cur_frame,
                         &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
                         good_points.source, good_points.reflection );
@@ -799,6 +834,6 @@ int main(int argc, char** argv)
         waitKey(5);
         vidout << drawn_matches;
     }
+    ofs.close ();                                 // close ofstream 
 	return 0;
 }
-

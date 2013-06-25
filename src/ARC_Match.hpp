@@ -1,5 +1,6 @@
 #ifndef  ARC_MATCH_INC
 #define  ARC_Match_INC
+#include <queue>
 #include <iostream>
 #include <cv.h>
 #include <opencv2/core/core.hpp>
@@ -96,6 +97,11 @@ class ARC_Match
                     vector<KeyPoint>& keypoints_scene,
                     vector<KeyPoint>& keypoints_object );
 
+        void angle_test(
+            const vector<KeyPoint>& keypoints_scene,
+            const vector<KeyPoint>& keypoints_object,
+            vector<DMatch>& matches,
+            vector<DMatch>& good_matches );
         // ====================  OPERATORS     ======================================= 
         //ARC_Match& operator = ( const ARC_Match &other ); // assignment operator 
 
@@ -106,6 +112,7 @@ class ARC_Match
 
     private:
         // ====================  METHODS       ======================================= 
+        float median ( float list[], int n );
         int ratio_test( vector<vector<DMatch> > &matches );
         void symmetry_test ( 
             const vector<vector<DMatch> >& matches_scene,
@@ -116,11 +123,6 @@ class ARC_Match
             const vector<KeyPoint>& keypoints_scene,
             const vector<KeyPoint>& keypoints_object,
             vector<DMatch>& out_matches );
-        void angle_test(
-            const vector<KeyPoint>& keypoints_scene,
-            const vector<KeyPoint>& keypoints_object,
-            vector<DMatch>& matches,
-            vector<DMatch>& good_matches );
 
         // ====================  DATA MEMBERS  ======================================= 
         Ptr<FeatureDetector> detector;

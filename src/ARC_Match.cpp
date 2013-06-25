@@ -55,6 +55,21 @@ ARC_Match::ARC_Match (void)
     verbosity = NOT_VERBOSE;
 }  /* -----  end of method ARC_Match::ARC_Match  (constructor)  ----- */
 
+
+
+    float
+ARC_Match::median ( float list[], int n )
+{
+    std::priority_queue<float> vals;
+    for( int i=0; i<n; ++i )
+    {
+        vals.push( list[i] );
+    }
+    int k = n/2;
+    while( k-->0 ) vals.pop();
+    return vals.top();
+}		// -----  end of method ARC_Match::median  ----- 
+
 //--------------------------------------------------------------------------------------
 //       Class:  ARC_Match
 //      Method:  angle_test :: angle_test
@@ -68,52 +83,58 @@ ARC_Match::angle_test(
     vector<DMatch>& matches, 
     vector<DMatch>& good_matches )
 {
-    Point2f sums(0, 0);
-    Point2f averages, delta;
-    double upper_x, upper_y, lower_x, lower_y;
+    // Get median x and y.
+    float *Xs, *Ys;
 
+    Xs	= (float*) calloc ( (size_t)( matches.size() ), sizeof(float) );
+    if ( Xs==NULL ) {
+        fprintf ( stderr, "\ndynamic memory allocation failed\n" );
+        exit (EXIT_FAILURE);
+    }
+    Ys	= (float*) calloc ( (size_t)( matches.size() ), sizeof(float) );
+    if ( Ys==NULL ) {
+        fprintf ( stderr, "\ndynamic memory allocation failed\n" );
+        exit (EXIT_FAILURE);
+    }
+
+    vector<Point2f> deltas;
     for( size_t i = 0; i < matches.size(); i++)
     {
         Point2f point1 = keypoints_scene[matches[i].queryIdx].pt;
         Point2f point2 = keypoints_object[matches[i].trainIdx].pt;
 
-        sums+=(point1-point2);
+        Point2f diff=(point1-point2);
+        Xs[i] = diff.x ;
+        Ys[i] =  diff.y ;
+        deltas.push_back( diff );
     }
-    averages.x=sums.x/matches.size();
-    averages.y=sums.y/matches.size();
+    float medianX = median( Xs, matches.size() );
+    float medianY = median( Ys, matches.size() );
+    Xs	= NULL;
+    free (Xs);
+    Ys	= NULL;
+    free (Ys);
 
-    vector<DMatch>::iterator match_iterator=matches.begin() ;
-    while( match_iterator!=matches.end() )
+        int k = matches.size()/2;
+        cout << k << "th x: " << medianX << endl;
+        cout << k << "th y: " << medianY << endl;
+
+    // Remove outliers.
+    float upper_x, lower_x, upper_y, lower_y;
+    upper_x = fmax(medianX * ANGLE_HIGH_DEV, medianX * ANGLE_LOW_DEV);
+    lower_x = fmin(medianX * ANGLE_HIGH_DEV, medianX * ANGLE_LOW_DEV);
+
+    upper_y = fmax(medianY * ANGLE_HIGH_DEV, medianY * ANGLE_LOW_DEV);
+    lower_y = fmin(medianY * ANGLE_HIGH_DEV, medianY * ANGLE_LOW_DEV);
+    for( size_t i=0; i<matches.size(); ++i )
     {
-        Point2f point1 = keypoints_scene[match_iterator->queryIdx].pt;
-        Point2f point2 = keypoints_object[match_iterator->trainIdx].pt;
-        delta=point1 - point2;
-        /*
-        if( verbosity>=VERY_VERBOSE )
-        {
-            cout << "angle_filter: delta.x: " << delta.x << endl;
-            cout << "angle_filter: delta.y: " << delta.y << endl;
-        }
-        */
-        upper_x = fmax(averages.x * ANGLE_HIGH_DEV, averages.x * ANGLE_LOW_DEV);
-        lower_x = fmin(averages.x * ANGLE_HIGH_DEV, averages.x * ANGLE_LOW_DEV);
-
-        upper_y = fmax(averages.y * ANGLE_HIGH_DEV, averages.y * ANGLE_LOW_DEV);
-        lower_y = fmin(averages.y * ANGLE_HIGH_DEV, averages.y * ANGLE_LOW_DEV);
-
+        Point2f delta = deltas[i];
         if( delta.x < upper_x &&
             delta.x > lower_x  &&
             delta.y < upper_y &&
             delta.y > lower_y )
         {
-            good_matches.push_back(*match_iterator);
-            ++match_iterator;
-            //current_segment->good_matches.push_back(current_segment->matches[i]); 
-            //if( verbosity>=VERY_VERY_VERBOSE  ) cout << "angle_filter: push" << endl;
-        }
-        else
-        {
-            match_iterator++;
+            good_matches.push_back( matches[i] );
         }
     }
     return;

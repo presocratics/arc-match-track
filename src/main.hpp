@@ -27,10 +27,15 @@ typedef struct arguments_t {
     double match_ratio;
     unsigned int min_match_points;
     string video_filename;
+    string text_filename;
     bool isRatio, isSym, isRansac, blur;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
+
+void write_output ( ofstream ofs, string frame_name,
+        vector<Points2f> source_pts, vector<Points2f> reflection_pts,
+        int base );
 
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 
