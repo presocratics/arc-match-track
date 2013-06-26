@@ -1,6 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
 #include <iostream>
+#include <ostream>
 #include <string>
 #include <vector>
 #include <fstream>
@@ -11,6 +12,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "ARC_Pair.hpp"
+#include "ARC_Write.hpp"
 #include "config.hpp"
 
 typedef struct PPC_t {                          // Point Pair Conversion
@@ -32,10 +34,6 @@ typedef struct arguments_t {
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
-
-void write_output ( ofstream ofs, string frame_name,
-        vector<Points2f> source_pts, vector<Points2f> reflection_pts,
-        int base );
 
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 

@@ -20,24 +20,7 @@
 #include "config.hpp"
 using namespace std;
 
-// ===  FUNCTION  ======================================================================
-//         Name:  write_output
-//  Description:  
-// =====================================================================================
-void write_output ( ofstream ofs, string frame_name,
-        vector<KeyPoint> source_key, vector<KeyPoint> reflection_key )
-{
-    for( size_t i=0 ; i<source_key.size() ; ++i )
-    {
-        Point2f s = source_points[i];
-        Point2f r = reflection_points[i];
-        cout << frame_name << spc << base+i << spc
-             << s.x << spc << s.y << spc
-             << r.x << spc << r.y
-             << endl;
-    }
-    return ;
-}		// -----  end of function write_output  ----- 
+
 // ===  FUNCTION  ======================================================================
 //         Name:  update_roi
 //  Description:  Returns a new ROI centerd on the center of mass of the input
@@ -603,15 +586,8 @@ int main(int argc, char** argv)
     get_regions( argv[2], &regions );           // Reads in the region list.
 
     // Init text file
+    ARC_Write writer( a.text_filename );
 
-    string    ofs_file_name = a.text_filename;                 // output file name 
-    ofstream  ofs;                                // create ofstream object 
-
-    ofs.open ( ofs_file_name.c_str() );           // open ofstream 
-    if (!ofs) {
-        cerr << "\nERROR : failed to open output file " << ofs_file_name << endl;
-        exit (EXIT_FAILURE);
-    }
     // Init Video
     Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
     VideoWriter vidout;
@@ -822,8 +798,8 @@ int main(int argc, char** argv)
                     }
                 }
                 
-                            
-                write_output( ofs, image_list[i], r->keypoints.source, r->keypoints.reflection );
+                writer.write_matches( image_list[i], r->keypoints.reflection, r->keypoints.source,
+                        r->matches );
                 draw_match_by_hand( &drawn_matches, &cur_frame,
                         &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
                         good_points.source, good_points.reflection );
@@ -834,6 +810,5 @@ int main(int argc, char** argv)
         waitKey(5);
         vidout << drawn_matches;
     }
-    ofs.close ();                                 // close ofstream 
 	return 0;
 }
