@@ -23,15 +23,26 @@ ARC_Write::ARC_Write ( std::string f )
 {
     current_id = 0;
     filename = f;
+
+    std::ofstream  ofs;                                // create ofstream object 
+
+    ofs.open ( filename.c_str() );           // open ofstream 
+    if (!ofs) {
+        cerr << "\nERROR : failed to open output file " << filename << endl;
+        exit (EXIT_FAILURE);
+    }
+    // This tests that we can open the file, and clear any existing, so we can
+    // later write with append without appending to some existing thing.
+    ofs.close ();                                 // close ofstream 
     return ;
 }		/* -----  end of method ARC_Write::ARC_Write  ----- */
 
     void
-ARC_Write::write_matches ( std::string frame_name,
+ARC_Write::write_matches ( size_t frame_num,
         std::vector<cv::KeyPoint>& source_kpt, std::vector<cv::KeyPoint>& reflection_kpt,
-        std::vector<cv::DMatch>& matches )
+        std::vector<cv::DMatch>& matches, Rect roi )
 {
-
+//TODO support directions.
     std::string    ofs_file_name = filename;                 /* output file name */
     std::ofstream  ofs;                                /* create ofstream object */
 
@@ -40,17 +51,24 @@ ARC_Write::write_matches ( std::string frame_name,
         std::cerr << "\nERROR : failed to open output file " << ofs_file_name << std::endl;
         exit (EXIT_FAILURE);
     }
+    PPC good_points;
+    keypoints_to_goodpoints( source_kpt, reflection_kpt,
+            &good_points.source, &good_points.reflection,
+            matches, roi, DOWN );
+    size_t i=0;
     for( std::vector<cv::DMatch>::iterator it=matches.begin() ;
-            it!=matches.end(); ++it )
+            it!=matches.end(); ++it, ++i )
     {
         unsigned int id;
-        cv::KeyPoint sk = source_kpt[ it->queryIdx ];
+        cv::KeyPoint sk = source_kpt[ it->trainIdx ];
         cv::KeyPoint rk = reflection_kpt[ it->queryIdx ];
+        cv::Point2f sp = good_points.source[ i ];
+        cv::Point2f rp = good_points.reflection[ i ];
         id = get_id( sk );
-        std::cout << frame_name << spc
+        ofs << frame_num << spc
              << id << spc
-             << sk.pt.x << spc << sk.pt.y << spc
-             << rk.pt.x << spc << rk.pt.y << std::endl;
+             << sp.x << spc << sp.y << spc
+             << rp.x << spc << rp.y << std::endl;
     }
     ofs.close ();                                 /* close ofstream */
     return ;

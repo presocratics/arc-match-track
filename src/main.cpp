@@ -326,6 +326,7 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
         // Update ROI.
         if( new_points.source.size()>0 )
             r->roi.source = update_roi( r->roi.source, good_points.source );
+
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
             r->direction.match );
@@ -337,7 +338,7 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
             r->direction.match );
     }
 
-    return ( new_points.source.size()>0 ) ? true : false;                                //TODO Should this ever be false? Maybe if there are 0 points being tracked
+    return ( new_points.source.size()>0 ) ? true : false;
 }		// -----  end of method ARC_Pair::track  ----- 
 
 // ===  FUNCTION  ======================================================================
@@ -793,13 +794,17 @@ int main(int argc, char** argv)
                     cout << "main: track:" << endl;
                     for( size_t i=0; i<old_good_points.source.size(); ++i )
                     {
+                        cout << "SOURCE:" << endl;
                         cout << "Before: " << old_good_points.source[i] << tab
                              << "After: " << good_points.source[i] << endl;
+                        cout << "REFLECTION:" << endl;
+                        cout << "Before: " << old_good_points.reflection[i] << tab
+                             << "After: " << good_points.reflection[i] << endl;
                     }
                 }
                 
-                writer.write_matches( image_list[i], r->keypoints.reflection, r->keypoints.source,
-                        r->matches );
+                writer.write_matches( i, r->keypoints.source, r->keypoints.reflection,
+                        r->matches, r->roi.source );
                 draw_match_by_hand( &drawn_matches, &cur_frame,
                         &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
                         good_points.source, good_points.reflection );

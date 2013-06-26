@@ -7,6 +7,7 @@
 #include <map>
 #include <vector>
 #include <cv.h>
+#include "main.hpp"
 
 /*
  * =====================================================================================
@@ -30,9 +31,9 @@ class ARC_Write
 
         /* ====================  OPERATORS     ======================================= */
         /* ====================  METHODS       ======================================= */
-        void write_matches( std::string frame_name, 
+        void write_matches( size_t frame_num, 
                 std::vector<cv::KeyPoint>& source_kpt, std::vector<cv::KeyPoint>& reflection_kpt,
-                std::vector<cv::DMatch>& matches );
+                std::vector<cv::DMatch>& matches, Rect roi );
 
     protected:
         /* ====================  METHODS       ======================================= */
