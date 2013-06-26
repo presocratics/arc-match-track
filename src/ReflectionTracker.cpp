@@ -8,37 +8,17 @@
 #include <string>
 #include "config.hpp"
 #include "ARC_Pair.hpp"
-
+#include "ReflectionTracker.hpp"
 using namespace std;
 using namespace cv;
 
-int verbosity = NOT_VERBOSE;
-bool displayRegions = true;
-bool displayWindows = false;
-class Cropper{
-	public: 
-		Mat original, cropped;
-		int x1,y1,x2,y2;
-		bool isCropping;
-		bool displayRegions;
-		bool displayWindows;
-		Cropper(Mat& image);
-		vector<Mat> templates[2];
-		int verbosity;
-};
-
-Cropper::Cropper(Mat& image){
-	
-	original = image;
-	isCropping = false;
-    displayRegions = true;
-    displayWindows = false;
-    verbosity = NOT_VERBOSE;
-}
+int verbosity;
+bool displayRegions;
+bool displayWindows;
 
 		
-void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
-		
+
+void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 	//int c; //TODO unused?
 	//int argNum = 1; //TODO unused?
 	/*
@@ -55,13 +35,12 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
 	}*/
 
     if(!frame.data) cout << "Image couldn't be loaded\n";
-	Cropper obj ( frame );
 	namedWindow( "Source", CV_WINDOW_AUTOSIZE );
 //	setMouseCallback("Source", Cropper::onMouse, &obj);
 //	obj.isCropping=true;
 
 	Mat sourceCopy;
-	obj.original.copyTo( sourceCopy );
+	frame.copyTo( sourceCopy );
 	cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
 
     if( verbosity>=VERBOSE ) 
@@ -72,7 +51,7 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
     vector<Rect> reflections; 
     vector<Rect> originalMatches;
 
-	//int maxNumFeaturesToTrack = (obj.original.cols-patchSize)*(obj.original.rows-patchSize); //TODO: unused?
+	//int maxNumFeaturesToTrack = (frame.cols-patchSize)*(frame.rows-patchSize); //TODO: unused?
 	
 	//FIND GOOD FEATURES TO TRACK BASED ON CERTAIN PARAMETERS AND STORE IN points[0]
 	goodFeaturesToTrack(sourceCopy,points[0],20,.01,patchSize+10,Mat(),3,0,0.04);
@@ -90,12 +69,12 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
         }
     }
 
-	Mat sourceCopy2 = obj.original.clone();
+	Mat sourceCopy2 = frame.clone();
 	int pointsLength = points[0].size();
 
-	//medianBlur(sourceCopy2,obj.original,3);
+	//medianBlur(sourceCopy2,frame,3);
 	//namedWindow("Median blur",CV_WINDOW_AUTOSIZE);
-	//imshow("Median blur", obj.original);
+	//imshow("Median blur", frame);
 	//waitKey(0);
 	
 	if( verbosity>=VERY_VERBOSE ) 
@@ -123,7 +102,7 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
             outvector.push_back( temp_pair );
 
             Scalar color ( 26, 7, 191 );
-            Mat temp = obj.original.clone();
+            Mat temp = frame.clone();
             //	cout<<"Right side difference: "<<sourceCopy.cols-points[0][i].x-patchSize<<endl;
             //	cout<<"Bottom side difference: "<<sourceCopy.rows-points[0][i].y-patchSize<<endl;
             temp = temp( rect );
@@ -148,8 +127,8 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
 		Mat tmplte = templates[0][i];
 		flip(tmplte,tmplte,0);
 
-		int result_cols = obj.original.cols-tmplte.cols+1;
-		int result_rows = obj.original.rows-tmplte.rows+1;
+		int result_cols = frame.cols-tmplte.cols+1;
+		int result_rows = frame.rows-tmplte.rows+1;
 		Mat result;
 		result.create(result_cols,result_rows, CV_32FC1);
 
@@ -162,12 +141,12 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
 		int match_method = 5;
 		//Specifies vertical search region that extends 2.5 times template width on each side from initial template location
 		Mat mask; Mat masked_scene;
-		mask = Mat::zeros( obj.original.size(), CV_8UC1 );
+		mask = Mat::zeros( frame.size(), CV_8UC1 );
 		//int leftSearchArea = points[0][i].x-(int)(.75*tmplte.cols);
         int leftSearchArea = points[0][i].x-30;
-		Rect searchRegion (leftSearchArea,0,2*tmplte.cols,obj.original.rows);
+		Rect searchRegion (leftSearchArea,0,2*tmplte.cols,frame.rows);
 		rectangle(mask,searchRegion,255,CV_FILLED);
-		obj.original.copyTo(masked_scene,mask);
+		frame.copyTo(masked_scene,mask);
 		//namedWindow("Mask",CV_WINDOW_AUTOSIZE);
 		//imshow("Mask",masked_scene);
 		//moveWindow("Mask",800,800);
@@ -215,7 +194,7 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
 		else{
 			rectangle(sourceCopy2, matchLoc, Point(matchLoc.x+tmplte.cols,matchLoc.y+tmplte.rows),reflectionColor ,2,8,0);
 			line(sourceCopy2,points[0][i],matchLoc,reflectionColor,1,8,0);
-			circle(obj.original,matchLoc,4,reflectionColor,-1,8,0);
+			circle(frame,matchLoc,4,reflectionColor,-1,8,0);
 		}*/
 	//	cout<<"Original x: "<<points[0][i].x<<" Original y: "<<points[0][i].y<<endl;
 	//	cout<<"Reflection x: "<<matchLoc.x<<" Reflection.y: "<<matchLoc.y<<endl;
@@ -259,12 +238,12 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
     }
 	for( size_t i=0; i<reflections.size(); i++)
     {
-		Mat temp = obj.original.clone();	
+		Mat temp = frame.clone();	
 		Mat refl = temp(reflections[i]);
 		flip(refl,refl,0);
 
-		int result_cols = obj.original.cols-refl.cols+1;
-        int result_rows = obj.original.rows-refl.rows+1;
+		int result_cols = frame.cols-refl.cols+1;
+        int result_rows = frame.rows-refl.rows+1;
         Mat result;
         result.create(result_cols,result_rows, CV_32FC1);
 
@@ -277,11 +256,11 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
         int match_method = 5;
         //SPECIFIES VERTICAL SEARCH REGION THAT EXTENDS .75 TIMES TEMPLATE WIDTH ON EACH SIDE FROM INITIAL TEMPLATE LOCATION
         Mat mask; Mat masked_scene;
-        mask = Mat::zeros(obj.original.size(),CV_8UC1);
+        mask = Mat::zeros(frame.size(),CV_8UC1);
         int leftSearchArea = reflections[i].x-40;
-        Rect searchRegion (leftSearchArea,0,2*refl.cols,obj.original.rows);
+        Rect searchRegion (leftSearchArea,0,2*refl.cols,frame.rows);
         rectangle(mask,searchRegion,255,CV_FILLED);
-        obj.original.copyTo(masked_scene,mask);
+        frame.copyTo(masked_scene,mask);
 
 		matchTemplate(masked_scene, refl, result, match_method);
         normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
@@ -302,7 +281,7 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> outvector){
 		Rect org_rfl( matchLoc.x,matchLoc.y, patchSize,patchSize );
 		originalMatches.push_back( org_rfl );
 	
-	/*	Mat sourceCopy3 = obj.original.clone();
+	/*	Mat sourceCopy3 = frame.clone();
 		Scalar reflecColor(0,0,255);//red
 		Scalar origiColor(0,0,0);//black
 		Scalar matchColor(255,255,255);//white
