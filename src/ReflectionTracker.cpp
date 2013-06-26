@@ -36,8 +36,6 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 
     if(!frame.data) cout << "Image couldn't be loaded\n";
 	namedWindow( "Source", CV_WINDOW_AUTOSIZE );
-//	setMouseCallback("Source", Cropper::onMouse, &obj);
-//	obj.isCropping=true;
 
 	Mat sourceCopy;
 	frame.copyTo( sourceCopy );
@@ -97,9 +95,16 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
         {	
             Rect rect (points[0][i].x,points[0][i].y,patchSize,patchSize);
             if( verbosity>=VERY_VERBOSE ) cout << "Created template rect\n";
-            ARC_Pair temp_pair;
+           	//cout<<"Rect size: "<<(Point)rect.size()<<endl; 
+			ARC_Pair temp_pair;
             temp_pair.roi.source = rect;
             outvector.push_back( temp_pair );
+			/*cout<<"first outvector size: "<<(Point) outvector[i].roi.source.size()<<endl;
+			Mat copy = frame.clone();
+			Mat outTest1 = copy(outvector[i].roi.source);
+			namedWindow("Outvector.source",CV_WINDOW_AUTOSIZE);
+			imshow("Outvector.source",outTest1);
+			waitKey(0);*/
 
             Scalar color ( 26, 7, 191 );
             Mat temp = frame.clone();
@@ -178,8 +183,15 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 
 		Rect rect(matchLoc.x, matchLoc.y, patchSize, patchSize);
 		
-		ARC_Pair temp = outvector[i];
-		temp.roi.reflection = rect;
+		ARC_Pair* temp = &(outvector[i]);
+		temp->roi.reflection = rect;
+
+		cout<<"Outvector reflection size: "<<(Point)outvector[i].roi.reflection.size()<<endl;
+		Mat clone2 = frame.clone();
+		clone2 = clone2(outvector[i].roi.reflection);
+		namedWindow("Outvector Reflection",CV_WINDOW_AUTOSIZE);
+		imshow("Outvector Reflection",clone2);
+		//waitKey(0);
 
 		reflections.push_back( rect ); 
 		/*
