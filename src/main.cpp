@@ -649,8 +649,19 @@ int main(int argc, char** argv)
         cur_frame.copyTo(drawn_matches);
 
         // Begin region loop.
-        for( vector<ARC_Pair>::iterator r=regions.begin(); r!=regions.end(); ++r )
+        vector<ARC_Pair>::iterator r=regions.begin(); 
+        while( r!=regions.end() )
         {
+            Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
+            Rect roi_test = r->roi.source & scene_rect ;
+            if( roi_test.area() < 2500 )
+            {
+                r = regions.erase( r );
+                continue;
+            }
+            cout << "SOURCE region at " << r->roi.source.tl()
+                 << " of dims " << (Point) r->roi.source.size() 
+                 << " and area " << roi_test.area() << endl;
             Mat object_mask, scene_mask;
             // Prepare object for matching.
             Mat flipped;
@@ -794,6 +805,8 @@ int main(int argc, char** argv)
                 if( a.debug==DEBUG )
                 {
                     cout << "main: track:" << endl;
+                    // TODO: So, what happens when we remove a keypoints, does
+                    // the index get out of whack?
                     for( size_t i=0; i<good_points.source.size(); ++i )
                     {
                         cout << "SOURCE:" << endl;
@@ -811,6 +824,7 @@ int main(int argc, char** argv)
                         &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
                         good_points.source, good_points.reflection );
             }
+            ++r;
         }
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );

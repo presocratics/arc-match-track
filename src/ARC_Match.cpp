@@ -316,15 +316,24 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     detector->detect( scene_img, keypoints_scene );
     extractor->compute( scene_img, keypoints_scene, descriptors_scene );
 
+    if( keypoints_scene.size()<1 || keypoints_object.size()<1 )
+        return false;
     // Match descriptors
-
     vector<vector<DMatch> > matches_scene;
     vector<vector<DMatch> > matches_object;
-    // find 2 nearest-neighbors for each match point (the 2 most likely matches)
-    // From scene->object
-    matcher->knnMatch( descriptors_scene, descriptors_object, matches_scene, 2 );
-    // From object->scene
-    matcher->knnMatch( descriptors_object, descriptors_scene, matches_object, 2 );
+    try {
+        // find 2 nearest-neighbors for each match point (the 2 most likely matches)
+        // From scene->object
+        matcher->knnMatch( descriptors_scene, descriptors_object, matches_scene, 2 );
+        // From object->scene
+        matcher->knnMatch( descriptors_object, descriptors_scene, matches_object, 2 );
+    }
+    // TODO: this is pretty bullshit catching.
+    catch (...) {		// handle exception: unspecified 
+        cerr << "Unknown knnMatch Error" << endl;
+        return false;
+    }
+
     if( isRatio )
     {
         // Perform ratio test. If the 2 nearest neighbors are of similar
