@@ -304,7 +304,7 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     matches.clear();
     Mat descriptors_scene, descriptors_object;
     // Only update object keypoints if we have too few.
-    if( keypoints_object.size()<2 )
+    if( keypoints_object.size()<3 )
     {
         keypoints_object.clear();
         detector->detect( object_img, keypoints_object );

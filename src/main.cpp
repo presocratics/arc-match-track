@@ -253,8 +253,10 @@ void help( string program_name )
          << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
          << ARG_RATIO_OFF << tab << "Disable ratio test." << endl
          << ARG_SYMTEST_OFF << tab << "Disable symmetry test (DOES NOT WORK)." << endl
-         << ARG_RANSAC_OFF << tab << "Disable ransac test." << endl
+         << ARG_RANSAC_OFF << tab << "Disable ransac test (default)." << endl
+         << ARG_RANSAC_ON << tab << "Enable ransac test." << endl
          << ARG_BLUR << tab << "Median blur scene for tracking." << endl
+         << ARG_NO_BLUR << tab << "No median blur scene for tracking." << endl
 
          << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test. "
          << "Default: " << DEFAULT_MATCH_RATIO << endl
@@ -405,10 +407,10 @@ Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat
  */
 void arguments::arguments()
 {
-    blur = false;
+    blur = ARC_DEFAULT_BLUR;
     isSym = true;
     isRatio = true;
-    isRansac = true;
+    isRansac = ARC_DEFAULT_RANSAC;
     refresh_count = DEFAULT_REFRESH_COUNT;
     min_match_points=DEFAULT_MIN_MATCH_POINTS;
     match_ratio = DEFAULT_MATCH_RATIO;
@@ -792,7 +794,7 @@ int main(int argc, char** argv)
                 if( a.debug==DEBUG )
                 {
                     cout << "main: track:" << endl;
-                    for( size_t i=0; i<old_good_points.source.size(); ++i )
+                    for( size_t i=0; i<good_points.source.size(); ++i )
                     {
                         cout << "SOURCE:" << endl;
                         cout << "Before: " << old_good_points.source[i] << tab

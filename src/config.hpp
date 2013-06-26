@@ -37,19 +37,23 @@
 
 // Match parameters
 #define ARG_MATCH_RATIO "--match-ratio"         // Set threshold for ratio_test.
-#define DEFAULT_MATCH_RATIO 0.87                // 
+#define DEFAULT_MATCH_RATIO 0.70                // 
 #define ARG_MIN_MATCH_POINTS "--min-match-points" // Set minimum points to declare successful match. For RANSAC only.
 #define DEFAULT_MIN_MATCH_POINTS 7            
 #define ARG_RATIO_OFF "--no-ratio"              // Do not perform ratio_test.
 #define ARG_SYMTEST_OFF "--no-sym"              // Do not perform symmetry_test.
 #define ARG_RANSAC_OFF "--no-ransac"            // Do not perform ransac_test.
+#define ARG_RANSAC_ON "--ransac"            // Perform ransac_test.
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
+#define ARG_NO_BLUR "--no-blur"                       // Don't blur the source before matching.
+#define ARC_DEFAULT_BLUR true
+#define ARC_DEFAULT_RANSAC false
 
 #define UP 1                                    // match to scene above object
 #define DOWN 2                                  // match to scene below object
 
 // Main parameters
 #define ARG_REFRESH_COUNT "-rc"
-#define DEFAULT_REFRESH_COUNT 5                 // # Iterations before rematching.
+#define DEFAULT_REFRESH_COUNT 200                 // # Iterations before rematching.
 
 #endif /* CONFIG_H */
