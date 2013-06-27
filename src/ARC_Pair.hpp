@@ -28,7 +28,7 @@ using std::vector;
  */
 typedef struct ARC_Pair_t
 {
-    unsigned int iter_count;
+    unsigned int iter_count, no_match;
     struct {
         unsigned int match;
         unsigned int track;

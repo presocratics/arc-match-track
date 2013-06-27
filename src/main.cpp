@@ -28,17 +28,29 @@ using namespace std;
 void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions )
 {
     // Remove bad regions.
+    vector<ARC_Pair>::iterator it=regions->begin();
+    while( it!=regions->end() )
+    {
+        if( it->no_match>10 )
+        {
+            it = regions->erase( it );
+            continue;
+        }
+        ++it;
+    }
     // Get new regions.
     if( regions->size()<nregions )
     {
-        vector<ARC_Pair>* new_regions;
-        unsigned int nnr = getReflections( frame, 100, new_regions );
-        unsigned int ele = (unsigned int) fmin( nnr, nregions-regions.size() ) - 1;
-        regions->insert( regions->end(), new_regions->begin(), new_regions->at( ele ) );
+        vector<ARC_Pair> new_regions;
+        getReflections( frame, 50, new_regions );
+        unsigned int nnr = new_regions.size();
+        unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
+        regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
     }
         
     return ;
 }		// -----  end of function update_regions  ----- 
+
 // ===  FUNCTION  ======================================================================
 //         Name:  update_roi
 //  Description:  Returns a new ROI centerd on the center of mass of the input
@@ -187,7 +199,7 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
 //  Description:  
 // =====================================================================================
 void draw_match_by_hand( Mat* out_img, Mat* scene, 
-        Mat* object, Rect roi, 
+        Mat* object, Rect sroi, Rect rroi, 
         vector<Point2f>& source_points, 
         vector<Point2f>& reflection_points)
 {
@@ -205,7 +217,8 @@ void draw_match_by_hand( Mat* out_img, Mat* scene,
         circle( *out_img, reflection_points[i], 3, Scalar(0, 255, 0) );
         line( *out_img, source_points[i], reflection_points[i], Scalar(0, 255, 0), 1, CV_AA );
     }
-    rectangle( *out_img, roi, Scalar( 50, 100, 150 ), 1 );
+    rectangle( *out_img, sroi, Scalar( 50, 100, 150 ), 1 );
+    rectangle( *out_img, rroi, Scalar( 50, 100, 150 ), 1 );
     return ;
 }		// -----  end of function draw_match_by_hand  ----- 
 
@@ -344,8 +357,11 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
     if( r->direction.track==DOWN )
     {
         // Update ROI.
-        if( new_points.source.size()>0 )
+        if( new_points.source.size()>0 && new_points.reflection.size()>0 )
+        {
             r->roi.source = update_roi( r->roi.source, good_points.source );
+            r->roi.reflection = update_roi( r->roi.reflection, good_points.reflection );
+        }
 
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
@@ -358,9 +374,22 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
             r->direction.match );
     }
 
-    return ( new_points.source.size()>0 ) ? true : false;
+    return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
 }		// -----  end of method ARC_Pair::track  ----- 
 
+// ===  FUNCTION  ======================================================================
+//         Name:  mask_scene
+//  Description:  Masks the frame to the given roi.
+// =====================================================================================
+Mat mask_scene ( Rect roi, Mat& frame )
+{
+    Mat masked_frame;
+    Mat mask = Mat::zeros( frame.size(), CV_8UC1 );
+    rectangle( mask, roi, 255, CV_FILLED );
+    frame.copyTo(masked_frame, mask);
+
+    return masked_frame;
+}		// -----  end of function mask_scene  ----- 
 // ===  FUNCTION  ======================================================================
 //         Name:  get_masked_frame
 //  Description:  Masks the frame based on slope and roi. Mask returned by pointer.
@@ -666,7 +695,7 @@ int main(int argc, char** argv)
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
         // Update regions
-        update_regions( cur_frame, &regions, 5 );
+        update_regions( cur_frame, &regions, 10 );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
@@ -703,8 +732,9 @@ int main(int argc, char** argv)
                 Mat masked_frame;
                 if( r->direction.match==DOWN )
                 {
-                    masked_frame = get_masked_frame( r->roi.source, r->slope,
-                            r->direction.match, &cur_frame, &scene_mask );
+                    masked_frame = mask_scene( r->roi.reflection, cur_frame );
+                    //masked_frame = get_masked_frame( r->roi.source, r->slope,
+                     //       r->direction.match, &cur_frame, &scene_mask );
                 }
                 else
                 {
@@ -714,6 +744,11 @@ int main(int argc, char** argv)
 
                 // Run matcher
                 bool isMatch;
+                //Mat regShow = cur_frame.clone();
+                //rectangle( regShow, r->roi.source, Scalar(0, 255, 0 ), 1 );
+                //rectangle( regShow, r->roi.reflection, Scalar(0, 255, 0 ), 1 );
+                //imshow( DEFAULT_WINDOW_NAME, regShow );
+                //waitKey( 10 );
                 if( r->direction.match==DOWN)
                 {
                     if( a.debug==DEBUG ) cout << "Enter match direction down." << endl;
@@ -763,12 +798,14 @@ int main(int argc, char** argv)
                     // When we track we'll remember which direction the match came from.
                     r->direction.track = r->direction.match; 
                     r->direction.match = DOWN;
+                    r->no_match = 0;
                 }
                 else
                 {
                     // TODO: any other action if no match found?
                     // Maybe we should remove a region if it goes N cycles without a match.
                     r->iter_count = 0 ;
+                    ++r->no_match;
                 }
             }
             else                                // Perform tracking.
@@ -841,7 +878,7 @@ int main(int argc, char** argv)
                 writer.write_matches( i, r->keypoints.source, r->keypoints.reflection,
                         r->matches, r->roi.source );
                 draw_match_by_hand( &drawn_matches, &cur_frame,
-                        &flipped, ( r->direction.track==DOWN ) ? r->roi.source : r->roi.reflection,
+                        &flipped, r->roi.source , r->roi.reflection,
                         good_points.source, good_points.reflection );
             }
             ++r;

@@ -14,7 +14,7 @@
 #include "ARC_Pair.hpp"
 #include "ARC_Write.hpp"
 #include "config.hpp"
-#include "ReflectionTracker.cpp"
+#include "ReflectionTracker.hpp"
 
 typedef struct PPC_t {                          // Point Pair Conversion
     vector<Point2f> source;
@@ -54,7 +54,7 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
         vector<DMatch>* matches );
 
 void draw_match_by_hand( Mat out_img, Mat* scene, 
-        Mat* object, Rect roi, 
+        Mat* object, Rect sroi, Rect rroi,
         vector<Point2f>& source_points, 
         vector<Point2f>& reflection_points);
 
