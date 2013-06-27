@@ -61,7 +61,6 @@ ARC_Write::write_matches ( size_t frame_num,
     {
         unsigned int id;
         cv::KeyPoint sk = source_kpt[ it->trainIdx ];
-        cv::KeyPoint rk = reflection_kpt[ it->queryIdx ];
         cv::Point2f sp = good_points.source[ i ];
         cv::Point2f rp = good_points.reflection[ i ];
         id = get_id( sk );

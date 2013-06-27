@@ -22,6 +22,24 @@ using namespace std;
 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  update_regions
+//  Description:  Removes low quality regions and add new regions.
+// =====================================================================================
+void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions )
+{
+    // Remove bad regions.
+    // Get new regions.
+    if( regions->size()<nregions )
+    {
+        vector<ARC_Pair>* new_regions;
+        unsigned int nnr = getReflections( frame, 100, new_regions );
+        unsigned int ele = (unsigned int) fmin( nnr, nregions-regions.size() ) - 1;
+        regions->insert( regions->end(), new_regions->begin(), new_regions->at( ele ) );
+    }
+        
+    return ;
+}		// -----  end of function update_regions  ----- 
+// ===  FUNCTION  ======================================================================
 //         Name:  update_roi
 //  Description:  Returns a new ROI centerd on the center of mass of the input
 //  set of points. If the center of mass is NaN, then the input ROI is
@@ -586,7 +604,7 @@ int main(int argc, char** argv)
             endl;
     }
     get_image_list( argv[1], &image_list );     // Reads in the image list.
-    get_regions( argv[2], &regions );           // Reads in the region list.
+    //get_regions( argv[2], &regions );           // Reads in the region list.
 
     // Init text file
     ARC_Write writer( a.text_filename );
@@ -647,6 +665,8 @@ int main(int argc, char** argv)
             medianBlur( gray, gray, 7 );
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
+        // Update regions
+        update_regions( cur_frame, &regions, 5 );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
