@@ -1,6 +1,9 @@
 //Track the reflections of templates across water
-//Simon Peter 
+//Author: Simon Peter 
 //speter3@illinois.edu
+
+//To modify the the vertical strip around the template used as a mask, change 'searchMargin' in findBestMatchLocation()
+//To modify the number of features goodFeaturesToTrack should find, change 'numOfFeatures' in getReflections()
 
 #include <cv.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -16,23 +19,193 @@ int verbosity;
 bool displayRegions;
 bool displayWindows;
 
-		
+//CREATES MAT TEMPLATES OF patchSize WIDTH AND HEIGHT, AND STORES THEM IN templates AND outvector
+void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, vector<Mat> *templates, vector<ARC_Pair> *outvector){
 
-void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
-	//int c; //TODO unused?
-	//int argNum = 1; //TODO unused?
-	/*
-	while((c=getopt(argc,argv,"r"))!=-1){
-		switch(c){
-			case 'r':
-				displayRegions = true;
-				argNum = 2;
-				break;
-			case '?':
-				cout<<"Use -r to display regions instead of points.\n";
-				return 0;
+	int pointsLength = points->size();			
+	for( int i=0; i<pointsLength; i++ )
+    {
+		(*points)[i].x-=patchSize/2; (*points)[i].y-=patchSize/2;//Figures out the top left corners from the goodfeaturestotrack points
+        if( verbosity==VERY_VERBOSE ) 
+            cout<<" x: "<<(*points)[i].x<<" y: "<<(*points)[i].y<<endl;
+		//Only uses points that are within a patchSize distance away from the borders of the source image
+		if((*points)[i].x<0 || (*points)[i].y<0 || image.cols-(*points)[i].x-patchSize < 0 || image.rows-(*points)[i].y-patchSize<0 )
+        { 
+			(*points).erase((*points).begin()+i);
+			if(verbosity==VERY_VERBOSE) 
+                cout<<"failed\n";
+			i--;
+            pointsLength--;
 		}
-	}*/
+		else
+        {	
+            Rect rect ((*points)[i].x,(*points)[i].y,patchSize,patchSize);
+            if( verbosity>=VERY_VERBOSE ) cout << "Created template rect\n";
+			ARC_Pair temp_pair;
+            temp_pair.roi.source = rect;
+            (*outvector).push_back( temp_pair );
+
+            Mat temp = image.clone();
+            temp = temp( rect );
+            (*templates).push_back( temp );
+            if( verbosity>=VERY_VERBOSE ) 
+                cout<<"Added template rect to output vector\n";
+		}
+	}
+}
+
+//RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
+Point findBestMatchLocation(Mat image, Mat sourceTemplate, int TLCornerTemplate){
+
+		flip(sourceTemplate,sourceTemplate,0);//flips template to get the reflection used for matching
+		//Creates results matrix where the top left corner of the template is slid across each pixel of the source
+		int result_cols = image.cols-sourceTemplate.cols+1;
+		int result_rows = image.rows-sourceTemplate.rows+1;
+		Mat result;
+		result.create(result_cols,result_rows, CV_32FC1);
+
+		//0:CV_TM_SQDIFF
+		//1:CV_TM_SQDIFF_NORMED
+		//2:CV_TM_CORR
+		//3:CV_TM_CCOR_NORMED
+		//4:CV_TM_CCOEFF
+		//5:CV_TM_CCOEFF_NORMED <----Most succesful at finding reflections
+		int match_method = 5;
+		//Specifies vertical search region with a mask 
+		Mat mask; Mat masked_scene;
+		mask = Mat::zeros( image.size(), CV_8UC1 );
+        int searchMargin = 40;//extends this many pixels to the left and right of template width
+		int leftSearchArea = TLCornerTemplate-searchMargin;
+		Rect searchRegion (leftSearchArea,0,sourceTemplate.cols+2*searchMargin,image.rows);
+		rectangle(mask,searchRegion,255,CV_FILLED);
+		image.copyTo(masked_scene,mask);
+
+		matchTemplate(masked_scene, sourceTemplate, result, match_method);
+		normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
+
+        if( verbosity>=VERY_VERBOSE ) 
+            cout << "Ran matchTemplate and normalized\n";
+		double minVal; double maxVal; 
+		Point minLoc; Point maxLoc; Point matchLoc;
+		minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+		 
+		if( match_method == 0 || match_method == 1 )
+        {
+			matchLoc = minLoc;	
+		}
+		else 
+        {
+			matchLoc = maxLoc;
+		}
+		//matchLoc is the location of the top left corner of the reflection that matchTemplate found
+		return matchLoc;
+
+
+		if( verbosity==VERY_VERBOSE ) 
+            cout << "Max value from results matrix: " << result.at<float>(matchLoc.x,matchLoc.y) << endl;
+
+		bool debugResults = false;
+		if( debugResults ) 
+        {
+            int surroundingPixel = 5;
+            cout << "TL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y-surroundingPixel)
+                 << " T: " << result.at<float>(matchLoc.x,matchLoc.y-surroundingPixel)
+                 << " TR: " << result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y-surroundingPixel)
+                 << endl;
+
+            cout << "BL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y+surroundingPixel)
+                 << " B: " << result.at<float>(matchLoc.x,matchLoc.y+surroundingPixel) 
+                 << " BR: " <<result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y+surroundingPixel)
+                 << endl;
+			Scalar reflectionColor (232,49,190);
+            rectangle( result, matchLoc, Point( matchLoc.x+sourceTemplate.cols, matchLoc.y+sourceTemplate.rows ), reflectionColor , 2, 8, 0 );
+            imshow( "Source", result);//not right	
+            namedWindow( "Results", CV_WINDOW_AUTOSIZE );
+            imshow( "Results", result );
+            moveWindow( "Results", 700, 0 );
+            waitKey( 0 );
+		}
+}
+
+//FINDS THE REFLECTIONS OF THE IMAGES IN templates ON image AND STORES THEM IN reflections AND outvector
+void findReflections(Mat image, int patchSize, vector<Point> *points, vector<Mat> *templates, vector<Rect> *reflections, vector<ARC_Pair> *outvector){
+
+
+	for( size_t i=0; i<(*points).size(); i++ )
+    {
+		Mat tmplte = (*templates)[i];
+
+		Point matchLoc = findBestMatchLocation(image,tmplte,(*points)[i].x);
+		
+		Rect rect(matchLoc.x, matchLoc.y, patchSize, patchSize);
+		(*outvector)[i].roi.reflection = rect;
+
+		(*reflections).push_back( rect ); 
+	}
+
+	
+}
+
+//CHECKS TO SEE IF WHEN THE MATCHED REFLECTION IS RUN THROUGH MATCHTEMPLATE, IT GIVES THE LOCATION OF THE ORIGINAL SOURCE TEMPLATE
+void runSymmetryTest(Mat frame, int patchSize, vector<Point> *points, vector<Rect> *reflections, vector<Rect> *originalMatches, vector<ARC_Pair> *outvector){
+
+	if( verbosity>=VERBOSE ) 
+    {
+        cout << "\n\n" <<endl;
+        cout << "Running symmetry test\n";
+    }
+	for( size_t i=0; i<(*reflections).size(); i++)
+    {
+		Mat temp = frame.clone();	
+		Mat refl = temp((*reflections)[i]);
+		
+		//Runs the reflections found through matchTemplate to get another vector of matched originals
+		Point matchLoc = findBestMatchLocation(frame,refl,(*reflections)[i].x);
+
+		Rect org_rfl( matchLoc.x,matchLoc.y, patchSize,patchSize );
+		(*originalMatches).push_back( org_rfl );
+	
+	}
+	
+	int symmetrySize = (*reflections).size();
+	for( int i=0; i<symmetrySize; i++ )
+    {
+		//If the originals found through MatchTemplate are more than a patchSize distance from the actual original templates, the matches are discarded
+		//Also if the matches are right on top of each other, they're discarded too
+		int xdifference = abs((*points)[i].x-(*originalMatches)[i].x);
+		int ydifference = abs((*points)[i].y-(*originalMatches)[i].y);
+		int reflectionYdifference = abs((*originalMatches)[i].y-(*reflections)[i].y);
+		if( xdifference>patchSize || ydifference>patchSize ||  reflectionYdifference<patchSize )
+        {
+			(*points).erase((*points).begin()+i);
+			(*reflections).erase((*reflections).begin()+i);
+			(*originalMatches).erase((*originalMatches).begin()+i);
+			(*outvector).erase((*outvector).begin()+i);
+			i--; symmetrySize--;
+		}
+		if( verbosity==VERY_VERBOSE ) 
+            cout << "Outvector array size after test: " << (*reflections).size() << endl;
+	}
+}
+
+//VERIFIES THAT THE SOURCES AND REFLECTIONS IN THE ARC_Pair's ARE CORRECT
+void identifyRealObjects(vector<ARC_Pair> *outvector){
+
+	//If the y coordinate is lower, that is the real object, otherwise it is the reflection
+	for( size_t i=0; i<(*outvector).size(); i++ )
+    {
+        if( (*outvector)[i].roi.source.y>(*outvector)[i].roi.reflection.y )
+        {
+            Rect temp = (*outvector)[i].roi.reflection;
+            (*outvector)[i].roi.reflection = (*outvector)[i].roi.source;
+            (*outvector)[i].roi.source = temp;
+        }
+		cout<<"Outvector source at ("<<(*outvector)[i].roi.source.x<<","<<(*outvector)[i].roi.source.y<<") and reflection at ("<<(*outvector)[i].roi.reflection.x<<","			<<(*outvector)[i].roi.reflection.y<<")\n";
+	}
+}
+
+//GIVEN AN IMAGE AND A PATCHSIZE, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
+int getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 
     if(!frame.data) cout << "Image couldn't be loaded\n";
 	//namedWindow( "Source", CV_WINDOW_AUTOSIZE );
@@ -44,15 +217,14 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
     if( verbosity>=VERBOSE ) 
         cout << "Image loaded and converted to grayscale\n";	
 
-	vector<Point2f> points[2]; 
+	vector<Point> points[2]; 
     vector<Mat> templates[2]; 
     vector<Rect> reflections; 
     vector<Rect> originalMatches;
 
-	//int maxNumFeaturesToTrack = (frame.cols-patchSize)*(frame.rows-patchSize); //TODO: unused?
-	
-	//FIND GOOD FEATURES TO TRACK BASED ON CERTAIN PARAMETERS AND STORE IN points[0]
-	goodFeaturesToTrack(sourceCopy,points[0],5,.01,patchSize+10,Mat(),3,0,0.04);
+	//finds good features to track and stores them in points[0]
+	int numOfFeatures = 25;	
+	goodFeaturesToTrack(sourceCopy,points[0],numOfFeatures,.01,patchSize+10,Mat(),3,0,0.04);
 
     if( verbosity>=VERBOSE )
     {
@@ -68,54 +240,11 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
     }
 
 	Mat sourceCopy2 = frame.clone();
-	int pointsLength = points[0].size();
 
-	//medianBlur(sourceCopy2,frame,3);
-	//namedWindow("Median blur",CV_WINDOW_AUTOSIZE);
-	//imshow("Median blur", frame);
-	//waitKey(0);
+	createTemplatesFromVector(frame,patchSize,&points[0],&templates[0],&outvector);
 	
 	if( verbosity>=VERY_VERBOSE ) 
         cout<<"Top left corners of templates\n";
-
-	for( int i=0; i<pointsLength; ++i )
-    {
-		points[0][i].x-=patchSize/2; points[0][i].y-=patchSize/2;
-        if( verbosity==VERY_VERBOSE ) 
-            cout<<" x: "<<points[0][i].x<<" y: "<<points[0][i].y<<endl;
-		if( points[0][i].x<0 || points[0][i].y<0 || sourceCopy.cols-points[0][i].x-patchSize < 0 || sourceCopy.rows-points[0][i].y-patchSize<0 )
-        { 
-			points[0].erase(points[0].begin()+i);
-			if(verbosity==VERY_VERBOSE) 
-                cout<<"failed\n";
-			i--;
-            pointsLength--;
-		}
-		else
-        {	
-            Rect rect (points[0][i].x,points[0][i].y,patchSize,patchSize);
-            if( verbosity>=VERY_VERBOSE ) cout << "Created template rect\n";
-           	//cout<<"Rect size: "<<(Point)rect.size()<<endl; 
-			ARC_Pair temp_pair;
-            temp_pair.roi.source = rect;
-            outvector.push_back( temp_pair );
-			/*cout<<"first outvector size: "<<(Point) outvector[i].roi.source.size()<<endl;
-			Mat copy = frame.clone();
-			Mat outTest1 = copy(outvector[i].roi.source);
-			namedWindow("Outvector.source",CV_WINDOW_AUTOSIZE);
-			imshow("Outvector.source",outTest1);
-			waitKey(0);*/
-
-            Scalar color ( 26, 7, 191 );
-            Mat temp = frame.clone();
-            //	cout<<"Right side difference: "<<sourceCopy.cols-points[0][i].x-patchSize<<endl;
-            //	cout<<"Bottom side difference: "<<sourceCopy.rows-points[0][i].y-patchSize<<endl;
-            temp = temp( rect );
-            templates[0].push_back( temp );
-            if( verbosity>=VERY_VERBOSE ) 
-                cout<<"Added template rect to output vector\n";
-		}
-	}
 
 	if( verbosity>=VERBOSE )
     {
@@ -126,229 +255,10 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 		}
 	}
 
-	//FLIP TEMPLATE, RUN TEMPLATE THROUGH MATCHTEMPLATE, AND STORE RESULTS
-	for( size_t i=0; i<points[0].size(); i++ )
-    {
-		Mat tmplte = templates[0][i];
-		flip(tmplte,tmplte,0);
-
-		int result_cols = frame.cols-tmplte.cols+1;
-		int result_rows = frame.rows-tmplte.rows+1;
-		Mat result;
-		result.create(result_cols,result_rows, CV_32FC1);
-
-		//0:CV_TM_SQDIFF
-		//1:CV_TM_SQDIFF_NORMED
-		//2:CV_TM_CORR
-		//3:CV_TM_CCOR_NORMED
-		//4:CV_TM_CCOEFF
-		//5:CV_TM_CCOEFF_NORMED <----Most succesful at finding reflections
-		int match_method = 5;
-		//Specifies vertical search region that extends 2.5 times template width on each side from initial template location
-		Mat mask; Mat masked_scene;
-		mask = Mat::zeros( frame.size(), CV_8UC1 );
-		//int leftSearchArea = points[0][i].x-(int)(.75*tmplte.cols);
-        int leftSearchArea = points[0][i].x-30;
-		Rect searchRegion (leftSearchArea,0,2*tmplte.cols,frame.rows);
-		rectangle(mask,searchRegion,255,CV_FILLED);
-		frame.copyTo(masked_scene,mask);
-		//namedWindow("Mask",CV_WINDOW_AUTOSIZE);
-		//imshow("Mask",masked_scene);
-		//moveWindow("Mask",800,800);
-		//waitKey(0);
-		//namedWindow("flipped",CV_WINDOW_AUTOSIZE);
-		//imshow("flipped",tmplte);
-		//waitKey(0);	
-		matchTemplate(masked_scene, tmplte, result, match_method);
-		normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
-        if( verbosity>=VERY_VERBOSE ) 
-            cout << "Ran matchTemplate and normalized\n";
-		double minVal; double maxVal; 
-		Point minLoc; Point maxLoc; Point matchLoc;
-		minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-		matchLoc = minLoc;
-		 
-		if( match_method == 0 || match_method == 1 )
-        {
-			matchLoc = minLoc;	
-		}
-		else 
-        {
-			matchLoc = maxLoc;
-		}
-		if( verbosity==VERY_VERBOSE ) 
-            cout << "Max value from results matrix: " << result.at<float>(matchLoc.x,matchLoc.y) << endl;
-		//if(result.at<float>(matchLoc.x,matchLoc.y)>.6){
-		Scalar reflectionColor(0,0,0);
-
-		Rect rect(matchLoc.x, matchLoc.y, patchSize, patchSize);
-		
-		ARC_Pair* temp = &(outvector[i]);
-		temp->roi.reflection = rect;
-
-		cout<<"Outvector reflection size: "<<(Point)outvector[i].roi.reflection.size()<<endl;
-		Mat clone2 = frame.clone();
-		clone2 = clone2(outvector[i].roi.reflection);
-		//namedWindow("Outvector Reflection",CV_WINDOW_AUTOSIZE);
-		//imshow("Outvector Reflection",clone2);
-		//waitKey(0);
-
-		reflections.push_back( rect ); 
-		/*
-		if(!displayRegions){
-			matchLoc.x+=patchSize/2;
-			matchLoc.y+=patchSize/2;
-			points[0][i].x+=patchSize/2;
-			points[0][i].y+=patchSize/2;
-			circle(sourceCopy2,matchLoc,4,reflectionColor,-1,8,0);
-			line(sourceCopy2,points[0][i],matchLoc,reflectionColor,1,8,0);
-		}
-		else{
-			rectangle(sourceCopy2, matchLoc, Point(matchLoc.x+tmplte.cols,matchLoc.y+tmplte.rows),reflectionColor ,2,8,0);
-			line(sourceCopy2,points[0][i],matchLoc,reflectionColor,1,8,0);
-			circle(frame,matchLoc,4,reflectionColor,-1,8,0);
-		}*/
-	//	cout<<"Original x: "<<points[0][i].x<<" Original y: "<<points[0][i].y<<endl;
-	//	cout<<"Reflection x: "<<matchLoc.x<<" Reflection.y: "<<matchLoc.y<<endl;
-	//	cout<<"Done drawing match\n";
-    //  cout<<"Max value from results matrix: "<<result.at<float>(matchLoc.x,matchLoc.y)<<endl;
-
-       // imshow("Source",sourceCopy2);
-       // waitKey(0);
-
-
-		bool debugResults = false;
-		if( debugResults ) 
-        {
-            int surroundingPixel = 5;
-            cout << "TL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y-surroundingPixel)
-                 << " T: " << result.at<float>(matchLoc.x,matchLoc.y-surroundingPixel)
-                 << " TR: " << result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y-surroundingPixel)
-                 << endl;
-
-            cout << "BL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y+surroundingPixel)
-                 << " B: " << result.at<float>(matchLoc.x,matchLoc.y+surroundingPixel) 
-                 << " BR: " <<result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y+surroundingPixel)
-                 << endl;
-
-            rectangle( result, matchLoc, Point( matchLoc.x+tmplte.cols, matchLoc.y+tmplte.rows ), reflectionColor , 2, 8, 0 );
-            //imshow( "Source", sourceCopy2 );	
-            //namedWindow( "Results", CV_WINDOW_AUTOSIZE );
-            //imshow( "Results", result );
-            //moveWindow( "Results", 700, 0 );
-            //waitKey( 0 );
-		}
-		//}
-	}
-
-	/////////SYMMETRY TEST///////////
+	findReflections(sourceCopy2,patchSize,&points[0],&templates[0],&reflections,&outvector);
+	runSymmetryTest(sourceCopy2,patchSize,&points[0],&reflections,&originalMatches,&outvector);
+	identifyRealObjects(&outvector);
 	
-	if( verbosity>=VERBOSE ) 
-    {
-        cout << "\n\n" <<endl;
-        cout << "Running symmetry test\n";
-    }
-	for( size_t i=0; i<reflections.size(); i++)
-    {
-		Mat temp = frame.clone();	
-		Mat refl = temp(reflections[i]);
-		flip(refl,refl,0);
-
-		int result_cols = frame.cols-refl.cols+1;
-        int result_rows = frame.rows-refl.rows+1;
-        Mat result;
-        result.create(result_cols,result_rows, CV_32FC1);
-
-        //0:CV_TM_SQDIFF
-        //1:CV_TM_SQDIFF_NORMED
-        //2:CV_TM_CORR
-        //3:CV_TM_CCOR_NORMED
-        //4:CV_TM_CCOEFF
-        //5:CV_TM_CCOEFF_NORMED <----Most succesful at finding reflections
-        int match_method = 5;
-        //SPECIFIES VERTICAL SEARCH REGION THAT EXTENDS .75 TIMES TEMPLATE WIDTH ON EACH SIDE FROM INITIAL TEMPLATE LOCATION
-        Mat mask; Mat masked_scene;
-        mask = Mat::zeros(frame.size(),CV_8UC1);
-        int leftSearchArea = reflections[i].x-40;
-        Rect searchRegion (leftSearchArea,0,2*refl.cols,frame.rows);
-        rectangle(mask,searchRegion,255,CV_FILLED);
-        frame.copyTo(masked_scene,mask);
-
-		matchTemplate(masked_scene, refl, result, match_method);
-        normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
-        double minVal; double maxVal;
-        Point minLoc; Point maxLoc; Point matchLoc;
-        minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
-        matchLoc = minLoc;
-
-        if( match_method == 0 || match_method == 1 )
-        {
-            matchLoc = minLoc;
-        }
-        else 
-        {
-            matchLoc = maxLoc;
-        }
-
-		Rect org_rfl( matchLoc.x,matchLoc.y, patchSize,patchSize );
-		originalMatches.push_back( org_rfl );
-	
-	/*	Mat sourceCopy3 = frame.clone();
-		Scalar reflecColor(0,0,255);//red
-		Scalar origiColor(0,0,0);//black
-		Scalar matchColor(255,255,255);//white
-		Rect reflectionDrawing (reflections[i].x,reflections[i].y,patchSize,patchSize);
-		Rect originalDrawing (points[0][i].x,points[0][i].y,patchSize,patchSize);
-		Rect matchedDrawing (matchLoc.x,matchLoc.y,patchSize,patchSize);
-		rectangle(sourceCopy3,reflectionDrawing,reflecColor,2,8,0);
-		rectangle(sourceCopy3,originalDrawing,origiColor,2,8,0);
-		rectangle(sourceCopy3,matchedDrawing,matchColor,2,8,0);	
-		cout<<"Refl x: "<<reflections[i].x<<" Refl y: "<<reflections[i].y<<endl;
-		cout<<"Original x: "<<points[0][i].x<<" Original y: "<<points[0][i].y<<endl;
-		cout<<"Matched source x: "<<matchLoc.x<<" Matched source y: "<<matchLoc.y<<endl;
-
-		namedWindow("Symmetry Test", CV_WINDOW_AUTOSIZE);
-		imshow("Symmetry Test",sourceCopy3);
-		moveWindow("Symmetry Test",700,500);*/
-
-	}
-	
-	int symmetrySize = reflections.size();
-	for( int i=0; i<symmetrySize; i++ )
-    {
-		int xdifference = abs(points[0][i].x-originalMatches[i].x);
-		int ydifference = abs(points[0][i].y-originalMatches[i].y);
-		//int reflectionXdifference = abs(originalMatches[i].x-reflections[i].x); //TODO: unused var?
-		int reflectionYdifference = abs(originalMatches[i].y-reflections[i].y);
-		//	cout<<"Original Reflection x: "<<reflectionXdifference<<" Original Reflection y: "<<reflectionYdifference<<endl;
-		if( xdifference>patchSize || ydifference>patchSize ||  reflectionYdifference<patchSize )
-        {
-			points[0].erase(points[0].begin()+i);
-			reflections.erase(reflections.begin()+i);
-			originalMatches.erase(originalMatches.begin()+i);
-			outvector.erase(outvector.begin()+i);
-			i--; symmetrySize--;
-		}
-		if( verbosity==VERY_VERBOSE ) 
-            cout << "Outvector array size after test: " << reflections.size() << endl;
-	}
-//CHECKS Y COORDINATES TO DISTINGUISH BETWEEN THE REAL OBJECTS AND THEIR REFLECTIONS
-//TODO: the vector was named "regions". Assuming "outvector" was meant.
-	for( size_t i=0; i<outvector.size(); i++ )
-    {
-        if( outvector[i].roi.source.y>outvector[i].roi.reflection.y )
-        {
-            Rect temp = outvector[i].roi.reflection;
-            outvector[i].roi.reflection = outvector[i].roi.source;
-            outvector[i].roi.source = temp;
-        }
-        outvector[i].direction.match=outvector[i].direction.track=DOWN;
-        outvector[i].slope = -INFINITY;
-        outvector[i].iter_count = 0;
-        outvector[i].no_match = 0;
-
-    }
-
 	if( displayWindows )
     {
 		cout << reflections.size() << endl;
@@ -375,9 +285,54 @@ void getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
         	    line(sourceCopy2,sourceTL,reflectionTLCorner,reflectionColor,1,8,0);
     	    }
 		}
-		cout << "Showing final result\n";
-		//imshow( "Source", sourceCopy2 );
-		//moveWindow( "Source", 0, 0 );
-		//waitKey( 0 );
 	}
+	return outvector.size();
+}
+
+//DISPLAYS THE RESULTS OF getReflections()
+//If getReflections was already run and outvector is full, for patchSize enter 0
+//If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
+void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvector){
+
+	int outvectorSize;
+	if(patchSize != 0){
+		outvectorSize = getReflections(image,patchSize,*outvector);
+	}
+	else {
+		outvectorSize = (*outvector).size();
+	}
+	cout<<"Outvector size: "<<outvectorSize<<endl;
+
+    Mat draw = image.clone();
+    Scalar originalColor(0,0,255);
+    Scalar reflectionColor(0,0,0);
+    for(int i=0;i<outvectorSize;i++){
+        rectangle(draw,(*outvector)[i].roi.source,originalColor,2,8,0);
+        rectangle(draw,(*outvector)[i].roi.reflection,reflectionColor,2,8,0);
+        Point sourceTLCorner ((*outvector)[i].roi.source.x,(*outvector)[i].roi.source.y);
+        Point reflectionTLCorner ((*outvector)[i].roi.reflection.x,(*outvector)[i].roi.reflection.y);
+        line(draw,sourceTLCorner,reflectionTLCorner,reflectionColor,2,8,0);
+	}
+	namedWindow("Reflections",CV_WINDOW_AUTOSIZE);
+    imshow("Reflections",draw);
+    waitKey(0);
+
+}
+//GIVEN A source MAT, A tmplte MAT, AND THE leftBound OF THE tmplte, IT RETURNS A RECT OF THE REFLECTION
+Rect findOneReflection(Mat source, Mat tmplte, int leftBound){
+
+	Point matchLoc = findBestMatchLocation(source,tmplte,leftBound);
+	Rect rect (matchLoc.x,matchLoc.y,tmplte.cols,tmplte.cols);
+	return rect;
+}
+
+//GIVEN A source MAT AND A tmplte RECT, IT RETURNS A RECT OF THE REFLECTION
+Rect findOneReflection(Mat source, Rect tmplte){
+
+	int leftBound = tmplte.x;
+	Mat templateMat = source.clone();
+	templateMat = templateMat(tmplte);
+	Point matchLoc = findBestMatchLocation(source,templateMat,leftBound);
+	Rect rect (matchLoc.x,matchLoc.y,templateMat.cols,templateMat.cols);
+	return rect;
 }

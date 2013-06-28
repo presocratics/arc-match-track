@@ -29,15 +29,6 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
 {
     // Remove bad regions.
     vector<ARC_Pair>::iterator it=regions->begin();
-    while( it!=regions->end() )
-    {
-        if( it->no_match>10 )
-        {
-            it = regions->erase( it );
-            continue;
-        }
-        ++it;
-    }
     // Get new regions.
     if( regions->size()<nregions )
     {
@@ -60,14 +51,18 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
 Rect update_roi ( Rect roi, vector<Point2f> pts )
 {
     Point2f scm;
-    if( pts.size()==1 )
+    //TODO Moments doesn't work...
+    if( pts.size()>0 )
         scm = pts[0];
     else
     {
         Moments mome = moments( pts, false );
         scm = Point2f( mome.m10/mome.m00, mome.m01/mome.m00 );
         if( isnan( scm.x) || isnan( scm.y ) )
+        {
+            cerr << "ERROR: Failed to update roi at " << roi.tl() << endl;
             return roi;
+        }
     }
     Point2f tl;
     tl.x =scm.x - roi.width/2;
@@ -642,7 +637,7 @@ int main(int argc, char** argv)
     Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
     VideoWriter vidout;
     vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
-            15.0, first_frame.size(), true );
+            20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
         cerr << "Could not open video file: " << a.video_filename << endl;
@@ -695,22 +690,22 @@ int main(int argc, char** argv)
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
         // Update regions
-        update_regions( cur_frame, &regions, 10 );
+        if( i%50==0 )
+            update_regions( cur_frame, &regions, 10 );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
         while( r!=regions.end() )
         {
+            // TODO: Second condition should be generalized for slope input.
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
             Rect roi_test = r->roi.source & scene_rect ;
-            if( roi_test.area() < 2500 )
+            if ( r->no_match>5 || ( abs(r->roi.source.x-r->roi.reflection.x)>50 ) 
+                    || roi_test.area()<2500 )
             {
                 r = regions.erase( r );
                 continue;
             }
-            cout << "SOURCE region at " << r->roi.source.tl()
-                 << " of dims " << (Point) r->roi.source.size() 
-                 << " and area " << roi_test.area() << endl;
             Mat object_mask, scene_mask;
             // Prepare object for matching.
             Mat flipped;
@@ -728,13 +723,15 @@ int main(int argc, char** argv)
                 if( r->keypoints.source.size()<2 && a.verbosity>=VERY_VERBOSE )
                     cout << "main: Too few keypoints." << endl;
 
+                // Update search ROI
+                r->roi.reflection = findOneReflection( cur_frame, r->roi.source );
                 // mask the search region
                 Mat masked_frame;
                 if( r->direction.match==DOWN )
                 {
                     masked_frame = mask_scene( r->roi.reflection, cur_frame );
                     //masked_frame = get_masked_frame( r->roi.source, r->slope,
-                     //       r->direction.match, &cur_frame, &scene_mask );
+                    //       r->direction.match, &cur_frame, &scene_mask );
                 }
                 else
                 {
@@ -837,7 +834,12 @@ int main(int argc, char** argv)
                     else
                         cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
                 }
-                if ( !track(gray, prev_gray, &(*r) ) ) r->iter_count=0;
+                if ( !track(gray, prev_gray, &(*r) ) ) 
+                {
+                    //r->iter_count=0;
+                    r = regions.erase(r);
+                    continue;
+                }
                 if( a.verbosity>=VERY_VERBOSE )
                 {
                     if( r->direction.track==DOWN )
