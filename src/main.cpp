@@ -33,7 +33,7 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
     if( regions->size()<nregions )
     {
         vector<ARC_Pair> new_regions;
-        getReflections( frame, 50, new_regions );
+        getReflections( frame, 50, 15, new_regions );
         unsigned int nnr = new_regions.size();
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
         regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );

@@ -42,6 +42,11 @@ void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, 
             Rect rect ((*points)[i].x,(*points)[i].y,patchSize,patchSize);
             if( verbosity>=VERY_VERBOSE ) cout << "Created template rect\n";
 			ARC_Pair temp_pair;
+			temp_pair.iter_count = 0;
+			temp_pair.no_match = 0;
+			temp_pair.direction.match = DOWN;
+			temp_pair.direction.track = DOWN;
+			temp_pair.slope=-INFINITY;
             temp_pair.roi.source = rect;
             (*outvector).push_back( temp_pair );
 
@@ -174,7 +179,7 @@ void runSymmetryTest(Mat frame, int patchSize, vector<Point> *points, vector<Rec
 		//Also if the matches are right on top of each other, they're discarded too
 		int xdifference = abs((*points)[i].x-(*originalMatches)[i].x);
 		int ydifference = abs((*points)[i].y-(*originalMatches)[i].y);
-		int reflectionYdifference = abs((*originalMatches)[i].y-(*reflections)[i].y);
+		int reflectionYdifference = abs((*points)[i].y-(*reflections)[i].y);
 		if( xdifference>patchSize || ydifference>patchSize ||  reflectionYdifference<patchSize )
         {
 			(*points).erase((*points).begin()+i);
@@ -191,6 +196,7 @@ void runSymmetryTest(Mat frame, int patchSize, vector<Point> *points, vector<Rec
 //VERIFIES THAT THE SOURCES AND REFLECTIONS IN THE ARC_Pair's ARE CORRECT
 void identifyRealObjects(vector<ARC_Pair> *outvector){
 
+			cout<<"Outvector size: "<<(*outvector).size();
 	//If the y coordinate is lower, that is the real object, otherwise it is the reflection
 	for( size_t i=0; i<(*outvector).size(); i++ )
     {
@@ -205,7 +211,7 @@ void identifyRealObjects(vector<ARC_Pair> *outvector){
 }
 
 //GIVEN AN IMAGE AND A PATCHSIZE, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
+int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair> &outvector){
 
     if(!frame.data) cout << "Image couldn't be loaded\n";
 	//namedWindow( "Source", CV_WINDOW_AUTOSIZE );
@@ -223,7 +229,7 @@ int getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
     vector<Rect> originalMatches;
 
 	//finds good features to track and stores them in points[0]
-	int numOfFeatures = 25;	
+	//int numOfFeatures = 25;	
 	goodFeaturesToTrack(sourceCopy,points[0],numOfFeatures,.01,patchSize+10,Mat(),3,0,0.04);
 
     if( verbosity>=VERBOSE )
@@ -293,10 +299,12 @@ int getReflections(Mat frame, int patchSize, vector<ARC_Pair> &outvector){
 //If getReflections was already run and outvector is full, for patchSize enter 0
 //If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
 void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvector){
-
+	
+	//			time_t beginning;
+	//			beginning=time(NULL);
 	int outvectorSize;
 	if(patchSize != 0){
-		outvectorSize = getReflections(image,patchSize,*outvector);
+		outvectorSize = getReflections(image,patchSize,25,*outvector);
 	}
 	else {
 		outvectorSize = (*outvector).size();
@@ -313,6 +321,10 @@ void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvec
         Point reflectionTLCorner ((*outvector)[i].roi.reflection.x,(*outvector)[i].roi.reflection.y);
         line(draw,sourceTLCorner,reflectionTLCorner,reflectionColor,2,8,0);
 	}
+	//			time_t end;
+	//			end = time(NULL);
+	//			double timeElapsed = difftime(beginning,end);
+	//			cout<<"Time Elapsed: "<<timeElapsed<<endl;
 	namedWindow("Reflections",CV_WINDOW_AUTOSIZE);
     imshow("Reflections",draw);
     waitKey(0);
@@ -335,4 +347,20 @@ Rect findOneReflection(Mat source, Rect tmplte){
 	Point matchLoc = findBestMatchLocation(source,templateMat,leftBound);
 	Rect rect (matchLoc.x,matchLoc.y,templateMat.cols,templateMat.cols);
 	return rect;
+}
+
+ARC_Pair getOneReflectionPair(Mat image, int patchSize, bool *regionFound){
+
+	vector<ARC_Pair> outvector;
+	ARC_Pair empty;	
+	getReflections(image,patchSize,5,outvector);
+	if(outvector.size()==0){
+		*regionFound = false;
+		return empty;	 
+	}
+	else{
+		*regionFound = true;
+//		cout<<"Function Source at ("<<outvector[0].roi.source.x<<","<<outvector[0].roi.source.y<<") and reflection at ("<<outvector[0].roi.reflection.x<<","<<outvector[0].roi.reflection.y<<")\n";
+		return outvector[0];
+	}
 }
