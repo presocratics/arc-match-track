@@ -16,4 +16,5 @@ void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvec
 Rect findOneReflection(Mat source, Mat tmplte, int leftBound);
 Rect findOneReflection(Mat source, Rect tmplte);
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, bool *regionFound);
+void getDifferentReflectionPairs(Mat image, int patchSize, int desiredSize,vector<ARC_Pair> *outvector);
 #endif /*REFLECTION_TRACKER_H*/
