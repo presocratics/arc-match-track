@@ -79,7 +79,7 @@ Point findBestMatchLocation(Mat image, Mat sourceTemplate, int TLCornerTemplate)
 		//Specifies vertical search region with a mask 
 		Mat mask; Mat masked_scene;
 		mask = Mat::zeros( image.size(), CV_8UC1 );
-        int searchMargin = 40;//extends this many pixels to the left and right of template width
+        int searchMargin = 30;//extends this many pixels to the left and right of template width
 		int leftSearchArea = TLCornerTemplate-searchMargin;
 		Rect searchRegion (leftSearchArea,0,sourceTemplate.cols+2*searchMargin,image.rows);
 		rectangle(mask,searchRegion,255,CV_FILLED);
@@ -196,7 +196,6 @@ void runSymmetryTest(Mat frame, int patchSize, vector<Point> *points, vector<Rec
 //VERIFIES THAT THE SOURCES AND REFLECTIONS IN THE ARC_Pair's ARE CORRECT
 void identifyRealObjects(vector<ARC_Pair> *outvector){
 
-			cout<<"Outvector size: "<<(*outvector).size();
 	//If the y coordinate is lower, that is the real object, otherwise it is the reflection
 	for( size_t i=0; i<(*outvector).size(); i++ )
     {
@@ -213,7 +212,8 @@ void identifyRealObjects(vector<ARC_Pair> *outvector){
 //GIVEN AN IMAGE AND A PATCHSIZE, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair> &outvector){
 
-    if(!frame.data) cout << "Image couldn't be loaded\n";
+    if(numOfFeatures>((frame.rows*frame.cols)/(pow(patchSize*2,2)))-4) cout<<"Large number of features requested for given patchSize, goodFeaturesToTrack might crash\n";
+	if(!frame.data) cout << "Image couldn't be loaded\n";
 	//namedWindow( "Source", CV_WINDOW_AUTOSIZE );
 
 	Mat sourceCopy;
@@ -223,31 +223,43 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair>
     if( verbosity>=VERBOSE ) 
         cout << "Image loaded and converted to grayscale\n";	
 
-	vector<Point> points[2]; 
+	vector<Point> points; 
     vector<Mat> templates[2]; 
     vector<Rect> reflections; 
     vector<Rect> originalMatches;
 
-	//finds good features to track and stores them in points[0]
-	//int numOfFeatures = 25;	
-	goodFeaturesToTrack(sourceCopy,points[0],numOfFeatures,.01,patchSize+10,Mat(),3,0,0.04);
 
+	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
+	for(int i=0;i<numOfFeatures;i++){
+		vector<Point> tempPoint;
+		namedWindow("Mask",CV_WINDOW_AUTOSIZE);
+		imshow("Mask",mask);
+		goodFeaturesToTrack(sourceCopy,tempPoint,1,.01,patchSize+10,mask,3,0,0.04);
+		
+		points.push_back(tempPoint[0]);	
+		Rect blockedRegion (tempPoint[0].x-patchSize,tempPoint[0].y-patchSize,patchSize+2*patchSize,patchSize+2*patchSize);
+		rectangle(mask,blockedRegion,0,CV_FILLED);
+	}
+	//finds good features to track and stores them in points
+	//int numOfFeatures = 25;	
+
+	//goodFeaturesToTrack(sourceCopy,points,numOfFeatures,.01,patchSize+10,Mat(),3,0,0.04);
     if( verbosity>=VERBOSE )
     {
         cout << "Ran goodFeaturesToTrack" << endl;
         cout << "Features To Track" << endl;
         if( verbosity>=VERY_VERBOSE )
         {
-            for( size_t i=0; i<points[0].size(); ++i )
+            for( size_t i=0; i<points.size(); ++i )
             {
-                cout<<"x: "<<points[0][i].x-20<<" y: "<<points[0][i].y-20<<endl;
+                cout<<"x: "<<points[i].x-20<<" y: "<<points[i].y-20<<endl;
             }
         }
     }
 
 	Mat sourceCopy2 = frame.clone();
-
-	createTemplatesFromVector(frame,patchSize,&points[0],&templates[0],&outvector);
+	medianBlur(frame,frame,3);
+	createTemplatesFromVector(frame,patchSize,&points,&templates[0],&outvector);
 	
 	if( verbosity>=VERY_VERBOSE ) 
         cout<<"Top left corners of templates\n";
@@ -255,14 +267,14 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair>
 	if( verbosity>=VERBOSE )
     {
 		cout << "Verified Points to Match:" << endl;
-		for( size_t i=0; i<points[0].size(); i++ )
+		for( size_t i=0; i<points.size(); i++ )
         {
-			cout << i <<" x: " << points[0][i].x << " y: " << points[0][i].y << endl;
+			cout << i <<" x: " << points[i].x << " y: " << points[i].y << endl;
 		}
 	}
 
-	findReflections(sourceCopy2,patchSize,&points[0],&templates[0],&reflections,&outvector);
-	runSymmetryTest(sourceCopy2,patchSize,&points[0],&reflections,&originalMatches,&outvector);
+	findReflections(sourceCopy2,patchSize,&points,&templates[0],&reflections,&outvector);
+	runSymmetryTest(sourceCopy2,patchSize,&points,&reflections,&originalMatches,&outvector);
 	identifyRealObjects(&outvector);
 	
 	if( displayWindows )
@@ -304,7 +316,7 @@ void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvec
 	//			beginning=time(NULL);
 	int outvectorSize;
 	if(patchSize != 0){
-		outvectorSize = getReflections(image,patchSize,25,*outvector);
+		outvectorSize = getReflections(image,patchSize,15,*outvector);
 	}
 	else {
 		outvectorSize = (*outvector).size();
@@ -364,3 +376,53 @@ ARC_Pair getOneReflectionPair(Mat image, int patchSize, bool *regionFound){
 		return outvector[0];
 	}
 }
+
+void getDifferentReflectionPairs(Mat image, int patchSize, int desiredSize, vector<ARC_Pair> *outvector){
+
+		cout<<"In getDifferentReflections\n";
+	unsigned int convertedSize = (unsigned int) desiredSize;
+	Mat maskedScene;
+	for(unsigned int i=0; i<(*outvector).size();i++){
+			cout<<"In initial for loop\n";
+		Mat mask; 
+		mask = Mat::zeros(image.size(),CV_8UC1);
+		Rect leftSearchRegion (0,0,(*outvector)[i].roi.source.x,image.rows);
+		Rect rightSearchRegion ((*outvector)[i].roi.source.x+patchSize,0,image.cols,image.rows);
+		rectangle(mask,leftSearchRegion,255,CV_FILLED);
+		rectangle(mask,rightSearchRegion,255,CV_FILLED);
+		if(i==0)
+			image.copyTo(maskedScene,mask);
+		else{
+			Mat temp;	
+			maskedScene.copyTo(temp,mask);
+			maskedScene = temp;
+		}
+	}
+	namedWindow("Masked Scene",CV_WINDOW_AUTOSIZE);
+	imshow("Masked Scene",maskedScene);
+	waitKey(0);	
+	while((*outvector).size()<convertedSize){
+		bool regionFound;
+			cout<<"in method\n";
+		ARC_Pair temp = getOneReflectionPair(maskedScene,50,&regionFound);
+		if(regionFound==true) {
+			(*outvector).push_back(temp);
+			Mat mask;
+			imshow("Mask",maskedScene);
+			cout<<"before method\n";
+			mask = Mat::zeros(image.size(),CV_8UC1);
+			Rect leftSearchRegion (0,0,(*outvector)[(*outvector).size()-1].roi.source.x,image.rows);
+			Rect rightSearchRegion ((*outvector)[(*outvector).size()-1].roi.source.x+patchSize,0,image.cols,image.rows);
+			rectangle(mask,leftSearchRegion,255,CV_FILLED);
+			rectangle(mask,rightSearchRegion,255,CV_FILLED);
+			Mat temp; 
+			maskedScene.copyTo(temp,mask); 
+			maskedScene = temp;
+			imshow("Mask",maskedScene);
+			waitKey(0); 
+		}
+		else cout<<"no if\n";
+	}
+}
+
+	
