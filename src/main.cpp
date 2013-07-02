@@ -30,7 +30,13 @@ bool slope_filter ( ARC_Pair pair )
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
     //TODO: compare to slope or angle measured by IMU
+    /*
+    ARC_IMU i( A );
+    Point2f Crs = i.2dToCr( pair.roi.source, imu_data );
+    Point2f Crr = i.2dToCr( pair.roi.reflection, imu_data );
 
+    return ( abs(Crs.x-Crr.x)>pair.roi.source.width ) ? false : true;
+    */
     return true;
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
@@ -45,7 +51,7 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
     if( regions->size()<nregions )
     {
         vector<ARC_Pair> new_regions;
-        getReflections( frame, 50, 15, new_regions );
+        getReflections( frame, 50, 5, new_regions );
         // Fill up regions vector until there are nregions regions.
         unsigned int nnr = new_regions.size();
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
