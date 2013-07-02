@@ -232,8 +232,6 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair>
 	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
 	for(int i=0;i<numOfFeatures;i++){
 		vector<Point> tempPoint;
-		namedWindow("Mask",CV_WINDOW_AUTOSIZE);
-		imshow("Mask",mask);
 		goodFeaturesToTrack(sourceCopy,tempPoint,1,.01,patchSize+10,mask,3,0,0.04);
 		
 		points.push_back(tempPoint[0]);	
