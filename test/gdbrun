@@ -1,4 +1,4 @@
-set args ../test/creeklist2 ../test/creektest4.amf 
+set args ../test/creeklist2 ../test/creektest4.amf --match-ratio .83
 show args
 run
 where

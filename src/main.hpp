@@ -36,6 +36,8 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
+bool slope_filter ( ARC_Pair pair );
+
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 
 void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt,

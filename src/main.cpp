@@ -22,6 +22,18 @@ using namespace std;
 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  slope_filter
+//  Description:  Checks if regions don't deviate too far from slope.
+// =====================================================================================
+bool slope_filter ( ARC_Pair pair )
+{
+    //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
+    //float roi_slope = del.y/del.x;
+    //TODO: compare to slope or angle measured by IMU
+
+    return true;
+}		// -----  end of function slope_filter  ----- 
+// ===  FUNCTION  ======================================================================
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
@@ -33,7 +45,8 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
     if( regions->size()<nregions )
     {
         vector<ARC_Pair> new_regions;
-        getReflections( frame, 50, 15, new_regions );
+        getReflections( frame, 40, 15, new_regions );
+        // Fill up regions vector until there are nregions regions.
         unsigned int nnr = new_regions.size();
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
         regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
@@ -700,8 +713,8 @@ int main(int argc, char** argv)
             // TODO: Second condition should be generalized for slope input.
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
             Rect roi_test = r->roi.source & scene_rect ;
-            if ( r->no_match>5 || ( abs(r->roi.source.x-r->roi.reflection.x)>50 ) 
-                    || roi_test.area()<2500 )
+            if ( r->no_match>5 || ( abs(r->roi.source.x-r->roi.reflection.x)>50 ) // Test 2 can be rplaced by slope_filter
+                    || roi_test.area()<500 || !slope_filter( *r ) ) // slope_filter not yet implemented.
             {
                 r = regions.erase( r );
                 continue;
@@ -886,8 +899,8 @@ int main(int argc, char** argv)
             ++r;
         }
         swap(prev_gray, gray);
-        imshow( DEFAULT_WINDOW_NAME, drawn_matches );
-        waitKey(5);
+        //imshow( DEFAULT_WINDOW_NAME, drawn_matches );
+        //waitKey(5);
         vidout << drawn_matches;
     }
 	return 0;
