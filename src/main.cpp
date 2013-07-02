@@ -45,7 +45,7 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
     if( regions->size()<nregions )
     {
         vector<ARC_Pair> new_regions;
-        getReflections( frame, 40, 15, new_regions );
+        getReflections( frame, 50, 15, new_regions );
         // Fill up regions vector until there are nregions regions.
         unsigned int nnr = new_regions.size();
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
@@ -714,7 +714,7 @@ int main(int argc, char** argv)
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
             Rect roi_test = r->roi.source & scene_rect ;
             if ( r->no_match>5 || ( abs(r->roi.source.x-r->roi.reflection.x)>50 ) // Test 2 can be rplaced by slope_filter
-                    || roi_test.area()<500 || !slope_filter( *r ) ) // slope_filter not yet implemented.
+                    || roi_test.area()<1600 || !slope_filter( *r ) ) // slope_filter not yet implemented.
             {
                 r = regions.erase( r );
                 continue;
@@ -899,8 +899,8 @@ int main(int argc, char** argv)
             ++r;
         }
         swap(prev_gray, gray);
-        //imshow( DEFAULT_WINDOW_NAME, drawn_matches );
-        //waitKey(5);
+        imshow( DEFAULT_WINDOW_NAME, drawn_matches );
+        waitKey(5);
         vidout << drawn_matches;
     }
 	return 0;
