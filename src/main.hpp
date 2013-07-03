@@ -15,6 +15,7 @@
 #include "ARC_Write.hpp"
 #include "config.hpp"
 #include "ReflectionTracker.hpp"
+#include "ARC_IMU.hpp"
 
 typedef struct PPC_t {                          // Point Pair Conversion
     vector<Point2f> source;

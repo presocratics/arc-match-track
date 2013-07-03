@@ -1,6 +1,10 @@
-#ifndef  arc_imu_INC
+#ifndef  ARC_IMU_INC
 #define  ARC_IMU_INC
+#include <cv.h>
+#include <iostream>
 #include "config.hpp"
+using namespace cv;
+using namespace std;
 
 // =====================================================================================
 //        Class:  ARC_IMU
@@ -10,9 +14,13 @@ class ARC_IMU
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        ARC_IMU ();                             // constructor 
+        //ARC_IMU ( );                             // constructor 
 
         // ====================  ACCESSORS     ======================================= 
+        Mat get_A()
+        {
+            return A;
+        }
 
         // ====================  MUTATORS      ======================================= 
         void set_A( Mat am )
@@ -23,9 +31,10 @@ class ARC_IMU
         // ====================  OPERATORS     ======================================= 
 
         // ====================  METHODS       ======================================= 
-        Point3f 2dToCr( Point2f obj2d, Point3f imu_data );
-        Point2f CrTo2d( Point3f obj3d, Point3f imu_data );
-        float calc_slope( Point2f obj2d, Point3f imu_data );
+        Point3f poToCr( Point2f obj2d, Mat rot_mat );
+        Point2f CrTopo( Point3f obj3d, Mat rot_mat );
+        float calc_slope( Point2f obj2d, Mat rot_mat );
+        Mat calc_rotation_matrix( Point3f imu_data );
     protected:
         // ====================  METHODS       ======================================= 
 

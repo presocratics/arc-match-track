@@ -18,6 +18,8 @@
  */
 #include "main.hpp"
 #include "config.hpp"
+#include "ARC_IMU.hpp"
+//#define DEBUG_IMU
 using namespace std;
 
 
@@ -29,13 +31,20 @@ bool slope_filter ( ARC_Pair pair )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
-    //TODO: compare to slope or angle measured by IMU
+    // Create and set A matrix.
     /*
+    double fx, fy, cx, cy;
+    fx = fy = 720;
+    cx = 320;
+    cy = 240;
+    Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
+                                      0, fy, cy,
+                                      0,  0,  1 );
     ARC_IMU i( A );
-    Point2f Crs = i.2dToCr( pair.roi.source, imu_data );
-    Point2f Crr = i.2dToCr( pair.roi.reflection, imu_data );
+    //Point2f Crs = i.2dToCr( pair.roi.source, imu_data );
+    //Point2f Crr = i.2dToCr( pair.roi.reflection, imu_data );
 
-    return ( abs(Crs.x-Crr.x)>pair.roi.source.width ) ? false : true;
+    //return ( abs(Crs.x-Crr.x)>pair.roi.source.width ) ? false : true;
     */
     return true;
 }		// -----  end of function slope_filter  ----- 
@@ -615,6 +624,9 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     return true;
 }		/* -----  end of function get_arguments  ----- */
 
+
+#ifndef  DEBUG_IMU
+
 int main(int argc, char** argv)
 {
     vector<string> image_list;                  // Video frames for tracking.
@@ -896,7 +908,7 @@ int main(int argc, char** argv)
                     }
                 }
                 
-                writer.write_matches( i, r->keypoints.source, r->keypoints.reflection,
+                writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
                         r->matches, r->roi.source );
                 draw_match_by_hand( &drawn_matches, &cur_frame,
                         &flipped, r->roi.source , r->roi.reflection,
@@ -911,3 +923,35 @@ int main(int argc, char** argv)
     }
 	return 0;
 }
+#else      // -----  not DEBUG_IMU  ----- 
+
+
+// ===  FUNCTION  ======================================================================
+//         Name:  main
+//  Description:  Function for testing ARC_IMU
+// =====================================================================================
+int main ( int argc, char *argv[] )
+{
+    double fx, fy, cx, cy;
+    fx = fy = 720;
+    cx = 320;
+    cy = 240;
+    Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
+                                      0, fy, cy,
+                                      0,  0,  1 );
+    Point3f imu_data( -0.00271, 0.05425, -0.00461 );
+    Point2f src_pt( 351.219, 145.183 );
+    Point2f ref_pt( 351.763, 300.237 );
+    ARC_IMU i;
+    i.set_A(A);
+    Point3f src_out, ref_out;
+    Mat rot_mat = i.calc_rotation_matrix( imu_data );
+    src_out = i.poToCr( src_pt, rot_mat );
+    ref_out = i.poToCr( ref_pt, rot_mat );
+    cout << "A Matrix: " << i.get_A() << endl;
+    cout << "Rot Matrix: " << i.calc_rotation_matrix( imu_data ) << endl;
+    cout << "Src from: " << src_pt << spc << "to: " << src_out << endl;
+    cout << "Ref from: " << ref_pt << spc << "to: " << ref_out << endl;
+    return EXIT_SUCCESS;
+}				// ----------  end of function main  ---------- 
+#endif     // -----  not DEBUG_IMU  ----- 

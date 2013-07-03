@@ -38,7 +38,7 @@ ARC_Write::ARC_Write ( std::string f )
 }		/* -----  end of method ARC_Write::ARC_Write  ----- */
 
     void
-ARC_Write::write_matches ( size_t frame_num,
+ARC_Write::write_matches ( string frame_name,
         std::vector<cv::KeyPoint>& source_kpt, std::vector<cv::KeyPoint>& reflection_kpt,
         std::vector<cv::DMatch>& matches, Rect roi )
 {
@@ -56,6 +56,8 @@ ARC_Write::write_matches ( size_t frame_num,
             &good_points.source, &good_points.reflection,
             matches, roi, DOWN );
     size_t i=0;
+    const char* c_str = frame_name.c_str();
+    int frame_num = atoi( basename(c_str) );
     for( std::vector<cv::DMatch>::iterator it=matches.begin() ;
             it!=matches.end(); ++it, ++i )
     {

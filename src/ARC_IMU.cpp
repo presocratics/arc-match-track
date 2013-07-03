@@ -15,35 +15,46 @@
 // =====================================================================================
 
 #include "ARC_IMU.hpp"
+#include "config.hpp"
 #include <iostream>
-ARC_IMU::ARC_IMU ( Mat am )
+
+    Mat
+ARC_IMU::calc_rotation_matrix ( Point3f imu_data )
 {
-    A = am;
-}
+    double phi, theta, psi;
+    phi = imu_data.x;
+    theta = imu_data.y;
+    psi = imu_data.z;
+    Mat rotation_matrix = ( Mat_<double>(3,3)
+            << cosf(psi)*cosf(theta), sinf(psi)*cosf(theta), -sinf(theta),
+               -sinf(psi)*cosf(phi)+cosf(psi)*sinf(theta)*sinf(phi), cosf(psi)*cosf(phi)+sinf(psi)*sinf(theta)*sinf(phi),
+               cosf(theta)*sinf(phi),
+               sinf(psi)*sinf(phi)+cosf(psi)*sinf(theta)*cosf(phi), -cosf(psi)*sinf(phi)+sinf(psi)*sinf(theta)*cosf(phi),
+               cosf(theta)*cos(phi) );
+
+    return rotation_matrix;
+}		// -----  end of method ARC_IMU::calc_rotation_matrix  ----- 
+
 
     Point3f
-ARC_IMU::2dToCr ( Point2f pt2d, Point3f imu_data )
+ARC_IMU::poToCr ( Point2f pt2d, Mat rot_mat )
 {
-    Point3f pt2d( pt2d.x, pt2d.y, 1 );
-    Mat obj2d( pt2d );
-    Mat hCi = A*obj2d;                           // 3d wrt current camera orientation.
+    Mat mat2d = ( Mat_<double>(3, 1) << pt2d.x, pt2d.y, 1 ) ;
+    Mat hCi = A*mat2d;                           // 3d wrt current camera orientation.
 
-    Mat R;                                      // Transform to initial camera orientation.
+    Mat inRc = rot_mat * hCi;
     //TODO convert to Cr.
+    Point3f ptRc = (Point3f) inRc;
     
 
-    return ;
+    return ptRc;
 }		// -----  end of method ARC_IMU::2dToCr  ----- 
 
 
-float calc_slope( Point2f obj2d, Point3f imu_data )
+/*
+float calc_slope( Point2f obj2d, Mat rot_mat )
 {
 
 }
-
-int main()
-{
-	using namespace std;
-	return 0;
-}
+*/
 

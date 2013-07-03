@@ -31,7 +31,7 @@ class ARC_Write
 
         /* ====================  OPERATORS     ======================================= */
         /* ====================  METHODS       ======================================= */
-        void write_matches( size_t frame_num, 
+        void write_matches( string frame_name, 
                 std::vector<cv::KeyPoint>& source_kpt, std::vector<cv::KeyPoint>& reflection_kpt,
                 std::vector<cv::DMatch>& matches, Rect roi );
 
