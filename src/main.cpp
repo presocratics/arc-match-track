@@ -27,12 +27,14 @@ using namespace std;
 //         Name:  slope_filter
 //  Description:  Checks if regions don't deviate too far from slope.
 // =====================================================================================
-bool slope_filter ( ARC_Pair pair )
+bool slope_filter ( ARC_Pair pair, Mat rot_mat )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
     // Create and set A matrix.
-    /*
+    double hi, lo;
+    hi = 1.01;
+    lo = 0.99;
     double fx, fy, cx, cy;
     fx = fy = 720;
     cx = 320;
@@ -40,13 +42,14 @@ bool slope_filter ( ARC_Pair pair )
     Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
                                       0, fy, cy,
                                       0,  0,  1 );
-    ARC_IMU i( A );
-    //Point2f Crs = i.2dToCr( pair.roi.source, imu_data );
-    //Point2f Crr = i.2dToCr( pair.roi.reflection, imu_data );
+    ARC_IMU i;
+    i.set_A( A );
+    // TODO: do this at keypoint level
+    Point3f Crs = i.poToCr( pair.roi.source.tl(), rot_mat );
+    Point3f Crr = i.poToCr( pair.roi.reflection.tl(), rot_mat );
+    double ratio = Crs.x/Crr.x;
 
-    //return ( abs(Crs.x-Crr.x)>pair.roi.source.width ) ? false : true;
-    */
-    return true;
+    return ( ratio<hi && ratio>lo );
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
 //         Name:  update_regions
@@ -495,6 +498,36 @@ void arguments::arguments()
 
 /* 
  * ===  FUNCTION  ======================================================================
+ *         Name:  get_imu_list
+ *  Description:  
+ * =====================================================================================
+ */
+    void
+get_imu_list ( string filename, vector<Point3f>* il )
+{
+
+    string    ifs_file_name = filename;                 /* input  file name */
+    ifstream  ifs;                                /* create ifstream object */
+
+    ifs.open ( ifs_file_name.c_str() );           /* open ifstream */
+    if (!ifs) {
+        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        exit (EXIT_FAILURE);
+    }
+    string line;
+    while( getline( ifs, line, '\n' ) )
+    {
+        double x, y, z;
+        string fn;
+        stringstream l(line);
+        l >> fn >> x >> y >> z;
+        il->push_back( Point3f( x, y, z ) );
+    }
+    ifs.close ();                                 /* close ifstream */
+    return ;
+}		/* -----  end of function get_imu_list  ----- */
+/* 
+ * ===  FUNCTION  ======================================================================
  *         Name:  get_image_list
  *  Description:  Get a list of image files for the video stream.
  * =====================================================================================
@@ -630,6 +663,7 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 int main(int argc, char** argv)
 {
     vector<string> image_list;                  // Video frames for tracking.
+    vector<Point3f> imu_list;                  // IMU data for slope.
     vector<ARC_Pair> regions;                   // Container for selected reflections and matches.
 
     // Parse Arguments
@@ -659,6 +693,7 @@ int main(int argc, char** argv)
             endl;
     }
     get_image_list( argv[1], &image_list );     // Reads in the image list.
+    get_imu_list( argv[2], &imu_list );
     //get_regions( argv[2], &regions );           // Reads in the region list.
 
     // Init text file
@@ -704,11 +739,15 @@ int main(int argc, char** argv)
     m.set_descriptor_extractor( pde );
     m.set_descriptor_matcher( pdm );
 
+    // Init ARC_IMU for rotation matrix.
+    ARC_IMU imu;
     //Begin image loop.
     Mat cur_frame, gray, prev_gray;
+    // TODO: read in IMU data and get Rotation Matrix.
     for( size_t i=0; i<image_list.size(); i++ )
     {
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
+        Mat rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
 
         cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
         if ( !cur_frame.data ) {
