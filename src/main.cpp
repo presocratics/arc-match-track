@@ -27,29 +27,25 @@ using namespace std;
 //         Name:  slope_filter
 //  Description:  Checks if regions don't deviate too far from slope.
 // =====================================================================================
-bool slope_filter ( ARC_Pair pair, Mat rot_mat )
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, Mat rot_mat )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
     // Create and set A matrix.
     double hi, lo;
-    hi = 1.01;
-    lo = 0.99;
-    double fx, fy, cx, cy;
-    fx = fy = 720;
-    cx = 320;
-    cy = 240;
-    Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
-                                      0, fy, cy,
-                                      0,  0,  1 );
+    hi = 1.10;
+    lo = 0.90;
     ARC_IMU i;
     i.set_A( A );
     // TODO: do this at keypoint level
-    Point3f Crs = i.poToCr( pair.roi.source.tl(), rot_mat );
-    Point3f Crr = i.poToCr( pair.roi.reflection.tl(), rot_mat );
+    Point3f Crs = i.poToCr( src_pt, rot_mat );
+    Point3f Crr = i.poToCr( ref_pt, rot_mat );
+    cout << "Crs: " << Crs << endl;
+    cout << "Crr: " << Crr << endl;
     double ratio = Crs.x/Crr.x;
 
     return ( ratio<hi && ratio>lo );
+    //return true;
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
 //         Name:  update_regions
@@ -105,7 +101,8 @@ Rect update_roi ( Rect roi, vector<Point2f> pts )
 //         Name:  prune_keypoints
 //  Description:  Removes all keypoints that do not have an associated match.
 // =====================================================================================
-void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt, vector<DMatch>& matches )
+void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt,
+        vector<DMatch>& matches )
 {
     vector<KeyPoint> new_train_kpt, new_query_kpt;
     for( vector<DMatch>::iterator it=matches.begin() ;
@@ -186,7 +183,8 @@ void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kp
 //  =====================================================================================
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
-        vector<DMatch>* matches, Rect roi, unsigned int direction )
+        vector<DMatch>* matches, Rect roi, unsigned int direction,
+        Mat rotation_matrix )
 {
     Point2f transform = -roi.tl();
     vector<Point2f> trans_train, trans_query;
@@ -195,7 +193,9 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
     while( it!=matches->end() )
     {
         Point2f new_train, new_query;
-        if( train_pts[i]==Point2f(-1, -1) || query_pts[i]==Point2f(-1, -1) )
+        if( train_pts[i]==Point2f(-1, -1) 
+                || query_pts[i]==Point2f(-1, -1)
+                || !slope_filter( train_pts[i], query_pts[i], rotation_matrix ))
         {
             // Tracking point lost, remove from matches.
             ++i;
@@ -336,7 +336,7 @@ void help( string program_name )
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
+bool track( Mat gray, Mat prev_gray, ARC_Pair* r, Mat rotation_matrix )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
@@ -391,13 +391,13 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r )
 
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
-            r->direction.match );
+            r->direction.match, rotation_matrix );
     }
     else
     {
         good_points_to_keypoints( new_points.reflection, &(r->keypoints.reflection),
             new_points.source, &(r->keypoints.source), &(r->matches), r->roi.reflection,
-            r->direction.match );
+            r->direction.match, rotation_matrix );
     }
 
     return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
@@ -767,11 +767,9 @@ int main(int argc, char** argv)
         vector<ARC_Pair>::iterator r=regions.begin(); 
         while( r!=regions.end() )
         {
-            // TODO: Second condition should be generalized for slope input.
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
             Rect roi_test = r->roi.source & scene_rect ;
-            if ( r->no_match>5 || ( abs(r->roi.source.x-r->roi.reflection.x)>50 ) // Test 2 can be rplaced by slope_filter
-                    || roi_test.area()<1600 || !slope_filter( *r ) ) // slope_filter not yet implemented.
+            if ( r->no_match>5 || roi_test.area()<1600 )
             {
                 r = regions.erase( r );
                 continue;
@@ -904,7 +902,7 @@ int main(int argc, char** argv)
                     else
                         cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
                 }
-                if ( !track(gray, prev_gray, &(*r) ) ) 
+                if ( !track( gray, prev_gray, &(*r), rotation_matrix )  )
                 {
                     //r->iter_count=0;
                     r = regions.erase(r);
@@ -971,16 +969,22 @@ int main(int argc, char** argv)
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    double fx, fy, cx, cy;
-    fx = fy = 720;
-    cx = 320;
-    cy = 240;
-    Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
-                                      0, fy, cy,
-                                      0,  0,  1 );
-    Point3f imu_data( -0.00271, 0.05425, -0.00461 );
-    Point2f src_pt( 351.219, 145.183 );
-    Point2f ref_pt( 351.763, 300.237 );
+    //Point3f imu_data( -0.00271, 0.05425, -0.00461 );
+    //Point3f imu_data( -0.00135, 0.01268, 0.01181 );
+    //Point3f imu_data( 0.00103, 0.05275, 0.01291 );
+    Point3f imu_data(0.03063, 0.00499, -0.00513);
+    
+    //Point2f src_pt(414.862, 86.2638 );
+    //Point2f ref_pt(419.592, 390.912 );
+    
+    //Point2f src_pt( 351.219, 145.183 );
+    //Point2f ref_pt( 351.763, 300.237 );
+
+    //Point2f src_pt(288.621, 115.218 );
+    //Point2f ref_pt(320.696, 283.451 );
+
+    Point2f src_pt(416.303, 77.1149 );
+    Point2f ref_pt(417.314, 387.708 );
     ARC_IMU i;
     i.set_A(A);
     Point3f src_out, ref_out;
@@ -991,6 +995,7 @@ int main ( int argc, char *argv[] )
     cout << "Rot Matrix: " << i.calc_rotation_matrix( imu_data ) << endl;
     cout << "Src from: " << src_pt << spc << "to: " << src_out << endl;
     cout << "Ref from: " << ref_pt << spc << "to: " << ref_out << endl;
+    cout << "Src Ratio: " << src_pt.x/ref_pt.x << " Ref Ratio: " << src_out.x/ref_out.x << endl;
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 

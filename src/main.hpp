@@ -17,6 +17,15 @@
 #include "ReflectionTracker.hpp"
 #include "ARC_IMU.hpp"
 
+// A Matrix
+const double fx = 492.42317;
+const double fy = 489.98014;
+const double cx = 313.71144;
+const double cy = 261.27213;
+const Mat A = ( Mat_<double>( 3, 3 ) << fx, 0, cx,
+                                  0, fy, cy,
+                                  0,  0,  1 );
+
 typedef struct PPC_t {                          // Point Pair Conversion
     vector<Point2f> source;
     vector<Point2f> reflection;
@@ -37,7 +46,7 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
-bool slope_filter ( ARC_Pair pair );
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, Mat rot_mat );
 
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 
@@ -54,7 +63,7 @@ Mat process_object ( Mat* frame, Rect roi, Mat* mask, bool blur );
 
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
-        vector<DMatch>* matches );
+        vector<DMatch>* matches, Mat rotation_matrix );
 
 void draw_match_by_hand( Mat out_img, Mat* scene, 
         Mat* object, Rect sroi, Rect rroi,
@@ -82,6 +91,6 @@ bool get_arguments(int argc, char** argv, arguments* a);
 
 Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat* mask );
 
-bool track (Mat gray, Mat prev_gray, ARC_Pair* r );
+bool track (Mat gray, Mat prev_gray, ARC_Pair* r, Mat rotation_matrix );
 
 #endif /* MAIN_H */
