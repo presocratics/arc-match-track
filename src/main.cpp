@@ -42,9 +42,11 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat )
     Point3f Crr = i.poToCr( ref_pt, rot_mat );
     cout << "Crs: " << Crs << endl;
     cout << "Crr: " << Crr << endl;
-    double ratio = Crs.x/Crr.x;
 
-    return ( ratio<hi && ratio>lo );
+    //double ratio = Crs.x/Crr.x;
+    //return ( ratio<hi && ratio>lo );
+    double diff = abs( Crs.x-Crr.x );
+    return ( diff<.19 );
     //return true;
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
@@ -58,12 +60,15 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
     // Get new regions.
     if( regions->size()<nregions )
     {
+        /*
         vector<ARC_Pair> new_regions;
         getReflections( frame, 50, 5, new_regions );
         // Fill up regions vector until there are nregions regions.
         unsigned int nnr = new_regions.size();
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
         regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
+        */
+        getReflections( frame, 50, nregions, *regions );
     }
         
     return ;
@@ -761,7 +766,7 @@ int main(int argc, char** argv)
         cur_frame.copyTo(drawn_matches);
         // Update regions
         if( i%50==0 )
-            update_regions( cur_frame, &regions, 10 );
+            update_regions( cur_frame, &regions, 25 );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
@@ -769,7 +774,10 @@ int main(int argc, char** argv)
         {
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
             Rect roi_test = r->roi.source & scene_rect ;
-            if ( r->no_match>5 || roi_test.area()<1600 )
+            Rect src_ref_overlap = r->roi.source & r->roi.reflection;
+            if ( r->no_match>5 
+                    || roi_test.area()<1600 
+                    || src_ref_overlap.area()> 400 )
             {
                 r = regions.erase( r );
                 continue;

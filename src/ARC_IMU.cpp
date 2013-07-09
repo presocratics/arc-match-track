@@ -103,14 +103,12 @@ ARC_IMU::poToCr ( Point2f pt2d, Matx33d rot_mat )
     // TODO: use perspectiveTransform?
     Matx31d mat2d( pt2d.x, pt2d.y, 1 ) ;        // Convert point to 3x1 Mat
     Matx31d hCi = A*mat2d;                      // Multiply by A matrix to get h_o
-    /*
     // Normalize
     Matx31d hCi_norm;
     normalize( hCi, hCi_norm );                 // Normalize h_o
-
     Matx31d inRc = rot_mat * hCi_norm;          // Transform to C_r
-    */
-    Matx31d inRc = rot_mat * hCi;
+
+    //Matx31d inRc = rot_mat * hCi;
     Point3f ptRc = (Point3f) Mat(inRc);         // Convert C_r to Point
 
     return ptRc;
