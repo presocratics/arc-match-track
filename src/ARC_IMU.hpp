@@ -17,13 +17,13 @@ class ARC_IMU
         //ARC_IMU ( );                             // constructor 
 
         // ====================  ACCESSORS     ======================================= 
-        Mat get_A()
+        Matx33d get_A()
         {
             return A;
         }
 
         // ====================  MUTATORS      ======================================= 
-        void set_A( Mat am )
+        void set_A( Matx33d am )
         {
             A = am;
         }
@@ -31,10 +31,11 @@ class ARC_IMU
         // ====================  OPERATORS     ======================================= 
 
         // ====================  METHODS       ======================================= 
-        Point3f poToCr( Point2f obj2d, Mat rot_mat );
-        Point2f CrTopo( Point3f obj3d, Mat rot_mat );
-        float calc_slope( Point2f obj2d, Mat rot_mat );
-        Mat calc_rotation_matrix( Point3f imu_data );
+        Point3f poToCr( Point2f obj2d, Matx33d rot_mat );
+        Point2f CrTopo( Point3f obj3d, Matx33d rot_mat );
+        void poEndpoints( Point2f obj2d, Matx33d rot_mat, Point2f* out_line );
+        float calc_slope( Point2f obj2d, Matx33d rot_mat );
+        Matx33d calc_rotation_matrix( Point3f imu_data );
     protected:
         // ====================  METHODS       ======================================= 
 
@@ -44,7 +45,7 @@ class ARC_IMU
         // ====================  METHODS       ======================================= 
 
         // ====================  DATA MEMBERS  ======================================= 
-        Mat A;
+        Matx33d A;
 
 }; // -----  end of class ARC_IMU  ----- 
 

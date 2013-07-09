@@ -27,7 +27,7 @@ using namespace std;
 //         Name:  slope_filter
 //  Description:  Checks if regions don't deviate too far from slope.
 // =====================================================================================
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, Mat rot_mat )
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
@@ -184,7 +184,7 @@ void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kp
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
         vector<DMatch>* matches, Rect roi, unsigned int direction,
-        Mat rotation_matrix )
+        Matx33d rotation_matrix )
 {
     Point2f transform = -roi.tl();
     vector<Point2f> trans_train, trans_query;
@@ -336,7 +336,7 @@ void help( string program_name )
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, ARC_Pair* r, Mat rotation_matrix )
+bool track( Mat gray, Mat prev_gray, ARC_Pair* r, Matx33d rotation_matrix )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
@@ -747,7 +747,7 @@ int main(int argc, char** argv)
     for( size_t i=0; i<image_list.size(); i++ )
     {
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
-        Mat rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
+        Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
 
         cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
         if ( !cur_frame.data ) {
@@ -969,33 +969,39 @@ int main(int argc, char** argv)
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    //Point3f imu_data( -0.00271, 0.05425, -0.00461 );
-    //Point3f imu_data( -0.00135, 0.01268, 0.01181 );
-    //Point3f imu_data( 0.00103, 0.05275, 0.01291 );
-    Point3f imu_data(0.03063, 0.00499, -0.00513);
+    //Point3f imu_data( -0.00271, 0.05425, -0.00461 ); // 1
+    Point3f imu_data( -0.00135, 0.01268, 0.01181 ); // 2
+    //Point3f imu_data( 0.00103, 0.05275, 0.01291 ); // 3
+    //Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
     
-    //Point2f src_pt(414.862, 86.2638 );
+    //Point2f src_pt(414.862, 86.2638 );        // 1
     //Point2f ref_pt(419.592, 390.912 );
     
-    //Point2f src_pt( 351.219, 145.183 );
-    //Point2f ref_pt( 351.763, 300.237 );
+    Point2f src_pt( 351.219, 145.183 );       // 2
+    Point2f ref_pt( 351.763, 300.237 );
 
-    //Point2f src_pt(288.621, 115.218 );
+    //Point2f src_pt(288.621, 115.218 );        // 3
     //Point2f ref_pt(320.696, 283.451 );
 
-    Point2f src_pt(416.303, 77.1149 );
-    Point2f ref_pt(417.314, 387.708 );
+    //Point2f src_pt(416.303, 77.1149 );          // 4
+    //Point2f ref_pt(417.314, 387.708 );
+
     ARC_IMU i;
     i.set_A(A);
     Point3f src_out, ref_out;
-    Mat rot_mat = i.calc_rotation_matrix( imu_data );
+    Matx33d rot_mat = i.calc_rotation_matrix( imu_data );
     src_out = i.poToCr( src_pt, rot_mat );
     ref_out = i.poToCr( ref_pt, rot_mat );
-    cout << "A Matrix: " << i.get_A() << endl;
-    cout << "Rot Matrix: " << i.calc_rotation_matrix( imu_data ) << endl;
+    cout << "A Matrix: " << Mat( i.get_A() ) << endl;
+    cout << "Rot Matrix: " << Mat( i.calc_rotation_matrix( imu_data ) ) << endl;
     cout << "Src from: " << src_pt << spc << "to: " << src_out << endl;
     cout << "Ref from: " << ref_pt << spc << "to: " << ref_out << endl;
     cout << "Src Ratio: " << src_pt.x/ref_pt.x << " Ref Ratio: " << src_out.x/ref_out.x << endl;
+
+    Point2f ol[2];
+    i.poEndpoints( src_pt, rot_mat, ol );
+    cout << "OL[0]: " << ol[0] << endl;
+    cout << "OL[1]: " << ol[1] << endl;
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 
