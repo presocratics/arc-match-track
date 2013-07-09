@@ -374,11 +374,12 @@ Rect findOneReflection(Mat source, Rect tmplte){
 	return rect;
 }
 
-ARC_Pair getOneReflectionPair(Mat image, int patchSize, bool *regionFound){
+//GIVEN A source MAT, patchSize, AND A BOOLEAN FLAG, IT TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION  
+ARC_Pair getOneReflectionPair(Mat source, int patchSize, bool *regionFound){
 
 	vector<ARC_Pair> outvector;
 	ARC_Pair empty;	
-	getReflections(image,patchSize,5,outvector);
+	getReflections(source,patchSize,5,outvector);
 	if(outvector.size()==0){
 		*regionFound = false;
 		return empty;	 
