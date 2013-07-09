@@ -211,7 +211,7 @@ void identifyRealObjects(vector<ARC_Pair> *outvector){
 
 //GIVEN AN IMAGE AND A PATCHSIZE, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair> &outvector){
-
+	
     if(numOfFeatures>((frame.rows*frame.cols)/(pow(patchSize*2,2)))-4) cout<<"Large number of features requested for given patchSize, goodFeaturesToTrack might crash\n";
 	if(!frame.data) cout << "Image couldn't be loaded\n";
 	//namedWindow( "Source", CV_WINDOW_AUTOSIZE );
@@ -230,18 +230,27 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair>
 
 
 	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
-	for(int i=0;i<numOfFeatures;i++){
+//Goes through any ARC_Pairs already in the outvector and creates a mask to prevent rematching those regions
+	for(unsigned i=0;i<outvector.size();i++){
+		Rect blockedRegionSource(outvector[i].roi.source.x-30,outvector[i].roi.source.y-30,outvector[i].roi.source.width+60,outvector[i].roi.source.width+60);
+		Rect blockedRegionReflection(outvector[i].roi.reflection.x-30,outvector[i].roi.reflection.y-30,outvector[i].roi.reflection.width+60,outvector[i].roi.reflection.width+60);
+		rectangle(mask,blockedRegionSource,0,CV_FILLED);
+		rectangle(mask,blockedRegionReflection,0,CV_FILLED);
+	}
+
+	vector<ARC_Pair> tempoutvector;
+	tempoutvector = outvector;
+	outvector.clear();
+//Adds points from goodFeaturesToTrack one by one, and creates a mask for each point to prevent clustering
+	for(int counter = outvector.size();counter<numOfFeatures;counter++){
 		vector<Point> tempPoint;
 		goodFeaturesToTrack(sourceCopy,tempPoint,1,.01,patchSize+10,mask,3,0,0.04);
 		
 		points.push_back(tempPoint[0]);	
-		Rect blockedRegion (tempPoint[0].x-patchSize,tempPoint[0].y-patchSize,patchSize+2*patchSize,patchSize+2*patchSize);
-		rectangle(mask,blockedRegion,0,CV_FILLED);
+		Rect blockedRegionSource (tempPoint[0].x-patchSize,tempPoint[0].y-patchSize,2*patchSize,2*patchSize);
+		rectangle(mask,blockedRegionSource,0,CV_FILLED);
 	}
-	//finds good features to track and stores them in points
-	//int numOfFeatures = 25;	
 
-	//goodFeaturesToTrack(sourceCopy,points,numOfFeatures,.01,patchSize+10,Mat(),3,0,0.04);
     if( verbosity>=VERBOSE )
     {
         cout << "Ran goodFeaturesToTrack" << endl;
@@ -302,6 +311,12 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, vector<ARC_Pair>
     	    }
 		}
 	}
+
+	for(unsigned int i=0;i<outvector.size();i++){
+		tempoutvector.push_back(outvector[i]);
+	}
+	outvector.clear();
+	outvector=tempoutvector;
 	return outvector.size();
 }
 
@@ -359,68 +374,18 @@ Rect findOneReflection(Mat source, Rect tmplte){
 	return rect;
 }
 
-ARC_Pair getOneReflectionPair(Mat image, int patchSize, bool *regionFound){
+//GIVEN A source MAT, patchSize, AND A BOOLEAN FLAG, IT TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION  
+ARC_Pair getOneReflectionPair(Mat source, int patchSize, bool *regionFound){
 
 	vector<ARC_Pair> outvector;
 	ARC_Pair empty;	
-	getReflections(image,patchSize,5,outvector);
+	getReflections(source,patchSize,5,outvector);
 	if(outvector.size()==0){
 		*regionFound = false;
 		return empty;	 
 	}
 	else{
 		*regionFound = true;
-//		cout<<"Function Source at ("<<outvector[0].roi.source.x<<","<<outvector[0].roi.source.y<<") and reflection at ("<<outvector[0].roi.reflection.x<<","<<outvector[0].roi.reflection.y<<")\n";
 		return outvector[0];
 	}
 }
-
-void getDifferentReflectionPairs(Mat image, int patchSize, int desiredSize, vector<ARC_Pair> *outvector){
-
-		cout<<"In getDifferentReflections\n";
-	unsigned int convertedSize = (unsigned int) desiredSize;
-	Mat maskedScene;
-	for(unsigned int i=0; i<(*outvector).size();i++){
-			cout<<"In initial for loop\n";
-		Mat mask; 
-		mask = Mat::zeros(image.size(),CV_8UC1);
-		Rect leftSearchRegion (0,0,(*outvector)[i].roi.source.x,image.rows);
-		Rect rightSearchRegion ((*outvector)[i].roi.source.x+patchSize,0,image.cols,image.rows);
-		rectangle(mask,leftSearchRegion,255,CV_FILLED);
-		rectangle(mask,rightSearchRegion,255,CV_FILLED);
-		if(i==0)
-			image.copyTo(maskedScene,mask);
-		else{
-			Mat temp;	
-			maskedScene.copyTo(temp,mask);
-			maskedScene = temp;
-		}
-	}
-	namedWindow("Masked Scene",CV_WINDOW_AUTOSIZE);
-	imshow("Masked Scene",maskedScene);
-	waitKey(0);	
-	while((*outvector).size()<convertedSize){
-		bool regionFound;
-			cout<<"in method\n";
-		ARC_Pair temp = getOneReflectionPair(maskedScene,50,&regionFound);
-		if(regionFound==true) {
-			(*outvector).push_back(temp);
-			Mat mask;
-			imshow("Mask",maskedScene);
-			cout<<"before method\n";
-			mask = Mat::zeros(image.size(),CV_8UC1);
-			Rect leftSearchRegion (0,0,(*outvector)[(*outvector).size()-1].roi.source.x,image.rows);
-			Rect rightSearchRegion ((*outvector)[(*outvector).size()-1].roi.source.x+patchSize,0,image.cols,image.rows);
-			rectangle(mask,leftSearchRegion,255,CV_FILLED);
-			rectangle(mask,rightSearchRegion,255,CV_FILLED);
-			Mat temp; 
-			maskedScene.copyTo(temp,mask); 
-			maskedScene = temp;
-			imshow("Mask",maskedScene);
-			waitKey(0); 
-		}
-		else cout<<"no if\n";
-	}
-}
-
-	
