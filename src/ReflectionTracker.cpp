@@ -205,7 +205,7 @@ void identifyRealObjects(vector<ARC_Pair> *outvector){
             (*outvector)[i].roi.reflection = (*outvector)[i].roi.source;
             (*outvector)[i].roi.source = temp;
         }
-		cout<<"Outvector source at ("<<(*outvector)[i].roi.source.x<<","<<(*outvector)[i].roi.source.y<<") and reflection at ("<<(*outvector)[i].roi.reflection.x<<","			<<(*outvector)[i].roi.reflection.y<<")\n";
+		//cout<<"Outvector source at ("<<(*outvector)[i].roi.source.x<<","<<(*outvector)[i].roi.source.y<<") and reflection at ("<<(*outvector)[i].roi.reflection.x<<","			<<(*outvector)[i].roi.reflection.y<<")\n";
 	}
 }
 
@@ -334,7 +334,7 @@ void displayReflectionMatches(Mat image, int patchSize, vector<ARC_Pair> *outvec
 	else {
 		outvectorSize = (*outvector).size();
 	}
-	cout<<"Outvector size: "<<outvectorSize<<endl;
+	//cout<<"Outvector size: "<<outvectorSize<<endl;
 
     Mat draw = image.clone();
     Scalar originalColor(0,0,255);

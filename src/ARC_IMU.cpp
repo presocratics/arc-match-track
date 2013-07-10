@@ -28,12 +28,17 @@ ARC_IMU::poEndpoints ( Point2f obj2d, Matx33d rot_mat, Point2f* out_line )
     Matx33d A_invert;
     // P_o to Cr of chosen point and similar point at bottom of frame.
     Point2f obj_end( obj2d.x, 480 );
+    Point2f obj_start( obj2d.x, 0 );
+    //cout << "Point input: " << obj2d << " Point end: " << obj_end << endl;
     Point3f Cr = poToCr( obj2d, rot_mat );
+    Point3f Cr_start_estimate = poToCr( obj_start, rot_mat );
     Point3f Cr_end_estimate = poToCr( obj_end, rot_mat );
+    //cout << "CR input: " << Cr << " CR end: " << Cr_end_estimate << endl;
     // Using Cr.x create endpoints at top and bottom of Cr frame.
     // TODO: divide 1 by norm
-    Matx31d Cr_start( Cr.x, 0, 1 );
-    Matx31d Cr_end( Cr.x, Cr_end_estimate.y, 1 );
+    Matx31d Cr_start( Cr.x, 0, Cr_start_estimate.z );
+    Matx31d Cr_end( Cr.x, Cr_end_estimate.y, Cr_end_estimate.z );
+    //cout << "CR start: " << Mat(Cr_start) << " CR end: " << Mat(Cr_end)<< endl;
     // Convert endpoints to P_o
     //transpose( rot_mat, rot_mat_transpose );
     invert( rot_mat, rot_mat_invert );
@@ -41,6 +46,7 @@ ARC_IMU::poEndpoints ( Point2f obj2d, Matx33d rot_mat, Point2f* out_line )
 
     Matx31d po_start = A_invert * (rot_mat_invert * Cr_start);
     Matx31d po_end = A_invert * (rot_mat_invert * Cr_end );
+    cout << "PO start: " << Mat(po_start) << " PO end: " << Mat(po_end)<< endl;
     
     start3f = (Point3f) Mat(po_start);
     start2f = Point2f( start3f.x, start3f.y );
@@ -71,7 +77,7 @@ ARC_IMU::calc_rotation_matrix ( Point3f imu_data )
                cos(theta)*sin(phi),
                sin(psi)*sin(phi)+cos(psi)*sin(theta)*cos(phi), -cos(psi)*sin(phi)+sin(psi)*sin(theta)*cos(phi),
                cos(theta)*cos(phi) );
-               */
+   */
     double q[4] = {
                    sin(hphi)*cos(hthe)*cos(hpsi) - cos(hphi)*sin(hthe)*sin(hpsi),
                    cos(hphi)*sin(hthe)*cos(hpsi) + sin(hphi)*cos(hthe)*sin(hpsi),
@@ -103,22 +109,15 @@ ARC_IMU::poToCr ( Point2f pt2d, Matx33d rot_mat )
     // TODO: use perspectiveTransform?
     Matx31d mat2d( pt2d.x, pt2d.y, 1 ) ;        // Convert point to 3x1 Mat
     Matx31d hCi = A*mat2d;                      // Multiply by A matrix to get h_o
+    /*
     // Normalize
     Matx31d hCi_norm;
     normalize( hCi, hCi_norm );                 // Normalize h_o
     Matx31d inRc = rot_mat * hCi_norm;          // Transform to C_r
+    */
 
-    //Matx31d inRc = rot_mat * hCi;
+    Matx31d inRc = rot_mat * hCi;
     Point3f ptRc = (Point3f) Mat(inRc);         // Convert C_r to Point
 
     return ptRc;
 }		// -----  end of method ARC_IMU::2dToCr  ----- 
-
-
-/*
-float calc_slope( Point2f obj2d, Mat rot_mat )
-{
-
-}
-*/
-

@@ -34,7 +34,6 @@ class ARC_IMU
         Point3f poToCr( Point2f obj2d, Matx33d rot_mat );
         Point2f CrTopo( Point3f obj3d, Matx33d rot_mat );
         void poEndpoints( Point2f obj2d, Matx33d rot_mat, Point2f* out_line );
-        float calc_slope( Point2f obj2d, Matx33d rot_mat );
         Matx33d calc_rotation_matrix( Point3f imu_data );
     protected:
         // ====================  METHODS       ======================================= 

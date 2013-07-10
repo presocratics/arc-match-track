@@ -40,13 +40,13 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat )
     // TODO: do this at keypoint level
     Point3f Crs = i.poToCr( src_pt, rot_mat );
     Point3f Crr = i.poToCr( ref_pt, rot_mat );
-    cout << "Crs: " << Crs << endl;
-    cout << "Crr: " << Crr << endl;
+    //cout << "Crs: " << Crs << endl;
+    //cout << "Crr: " << Crr << endl;
 
-    //double ratio = Crs.x/Crr.x;
-    //return ( ratio<hi && ratio>lo );
-    double diff = abs( Crs.x-Crr.x );
-    return ( diff<.19 );
+    double ratio = Crs.x/Crr.x;
+    return ( ratio<hi && ratio>lo );
+    //double diff = abs( Crs.x-Crr.x );
+    //return ( diff<.19 );
     //return true;
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
@@ -746,6 +746,7 @@ int main(int argc, char** argv)
 
     // Init ARC_IMU for rotation matrix.
     ARC_IMU imu;
+    imu.set_A( A );
     //Begin image loop.
     Mat cur_frame, gray, prev_gray;
     // TODO: read in IMU data and get Rotation Matrix.
@@ -764,12 +765,15 @@ int main(int argc, char** argv)
             medianBlur( gray, gray, 7 );
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
+        /*
         // Update regions
         if( i%50==0 )
             update_regions( cur_frame, &regions, 25 );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
+        */
+        /*
         while( r!=regions.end() )
         {
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
@@ -961,6 +965,11 @@ int main(int argc, char** argv)
             }
             ++r;
         }
+        */
+        Point2f ol[2];
+        Point2f src_pt( 320, 240 );
+        imu.poEndpoints( src_pt, rotation_matrix, ol );
+        line( drawn_matches, ol[0], ol[1], 200 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         waitKey(5);
@@ -978,21 +987,21 @@ int main(int argc, char** argv)
 int main ( int argc, char *argv[] )
 {
     //Point3f imu_data( -0.00271, 0.05425, -0.00461 ); // 1
-    Point3f imu_data( -0.00135, 0.01268, 0.01181 ); // 2
+    //Point3f imu_data( -0.00135, 0.01268, 0.01181 ); // 2
     //Point3f imu_data( 0.00103, 0.05275, 0.01291 ); // 3
-    //Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
+    Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
     
     //Point2f src_pt(414.862, 86.2638 );        // 1
     //Point2f ref_pt(419.592, 390.912 );
     
-    Point2f src_pt( 351.219, 145.183 );       // 2
-    Point2f ref_pt( 351.763, 300.237 );
+    //Point2f src_pt( 351.219, 145.183 );       // 2
+    //Point2f ref_pt( 351.763, 300.237 );
 
     //Point2f src_pt(288.621, 115.218 );        // 3
     //Point2f ref_pt(320.696, 283.451 );
 
-    //Point2f src_pt(416.303, 77.1149 );          // 4
-    //Point2f ref_pt(417.314, 387.708 );
+    Point2f src_pt(416.303, 77.1149 );          // 4
+    Point2f ref_pt(417.314, 387.708 );
 
     ARC_IMU i;
     i.set_A(A);
@@ -1000,11 +1009,13 @@ int main ( int argc, char *argv[] )
     Matx33d rot_mat = i.calc_rotation_matrix( imu_data );
     src_out = i.poToCr( src_pt, rot_mat );
     ref_out = i.poToCr( ref_pt, rot_mat );
+    /*
     cout << "A Matrix: " << Mat( i.get_A() ) << endl;
     cout << "Rot Matrix: " << Mat( i.calc_rotation_matrix( imu_data ) ) << endl;
     cout << "Src from: " << src_pt << spc << "to: " << src_out << endl;
     cout << "Ref from: " << ref_pt << spc << "to: " << ref_out << endl;
     cout << "Src Ratio: " << src_pt.x/ref_pt.x << " Ref Ratio: " << src_out.x/ref_out.x << endl;
+    */
 
     Point2f ol[2];
     i.poEndpoints( src_pt, rot_mat, ol );
