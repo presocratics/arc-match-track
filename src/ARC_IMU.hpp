@@ -14,7 +14,7 @@ class ARC_IMU
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        //ARC_IMU ( );                             // constructor 
+        ARC_IMU ( );                             // constructor 
 
         // ====================  ACCESSORS     ======================================= 
         Matx33d get_A()
@@ -33,7 +33,7 @@ class ARC_IMU
         // ====================  METHODS       ======================================= 
         Point3f poToCr( Point2f obj2d, Matx33d rot_mat );
         Point2f CrTopo( Point3f obj3d, Matx33d rot_mat );
-        void poEndpoints( Point2f obj2d, Matx33d rot_mat, Point2f* out_line );
+        double poEndpoints( Point2f obj2d, Matx33d rot_mat, Point2f* out_line );
         Matx33d calc_rotation_matrix( Point3f imu_data );
     protected:
         // ====================  METHODS       ======================================= 
@@ -42,9 +42,11 @@ class ARC_IMU
 
     private:
         // ====================  METHODS       ======================================= 
+        Matx33d quaternion_to_rotation ( double* q );
 
         // ====================  DATA MEMBERS  ======================================= 
         Matx33d A;
+        Matx33d Rc2b;
 
 }; // -----  end of class ARC_IMU  ----- 
 

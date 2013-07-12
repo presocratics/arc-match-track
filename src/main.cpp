@@ -33,20 +33,23 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat )
     //float roi_slope = del.y/del.x;
     // Create and set A matrix.
     double hi, lo;
-    hi = 1.10;
-    lo = 0.90;
+    hi = 1.20;
+    lo = 0.80;
     ARC_IMU i;
     i.set_A( A );
     // TODO: do this at keypoint level
     Point3f Crs = i.poToCr( src_pt, rot_mat );
     Point3f Crr = i.poToCr( ref_pt, rot_mat );
-    //cout << "Crs: " << Crs << endl;
-    //cout << "Crr: " << Crr << endl;
+    cout << Crs.x << spc << Crs.y << spc << Crs.z
+         << spc << Crr.x << spc << Crr.y << spc << Crr.z 
+         << spc << Crs.y/Crr.y << endl;
 
-    double ratio = Crs.x/Crr.x;
+    double ratio = Crs.y/Crr.y;
     return ( ratio<hi && ratio>lo );
-    //double diff = abs( Crs.x-Crr.x );
-    //return ( diff<.19 );
+    /*
+    double diff = abs( Crs.x-Crr.x );
+    return ( diff<.10 );
+    */
     //return true;
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
@@ -770,10 +773,10 @@ int main(int argc, char** argv)
         if( i%50==0 )
             update_regions( cur_frame, &regions, 25 );
 
+            */
         // Begin region loop.
-        vector<ARC_Pair>::iterator r=regions.begin(); 
-        */
         /*
+        vector<ARC_Pair>::iterator r=regions.begin(); 
         while( r!=regions.end() )
         {
             Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
@@ -965,10 +968,10 @@ int main(int argc, char** argv)
             }
             ++r;
         }
-        */
+    */
         Point2f ol[2];
-        Point2f src_pt( 320, 240 );
-        imu.poEndpoints( src_pt, rotation_matrix, ol );
+        Point2f src_pt( 320, 80 );
+        cout << "Theta:" << imu.poEndpoints( src_pt, rotation_matrix, ol ) <<endl;
         line( drawn_matches, ol[0], ol[1], 200 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
@@ -989,7 +992,10 @@ int main ( int argc, char *argv[] )
     //Point3f imu_data( -0.00271, 0.05425, -0.00461 ); // 1
     //Point3f imu_data( -0.00135, 0.01268, 0.01181 ); // 2
     //Point3f imu_data( 0.00103, 0.05275, 0.01291 ); // 3
-    Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
+    //Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
+    float x, y, z;
+    cin >> x >> y >> z;
+    Point3f imu_data( x, y, z ); //STDIN
     
     //Point2f src_pt(414.862, 86.2638 );        // 1
     //Point2f ref_pt(419.592, 390.912 );
@@ -1000,8 +1006,12 @@ int main ( int argc, char *argv[] )
     //Point2f src_pt(288.621, 115.218 );        // 3
     //Point2f ref_pt(320.696, 283.451 );
 
-    Point2f src_pt(416.303, 77.1149 );          // 4
-    Point2f ref_pt(417.314, 387.708 );
+    //Point2f src_pt(416.303, 77.1149 );          // 4
+    //Point2f ref_pt(417.314, 387.708 );
+    //
+
+    Point2f src_pt(320, 240);                   // mid-pt
+    Point2f ref_pt(320, 240);                   // mid-pt
 
     ARC_IMU i;
     i.set_A(A);
