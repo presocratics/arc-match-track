@@ -46,6 +46,7 @@ ARC_Match::ARC_Match (void)
     extractor = new SurfDescriptorExtractor();
     matcher = new FlannBasedMatcher();
     confidence=-1;
+    radius = 100;
     ratio=-1;
     distance=-1;
     refineF=false;
@@ -56,6 +57,33 @@ ARC_Match::ARC_Match (void)
 }  /* -----  end of method ARC_Match::ARC_Match  (constructor)  ----- */
 
 
+
+    int
+ARC_Match::radius_test ( vector<DMatch> &matches)
+{
+    if( radius==-1 )
+    {
+        cerr << "Ratio not set" << endl;
+        return -1;
+    }
+    int removed=0;
+
+    vector<DMatch>::iterator match_iterator=matches.begin() ;
+    while( match_iterator!=matches.end() ) 
+    {
+        // Remove matches outside radius threshold.
+        cout << "Max Radius: " << radius << endl;
+        cout << "Radius: " << match_iterator->distance << endl;
+        if( match_iterator->distance > radius )
+        {
+            match_iterator = matches.erase( match_iterator );
+            ++removed;
+            continue;
+        }
+        ++match_iterator;
+    }
+    return removed;
+}		/* -----  end of method ARC_Match::radius_test  ----- */
 
     float
 ARC_Match::median ( float list[], int n )
@@ -319,8 +347,12 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     if( keypoints_scene.size()<1 || keypoints_object.size()<1 )
         return false;
     // Match descriptors
+    vector<DMatch> sym_matches;
     vector<vector<DMatch> > matches_scene;
     vector<vector<DMatch> > matches_object;
+    matcher->match( descriptors_scene, descriptors_object, sym_matches, Mat() );
+    radius_test( sym_matches );
+    /* USE RAdius Match instead
     try {
         // find 2 nearest-neighbors for each match point (the 2 most likely matches)
         // From scene->object
@@ -354,6 +386,7 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
         sym_matches = matches_scene[0];
     if( verbosity>=VERY_VERBOSE )
         cout << "match: sym_matches: " << sym_matches.size() << endl;
+    */
     if( isRansac )
     {
         if( sym_matches.size()<min_points ) return false;

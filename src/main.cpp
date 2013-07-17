@@ -23,41 +23,81 @@
 using namespace std;
 
 
+void change_frame_number( int slider, void* fn )
+{
+    unsigned int* fn_typed = (unsigned int *) fn;
+    *fn_typed = ( unsigned int )slider;
+}
+
+void change_patch_size( int slider, void* ps )
+{
+    int* ps_typed = (int *) ps;
+    *ps_typed = slider;
+}
+
+void change_num_regions( int slider, void* nr )
+{
+    int* nr_typed = (int *) nr;
+    *nr_typed = slider;
+}
+
+void change_slope_dev( int slider, void* sd )
+{
+    int* sd_typed = (int *) sd;
+    *sd_typed = slider;
+}
+
+void change_radius( int slider, void* r )
+{
+    float* r_typed = (float *) r;
+    *r_typed = slider/100.0;
+}
+
+void change_match_ratio( int slider, void* mr )
+{
+    double* mr_typed = (double *) mr;
+    *mr_typed = slider/100.0;
+}
+
 // ===  FUNCTION  ======================================================================
 //         Name:  slope_endpoints
 //  Description:  
 // =====================================================================================
-void slope_endpoints ( double theta, Point2f* ol )
+void slope_endpoints ( double slope, Point2f* ol )
 {
-    double m = tan( theta*M_PI/180 );
-    double x = 480/m+320;
+    double x = 480/slope+320;
     Point2f t(320, 0);
     Point2f b(x, 480);
     ol[0] = t;
     ol[1] = b;
     return ;
 }		// -----  end of function slope_endpoints  ----- 
+
 // ===  FUNCTION  ======================================================================
 //         Name:  slope_filter
 //  Description:  Checks if regions don't deviate too far from slope.
 // =====================================================================================
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta )
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta, int max_dev )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
     // Create and set A matrix.
-    double max_dev = 10;
+    cout << "Slope dev: " << max_dev << endl;
+    imu_theta = imu_theta * 180/M_PI;           // Convert to degrees.
     double match_theta = (atan2( ref_pt.y-src_pt.y, ref_pt.x-src_pt.x ) * 180/M_PI);
     
     cout << "Diff: " << abs(match_theta - imu_theta ) << endl;
     return ( abs(match_theta-imu_theta)<max_dev );
 }		// -----  end of function slope_filter  ----- 
+
 // ===  FUNCTION  ======================================================================
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions )
+void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions, int patch_size )
 {
+    cout << "Num regions: " << nregions << endl;
+    cout << "Patch size: " << patch_size << endl;
     // Remove bad regions.
     vector<ARC_Pair>::iterator it=regions->begin();
     // Get new regions.
@@ -71,7 +111,7 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
         regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
         */
-        getReflections( frame, 50, nregions, *regions );
+        getReflections( frame, patch_size, nregions, *regions );
     }
         
     return ;
@@ -192,7 +232,7 @@ void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kp
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
         vector<DMatch>* matches, Rect roi, unsigned int direction,
-        double theta )
+        double theta, int max_dev )
 {
     Point2f transform = -roi.tl();
     vector<Point2f> trans_train, trans_query;
@@ -203,7 +243,7 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
         Point2f new_train, new_query;
         if( train_pts[i]==Point2f(-1, -1) 
                 || query_pts[i]==Point2f(-1, -1)
-                || !slope_filter( train_pts[i], query_pts[i], theta ))
+                || !slope_filter( train_pts[i], query_pts[i], theta, max_dev ))
         {
             // Tracking point lost, remove from matches.
             ++i;
@@ -323,8 +363,21 @@ void help( string program_name )
          << ARG_BLUR << tab << "Median blur scene for tracking." << endl
          << ARG_NO_BLUR << tab << "No median blur scene for tracking." << endl
 
-         << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test. "
+         << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test." << spc
          << "Default: " << DEFAULT_MATCH_RATIO << endl
+
+         << ARC_ARG_SLOPE_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
+         << "Default: " << ARC_DEFAULT_SLOPE_DEV << endl
+
+         << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
+         << "Default: " << ARC_DEFAULT_PATCH_SIZE << endl
+
+         << ARC_ARG_RADIUS << spc << "[0-1]" << tab << "Set match radius threshold." << spc
+         << "Default: " << ARC_DEFAULT_RADIUS << endl
+
+         << ARC_ARG_NUM_REGIONS << spc << "[0-50]" << tab << "Set desired number of regions to track." << spc
+         << "Actual number tracked may be less." << spc
+         << "Default: " << ARC_DEFAULT_NUM_REGIONS << endl
 
          << ARG_MIN_MATCH_POINTS << spc << "<N>" << tab << "Minimum match points after "
          << "symmetry test. Default: " << DEFAULT_MIN_MATCH_POINTS << endl
@@ -344,7 +397,7 @@ void help( string program_name )
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, ARC_Pair* r, double theta )
+bool track( Mat gray, Mat prev_gray, ARC_Pair* r, double theta, int max_dev )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
@@ -399,13 +452,13 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r, double theta )
 
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
-            r->direction.match, theta );
+            r->direction.match, theta, max_dev );
     }
     else
     {
         good_points_to_keypoints( new_points.reflection, &(r->keypoints.reflection),
             new_points.source, &(r->keypoints.source), &(r->matches), r->roi.reflection,
-            r->direction.match, theta );
+            r->direction.match, theta, max_dev );
     }
 
     return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
@@ -495,6 +548,10 @@ void arguments::arguments()
     refresh_count = DEFAULT_REFRESH_COUNT;
     min_match_points=DEFAULT_MIN_MATCH_POINTS;
     match_ratio = DEFAULT_MATCH_RATIO;
+    slope_dev = ARC_DEFAULT_SLOPE_DEV;
+    num_regions = ARC_DEFAULT_NUM_REGIONS;
+    patch_size = ARC_DEFAULT_PATCH_SIZE;
+    radius = ARC_DEFAULT_RADIUS;
     debug = NO_DEBUG;
     verbosity = NOT_VERBOSE;
     show_match = NO_SHOW_MATCHES;
@@ -641,9 +698,29 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->min_match_points=atoi(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_RADIUS) ) 
+        {
+            a->radius=atof(argv[++i]);
+            continue;
+        }
         if( !strcmp(argv[i], ARG_MATCH_RATIO) ) 
         {
             a->match_ratio=atof(argv[++i]);
+            continue;
+        }
+        if( !strcmp(argv[i], ARC_ARG_SLOPE_DEV) ) 
+        {
+            a->slope_dev=atof(argv[++i]);
+            continue;
+        }
+        if( !strcmp(argv[i], ARC_ARG_NUM_REGIONS) ) 
+        {
+            a->num_regions=atof(argv[++i]);
+            continue;
+        }
+        if( !strcmp(argv[i], ARC_ARG_PATCH_SIZE) ) 
+        {
+            a->patch_size=atof(argv[++i]);
             continue;
         }
         if( !strcmp(argv[i], ARG_VID_FILE) ) 
@@ -679,11 +756,13 @@ int main(int argc, char** argv)
     a.arguments();                              // TODO should init automatically.
     namedWindow( DEFAULT_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
 
+
     if( !get_arguments(argc, argv, &a) )        // Parse command line args.
     {
         help( argv[0] );
         exit( EXIT_FAILURE );
     }
+
     if( a.debug==DEBUG )
     {
         string blur_status = ( a.blur ) ? "true" : "false" ;
@@ -703,6 +782,18 @@ int main(int argc, char** argv)
     get_image_list( argv[1], &image_list );     // Reads in the image list.
     get_imu_list( argv[2], &imu_list );
     //get_regions( argv[2], &regions );           // Reads in the region list.
+
+    // Create GUI objects
+    unsigned int i = 0;                               // Image index
+    int match_ratio = (int) (a.match_ratio *100);
+    int radius = (int) (a.radius *100);
+    createTrackbar( "match_ratio", DEFAULT_WINDOW_NAME, &match_ratio, 100, change_match_ratio, &a.match_ratio );
+    createTrackbar( "slope_dev", DEFAULT_WINDOW_NAME, &a.slope_dev, 90, change_slope_dev, &a.slope_dev );
+    createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 50, change_num_regions, &a.num_regions );
+    createTrackbar( "patch_size", DEFAULT_WINDOW_NAME, &a.patch_size, 150, change_patch_size, &a.patch_size );
+    createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, image_list.size(), change_frame_number, &i );
+    createTrackbar( "radius", DEFAULT_WINDOW_NAME, &radius, 100, change_radius, &a.radius );
+    //createButton( "TEST", change_frame_number, &i, CV_PUSH_BUTTON );
 
     // Init text file
     ARC_Write writer( a.text_filename );
@@ -742,6 +833,7 @@ int main(int argc, char** argv)
     m.set_symmetry_test( a.isSym );
     m.set_ransac_test( a.isRansac );
     m.set_verbosity( a.verbosity );
+    m.set_radius( a.radius );
 
     m.set_feature_detector( pfd );
     m.set_descriptor_extractor( pde );
@@ -754,11 +846,14 @@ int main(int argc, char** argv)
     Point2f mid_pt( 320, 240 );
     Mat cur_frame, gray, prev_gray;
     // TODO: read in IMU data and get Rotation Matrix.
-    for( size_t i=0; i<image_list.size(); i++ )
+    while( i<image_list.size() )
     {
+        setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
+        m.set_ratio( a.match_ratio );           // Update match ratio.
+        m.set_radius( a.radius );
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
-        double theta = imu.get_rotation_angle( mid_pt, rotation_matrix );
+        double theta = imu.get_rotation_angle( rotation_matrix );
         cout << "Theta: " << theta << endl;
 
         cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
@@ -773,7 +868,7 @@ int main(int argc, char** argv)
         cur_frame.copyTo(drawn_matches);
         // Update regions
         if( i%50==0 )
-            update_regions( cur_frame, &regions, 25 );
+            update_regions( cur_frame, &regions, a.num_regions, a.patch_size );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
@@ -917,7 +1012,7 @@ int main(int argc, char** argv)
                     else
                         cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
                 }
-                if ( !track( gray, prev_gray, &(*r), theta )  )
+                if ( !track( gray, prev_gray, &(*r), theta, a.slope_dev )  )
                 {
                     //r->iter_count=0;
                     r = regions.erase(r);
@@ -972,12 +1067,14 @@ int main(int argc, char** argv)
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
         Point2f ol[2];
-        slope_endpoints( theta, ol );
+        double slope = imu.theta_to_slope( theta );
+        slope_endpoints( slope, ol );
         line( drawn_matches, ol[0], ol[1], 200, 3 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         waitKey(5);
         vidout << drawn_matches;
+        ++i;
     }
 	return 0;
 }

@@ -39,6 +39,10 @@ typedef struct arguments_t {
     int show_match;
     int show_track;
     double match_ratio;
+    int slope_dev;
+    int num_regions;
+    int patch_size;
+    float radius;
     unsigned int min_match_points;
     string video_filename;
     string text_filename;
@@ -47,9 +51,15 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
+void change_frame_number( int slider, void* fn );
+void change_patch_size( int slider, void* ps );
+void change_num_regions( int slider, void* nr );
+void change_slope_dev( int slider, void* sd );
+void change_match_ratio( int slider, void* mr );
 void slope_endpoints ( double theta, Point2f* ol );
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, double slope );
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, double slope, int max_dev );
 
+void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions, int patch_size );
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 
 void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt,
@@ -93,6 +103,6 @@ bool get_arguments(int argc, char** argv, arguments* a);
 
 Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat* mask );
 
-bool track (Mat gray, Mat prev_gray, ARC_Pair* r, double theta );
+bool track (Mat gray, Mat prev_gray, ARC_Pair* r, double theta, int max_dev );
 
 #endif /* MAIN_H */

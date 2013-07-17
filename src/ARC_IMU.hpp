@@ -33,8 +33,13 @@ class ARC_IMU
         // ====================  METHODS       ======================================= 
         Point3f poToCr( Point2f obj2d, Matx33d rot_mat );
         Point2f CrTopo( Point3f obj3d, Matx33d rot_mat );
-        double get_rotation_angle( Point2f obj2d, Matx33d rot_mat ) ;
+        double get_rotation_angle( Matx33d rot_mat ) ;
         Matx33d calc_rotation_matrix( Point3f imu_data );
+        double theta_to_slope( double theta )
+        {
+            return tan( theta );
+        }
+
     protected:
         // ====================  METHODS       ======================================= 
 

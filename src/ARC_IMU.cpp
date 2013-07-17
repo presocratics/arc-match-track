@@ -79,46 +79,31 @@ ARC_IMU::ARC_IMU ( )
 }		// -----  end of method ARC_IMU::ARC_IMU  ----- 
 
     double
-ARC_IMU::get_rotation_angle ( Point2f obj2d, Matx33d rot_mat )
+ARC_IMU::get_rotation_angle ( Matx33d rot_mat )
 {
+    Point2f obj2d( 320, 240 );
     Point3f end3f;
     Point2f end2f;
     Matx33d rot_mat_invert;
     Matx33d A_invert;
-    // P_o to Cr of chosen point and similar point at bottom of frame.
-    //cout << "Point input: " << obj2d << " Point end: " << obj_end << endl;
+
+    // Convert obj2d to Cr.
     Point3f Cr = poToCr( obj2d, rot_mat );
-    //cout << "CR input: " << Cr << " CR end: " << Cr_end_estimate << endl;
-    // Using Cr.x create endpoints at top and bottom of Cr frame.
-    // TODO: divide 1 by norm
+
+    // Reflect point in Cr over xy plane.
     Matx31d Cr_start( Cr.x, Cr.y, Cr.z );
     Matx31d Cr_end( Cr.x, Cr.y, -Cr.z );
-    //cout << "CR start: " << Mat(Cr_start) << " CR end: " << Mat(Cr_end)<< endl;
+    //
     // Convert endpoints to P_o
-    //transpose( rot_mat, rot_mat_transpose );
     invert( rot_mat, rot_mat_invert );
     invert( A, A_invert );
 
     Matx31d pi_start = rot_mat_invert * Cr_start;
     Matx31d pi_end = rot_mat_invert * Cr_end;
-    /*
-    pi_end(0) = pi_end(0)/pi_end(2);
-    pi_end(1) = pi_end(1)/pi_end(2);
-    pi_end(2) = 1;
-    */
 
-    double theta = atan2( pi_start(1)-pi_end(1), pi_start(0)-pi_end(0) ) * 180/M_PI;
+    // Calc angle in radians.
+    double theta = atan2( pi_start(1)-pi_end(1), pi_start(0)-pi_end(0) ) ;
 
-    //cout << "PO start: " << Mat(po_start) << " PO end: " << Mat(po_end)<< endl;
-    
-    /*
-    end3f = (Point3f) Mat(po_end);
-    end2f = Point2f( end3f.x, end3f.y );
-    cout << "P1: " << obj2d << spc << "P2: " << end2f << endl;
-
-    out_line[0] = obj2d;
-    out_line[1] = end2f;
-    */
     return theta;
 }		// -----  end of method ARC_IMU::get_rotation_angle  ----- 
 

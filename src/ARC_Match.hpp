@@ -50,6 +50,11 @@ class ARC_Match
             confidence = conf;
         }
 
+        void set_radius ( float r )
+        {
+            radius = r;
+        }
+
         void set_distance ( double dist )
         {
             distance = dist;
@@ -58,6 +63,7 @@ class ARC_Match
         void set_ratio ( float rat )
         {
             ratio = rat;
+            cout << "Rat: " << ratio << endl;
         }
 
         void set_refineF ( bool is )
@@ -114,6 +120,7 @@ class ARC_Match
         // ====================  METHODS       ======================================= 
         float median ( float list[], int n );
         int ratio_test( vector<vector<DMatch> > &matches );
+        int radius_test ( vector<DMatch> &matches);
         void symmetry_test ( 
             const vector<vector<DMatch> >& matches_scene,
             const vector<vector<DMatch> >& matches_object,
@@ -129,6 +136,7 @@ class ARC_Match
         Ptr<DescriptorExtractor> extractor;
         Ptr<DescriptorMatcher> matcher;
         float ratio;
+        float radius;
         double confidence;
         double distance;
         bool refineF;
