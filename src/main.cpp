@@ -24,33 +24,33 @@ using namespace std;
 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  slope_endpoints
+//  Description:  
+// =====================================================================================
+void slope_endpoints ( double theta, Point2f* ol )
+{
+    double m = tan( theta*M_PI/180 );
+    double x = 480/m+320;
+    Point2f t(320, 0);
+    Point2f b(x, 480);
+    ol[0] = t;
+    ol[1] = b;
+    return ;
+}		// -----  end of function slope_endpoints  ----- 
+// ===  FUNCTION  ======================================================================
 //         Name:  slope_filter
 //  Description:  Checks if regions don't deviate too far from slope.
 // =====================================================================================
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat )
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta )
 {
     //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
     //float roi_slope = del.y/del.x;
     // Create and set A matrix.
-    double hi, lo;
-    hi = 1.20;
-    lo = 0.80;
-    ARC_IMU i;
-    i.set_A( A );
-    // TODO: do this at keypoint level
-    Point3f Crs = i.poToCr( src_pt, rot_mat );
-    Point3f Crr = i.poToCr( ref_pt, rot_mat );
-    cout << Crs.x << spc << Crs.y << spc << Crs.z
-         << spc << Crr.x << spc << Crr.y << spc << Crr.z 
-         << spc << Crs.y/Crr.y << endl;
-
-    double ratio = Crs.y/Crr.y;
-    return ( ratio<hi && ratio>lo );
-    /*
-    double diff = abs( Crs.x-Crr.x );
-    return ( diff<.10 );
-    */
-    //return true;
+    double max_dev = 10;
+    double match_theta = (atan2( ref_pt.y-src_pt.y, ref_pt.x-src_pt.x ) * 180/M_PI);
+    
+    cout << "Diff: " << abs(match_theta - imu_theta ) << endl;
+    return ( abs(match_theta-imu_theta)<max_dev );
 }		// -----  end of function slope_filter  ----- 
 // ===  FUNCTION  ======================================================================
 //         Name:  update_regions
@@ -192,7 +192,7 @@ void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kp
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
         vector<DMatch>* matches, Rect roi, unsigned int direction,
-        Matx33d rotation_matrix )
+        double theta )
 {
     Point2f transform = -roi.tl();
     vector<Point2f> trans_train, trans_query;
@@ -203,7 +203,7 @@ void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* trai
         Point2f new_train, new_query;
         if( train_pts[i]==Point2f(-1, -1) 
                 || query_pts[i]==Point2f(-1, -1)
-                || !slope_filter( train_pts[i], query_pts[i], rotation_matrix ))
+                || !slope_filter( train_pts[i], query_pts[i], theta ))
         {
             // Tracking point lost, remove from matches.
             ++i;
@@ -344,7 +344,7 @@ void help( string program_name )
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, ARC_Pair* r, Matx33d rotation_matrix )
+bool track( Mat gray, Mat prev_gray, ARC_Pair* r, double theta )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
@@ -399,13 +399,13 @@ bool track( Mat gray, Mat prev_gray, ARC_Pair* r, Matx33d rotation_matrix )
 
         good_points_to_keypoints( new_points.source, &(r->keypoints.source),
             new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
-            r->direction.match, rotation_matrix );
+            r->direction.match, theta );
     }
     else
     {
         good_points_to_keypoints( new_points.reflection, &(r->keypoints.reflection),
             new_points.source, &(r->keypoints.source), &(r->matches), r->roi.reflection,
-            r->direction.match, rotation_matrix );
+            r->direction.match, theta );
     }
 
     return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
@@ -751,12 +751,15 @@ int main(int argc, char** argv)
     ARC_IMU imu;
     imu.set_A( A );
     //Begin image loop.
+    Point2f mid_pt( 320, 240 );
     Mat cur_frame, gray, prev_gray;
     // TODO: read in IMU data and get Rotation Matrix.
     for( size_t i=0; i<image_list.size(); i++ )
     {
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
+        double theta = imu.get_rotation_angle( mid_pt, rotation_matrix );
+        cout << "Theta: " << theta << endl;
 
         cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
         if ( !cur_frame.data ) {
@@ -768,14 +771,11 @@ int main(int argc, char** argv)
             medianBlur( gray, gray, 7 );
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
-        /*
         // Update regions
         if( i%50==0 )
             update_regions( cur_frame, &regions, 25 );
 
-            */
         // Begin region loop.
-        /*
         vector<ARC_Pair>::iterator r=regions.begin(); 
         while( r!=regions.end() )
         {
@@ -917,7 +917,7 @@ int main(int argc, char** argv)
                     else
                         cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
                 }
-                if ( !track( gray, prev_gray, &(*r), rotation_matrix )  )
+                if ( !track( gray, prev_gray, &(*r), theta )  )
                 {
                     //r->iter_count=0;
                     r = regions.erase(r);
@@ -967,12 +967,13 @@ int main(int argc, char** argv)
                         good_points.source, good_points.reflection );
             }
             ++r;
-        }
-    */
+        } 
+        //Point2f src_pt( 320, 80 );
+
+        //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
         Point2f ol[2];
-        Point2f src_pt( 320, 80 );
-        cout << "Theta:" << imu.poEndpoints( src_pt, rotation_matrix, ol ) <<endl;
-        line( drawn_matches, ol[0], ol[1], 200 );
+        slope_endpoints( theta, ol );
+        line( drawn_matches, ol[0], ol[1], 200, 3 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         waitKey(5);
@@ -1028,7 +1029,7 @@ int main ( int argc, char *argv[] )
     */
 
     Point2f ol[2];
-    i.poEndpoints( src_pt, rot_mat, ol );
+    i.get_rotation_angle( src_pt, rot_mat, ol );
     cout << "OL[0]: " << ol[0] << endl;
     cout << "OL[1]: " << ol[1] << endl;
     return EXIT_SUCCESS;

@@ -17,6 +17,7 @@
 #include "ReflectionTracker.hpp"
 #include "ARC_IMU.hpp"
 
+#define _USE_MATH_DEFINES
 // A Matrix
 const double fx = 492.42317;
 const double fy = 489.98014;
@@ -46,7 +47,8 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, Matx33d rot_mat );
+void slope_endpoints ( double theta, Point2f* ol );
+bool slope_filter ( Point2f src_pt, Point2f ref_pt, double slope );
 
 Rect update_roi ( Rect roi, vector<Point2f> pts );
 
@@ -63,7 +65,7 @@ Mat process_object ( Mat* frame, Rect roi, Mat* mask, bool blur );
 
 void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
         vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
-        vector<DMatch>* matches, Matx33d rotation_matrix );
+        vector<DMatch>* matches, double theta );
 
 void draw_match_by_hand( Mat out_img, Mat* scene, 
         Mat* object, Rect sroi, Rect rroi,
@@ -91,6 +93,6 @@ bool get_arguments(int argc, char** argv, arguments* a);
 
 Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat* mask );
 
-bool track (Mat gray, Mat prev_gray, ARC_Pair* r, Matx33d rotation_matrix );
+bool track (Mat gray, Mat prev_gray, ARC_Pair* r, double theta );
 
 #endif /* MAIN_H */

@@ -40,16 +40,29 @@ ARC_IMU::quaternion_to_rotation ( double* q )
 ARC_IMU::ARC_IMU ( )
 {
     double q[4] = { 
-        -0.0017705, 
-        -0.58656, 
-        0.0039022, 
-        0.8099};
+/*
+            -0.0017705, 
+            -0.58656, 
+            0.0039022, 
+            0.8099};
+    */
+            0.4823,
+            0.4668,
+            0.53082,
+            -0.5174
+    };
+/*
     Matx33d Rb2b(
             1, 0, 0,
             0, 0,-1,
             0, 1, 0
     );
-
+  */
+    Matx33d Rb2b(
+            1, 0, 0,
+            0, 1, 0,
+            0, 0, 1
+    );
     Matx33d Rb2c = quaternion_to_rotation( q );
     Matx33d Rb2c_transpose;
     transpose( Rb2c, Rb2c_transpose );
@@ -66,7 +79,7 @@ ARC_IMU::ARC_IMU ( )
 }		// -----  end of method ARC_IMU::ARC_IMU  ----- 
 
     double
-ARC_IMU::poEndpoints ( Point2f obj2d, Matx33d rot_mat, Point2f* out_line )
+ARC_IMU::get_rotation_angle ( Point2f obj2d, Matx33d rot_mat )
 {
     Point3f end3f;
     Point2f end2f;
@@ -94,7 +107,7 @@ ARC_IMU::poEndpoints ( Point2f obj2d, Matx33d rot_mat, Point2f* out_line )
     pi_end(2) = 1;
     */
 
-    double theta = atan2( pi_start(1)-pi_end(1), pi_start(0)-pi_end(0) ) * 180/3.14;
+    double theta = atan2( pi_start(1)-pi_end(1), pi_start(0)-pi_end(0) ) * 180/M_PI;
 
     //cout << "PO start: " << Mat(po_start) << " PO end: " << Mat(po_end)<< endl;
     
@@ -107,7 +120,7 @@ ARC_IMU::poEndpoints ( Point2f obj2d, Matx33d rot_mat, Point2f* out_line )
     out_line[1] = end2f;
     */
     return theta;
-}		// -----  end of method ARC_IMU::poEndpoints  ----- 
+}		// -----  end of method ARC_IMU::get_rotation_angle  ----- 
 
     Matx33d
 ARC_IMU::calc_rotation_matrix ( Point3f imu_data )
