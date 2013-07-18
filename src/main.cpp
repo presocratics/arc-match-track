@@ -94,7 +94,7 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta, int max_de
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions, int patch_size )
+void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions, int patch_size, double slope )
 {
     cout << "Num regions: " << nregions << endl;
     cout << "Patch size: " << patch_size << endl;
@@ -111,7 +111,7 @@ void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregio
         unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
         regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
         */
-        getReflections( frame, patch_size, nregions, *regions );
+        getReflections( frame, patch_size, nregions, slope, *regions );
     }
         
     return ;
@@ -854,6 +854,7 @@ int main(int argc, char** argv)
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         double theta = imu.get_rotation_angle( rotation_matrix );
+        double slope = imu.theta_to_slope( theta );
         cout << "Theta: " << theta << endl;
 
         cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
@@ -868,7 +869,7 @@ int main(int argc, char** argv)
         cur_frame.copyTo(drawn_matches);
         // Update regions
         if( i%50==0 )
-            update_regions( cur_frame, &regions, a.num_regions, a.patch_size );
+            update_regions( cur_frame, &regions, a.num_regions, a.patch_size, slope );
 
         // Begin region loop.
         vector<ARC_Pair>::iterator r=regions.begin(); 
@@ -902,7 +903,7 @@ int main(int argc, char** argv)
                     cout << "main: Too few keypoints." << endl;
 
                 // Update search ROI
-                r->roi.reflection = findOneReflection( cur_frame, r->roi.source );
+                r->roi.reflection = findOneReflection( slope, cur_frame, r->roi.source );
                 // mask the search region
                 Mat masked_frame;
                 if( r->direction.match==DOWN )
@@ -1067,7 +1068,6 @@ int main(int argc, char** argv)
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
         Point2f ol[2];
-        double slope = imu.theta_to_slope( theta );
         slope_endpoints( slope, ol );
         line( drawn_matches, ol[0], ol[1], 200, 3 );
         swap(prev_gray, gray);
