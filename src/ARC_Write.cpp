@@ -19,6 +19,7 @@
 #include "config.hpp"
 
 
+/*
 ARC_Write::ARC_Write ( std::string f )
 {
     current_id = 0;
@@ -35,7 +36,7 @@ ARC_Write::ARC_Write ( std::string f )
     // later write with append without appending to some existing thing.
     ofs.close ();                                 // close ofstream 
     return ;
-}		/* -----  end of method ARC_Write::ARC_Write  ----- */
+}*/		/* -----  end of method ARC_Write::ARC_Write  ----- */
 
     void
 ARC_Write::write_matches ( string frame_name,
@@ -52,6 +53,7 @@ ARC_Write::write_matches ( string frame_name,
         exit (EXIT_FAILURE);
     }
     PPC good_points;
+    /*
     keypoints_to_goodpoints( source_kpt, reflection_kpt,
             &good_points.source, &good_points.reflection,
             matches, roi, DOWN );
@@ -71,11 +73,12 @@ ARC_Write::write_matches ( string frame_name,
              << sp.x << spc << sp.y << spc
              << rp.x << spc << rp.y << std::endl;
     }
+        */
     ofs.close ();                                 /* close ofstream */
     return ;
 }		/* -----  end of method ARC_Write::write_matches  ----- */
 
-
+/*
     unsigned int
 ARC_Write::get_id ( cv::KeyPoint kpt )
 {
@@ -89,5 +92,5 @@ ARC_Write::get_id ( cv::KeyPoint kpt )
         return id_ptr->second;
     dict.insert( make_pair(key, ++current_id) );
     return current_id;
-}		/* -----  end of method ARC_Write::get_id  ----- */
+}*/		/* -----  end of method ARC_Write::get_id  ----- */
 

@@ -19,10 +19,11 @@
 #include "main.hpp"
 #include "config.hpp"
 #include "ARC_IMU.hpp"
-//#define DEBUG_IMU
+#define DEBUG_IMU
 using namespace std;
 
 
+#ifndef  DEBUG_IMU
 void change_frame_number( int slider, void* fn )
 {
     unsigned int* fn_typed = (unsigned int *) fn;
@@ -743,7 +744,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 }		/* -----  end of function get_arguments  ----- */
 
 
-#ifndef  DEBUG_IMU
 
 int main(int argc, char** argv)
 {
@@ -1087,48 +1087,26 @@ int main(int argc, char** argv)
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    //Point3f imu_data( -0.00271, 0.05425, -0.00461 ); // 1
-    //Point3f imu_data( -0.00135, 0.01268, 0.01181 ); // 2
-    //Point3f imu_data( 0.00103, 0.05275, 0.01291 ); // 3
-    //Point3f imu_data(0.03063, 0.00499, -0.00513); // 4
-    float x, y, z;
-    cin >> x >> y >> z;
-    Point3f imu_data( x, y, z ); //STDIN
-    
-    //Point2f src_pt(414.862, 86.2638 );        // 1
-    //Point2f ref_pt(419.592, 390.912 );
-    
-    //Point2f src_pt( 351.219, 145.183 );       // 2
-    //Point2f ref_pt( 351.763, 300.237 );
-
-    //Point2f src_pt(288.621, 115.218 );        // 3
-    //Point2f ref_pt(320.696, 283.451 );
-
-    //Point2f src_pt(416.303, 77.1149 );          // 4
-    //Point2f ref_pt(417.314, 387.708 );
-    //
-
-    Point2f src_pt(320, 240);                   // mid-pt
-    Point2f ref_pt(320, 240);                   // mid-pt
-
-    ARC_IMU i;
-    i.set_A(A);
-    Point3f src_out, ref_out;
-    Matx33d rot_mat = i.calc_rotation_matrix( imu_data );
-    src_out = i.poToCr( src_pt, rot_mat );
-    ref_out = i.poToCr( ref_pt, rot_mat );
-    /*
-    cout << "A Matrix: " << Mat( i.get_A() ) << endl;
-    cout << "Rot Matrix: " << Mat( i.calc_rotation_matrix( imu_data ) ) << endl;
-    cout << "Src from: " << src_pt << spc << "to: " << src_out << endl;
-    cout << "Ref from: " << ref_pt << spc << "to: " << ref_out << endl;
-    cout << "Src Ratio: " << src_pt.x/ref_pt.x << " Ref Ratio: " << src_out.x/ref_out.x << endl;
-    */
-
-    Point2f ol[2];
-    i.get_rotation_angle( src_pt, rot_mat, ol );
-    cout << "OL[0]: " << ol[0] << endl;
-    cout << "OL[1]: " << ol[1] << endl;
+    ARC_Pair p;
+    p.set_max_size( 5 );
+    double sig1 = 8;
+    double sig2 = 3;
+    double sig3 = 4;
+    double sig4 = 20;
+    double sig5 = 2;
+    double sig6 = 10;
+    Point2f pt(1, 2);
+    cout << "Max size: " << p.get_max_size() << endl;
+    p.add_pair( pt, pt, sig1 );
+    p.add_pair( pt, pt, sig2 );
+    p.add_pair( pt, pt, sig3 );
+    p.add_pair( pt, pt, sig4 );
+    p.print_all();
+    cout << endl;
+    p.add_pair( pt, pt, sig5 );
+    p.add_pair( pt, pt, sig6 );
+    p.add_pair( pt, pt, sig5 );
+    p.print_all();
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 

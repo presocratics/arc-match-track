@@ -6,6 +6,7 @@
 //#include </usr/include/opencv2/opencv.hpp>
 #include "ARC_Pair.hpp"
 
+/*
 void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, vector<Mat> *templates, vector<ARC_Pair> *outvector);
 Point findBestMatchLocation(double slope, Mat image, Mat sourceTemplate, Point TLCornerTemplate);
 void findReflections(Mat image, int patchSize, double slope, vector<Point> *points, vector<Mat> *templates, vector<Rect> *reflections, vector<ARC_Pair> *outvector);
@@ -22,4 +23,5 @@ void displayReflectionMatches(Mat image, int patchSize, double slope, vector<ARC
 Rect findOneReflection(double slope,Mat source, Rect tmplte);
 //GIVEN A source MAT, patchSize, slope INFORMATION, AND A BOOLEAN FLAG, IT TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, bool *regionFound);
+*/
 #endif /*REFLECTION_TRACKER_H*/

@@ -4,7 +4,7 @@
 
 //To modify the the vertical strip around the template used as a mask, change 'searchMargin' in findBestMatchLocation()
 //To modify the number of features goodFeaturesToTrack should find, change 'numOfFeatures' in getReflections()
-
+/*
 #include <cv.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
@@ -117,6 +117,7 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 			fillPoly(mask2,ppt,npt,1,Scalar(255,255,255));
 			mask = (mask2(Rect(-searchRegion[0][1].x,0,640,480)));
 		}	
+*/
 		/*
 		//Specifies vertical search region with a mask 
 		Mat mask; Mat masked_scene;
@@ -127,6 +128,7 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		rectangle(mask,searchRegion,255,CV_FILLED);
 		*/
 	
+/*
 		image.copyTo(masked_scene,mask);
 		matchTemplate(masked_scene, sourceTemplate, result, match_method);
 		normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
@@ -427,3 +429,4 @@ ARC_Pair getOneReflectionPair(Mat source, int patchSize, double slope,bool *regi
 		return outvector[0];
 	}
 }
+*/
