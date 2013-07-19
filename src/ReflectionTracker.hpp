@@ -22,4 +22,5 @@ void displayReflectionMatches(Mat image, int patchSize, double slope, vector<ARC
 Rect findOneReflection(double slope,Mat source, Rect tmplte);
 //GIVEN A source MAT, patchSize, slope INFORMATION, AND A BOOLEAN FLAG, IT TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, bool *regionFound);
+int getReflectionsPYR(Mat &image, int outerPatchSize, int innerPatchSize, double slope, vector<ARC_Pair> &outvector);
 #endif /*REFLECTION_TRACKER_H*/
