@@ -1082,31 +1082,48 @@ int main(int argc, char** argv)
 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  compare_arc_pair
+//  Description:  
+// =====================================================================================
+
+struct below_threshold {
+    below_threshold( double t ): threshold(t){}
+    bool operator() (const ARC_Pair& value ) { return( value.nsigma<threshold ); }
+    private:
+    double threshold;
+};
+// ===  FUNCTION  ======================================================================
 //         Name:  main
 //  Description:  Function for testing ARC_IMU
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    ARC_Pair p;
-    p.set_max_size( 5 );
+    list<ARC_Pair> pairs;
+    Point2f pt(1, 2);
     double sig1 = 8;
+    ARC_Pair p( pt, pt, sig1 );
+    pairs.push_front( p );
+    pairs.push_front( ARC_Pair( pt, pt, 2 ) );
+    pairs.push_front( ARC_Pair( pt, pt, 3 ) );
+    
+    pairs.sort( );
+
+    list<ARC_Pair>::iterator it=pairs.begin();
+    while( it!=pairs.end() )
+        cout << *it++ << endl;
+    cout << endl;
+    pairs.remove_if( below_threshold(4) );
+    it=pairs.begin();
+    while( it!=pairs.end() )
+        cout << *it++ << endl;
+
+    /*
     double sig2 = 3;
     double sig3 = 4;
     double sig4 = 20;
     double sig5 = 2;
     double sig6 = 10;
-    Point2f pt(1, 2);
-    cout << "Max size: " << p.get_max_size() << endl;
-    p.add_pair( pt, pt, sig1 );
-    p.add_pair( pt, pt, sig2 );
-    p.add_pair( pt, pt, sig3 );
-    p.add_pair( pt, pt, sig4 );
-    p.print_all();
-    cout << endl;
-    p.add_pair( pt, pt, sig5 );
-    p.add_pair( pt, pt, sig6 );
-    p.add_pair( pt, pt, sig5 );
-    p.print_all();
+    */
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 
