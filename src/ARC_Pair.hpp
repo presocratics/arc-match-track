@@ -30,7 +30,7 @@ class ARC_Pair
     public:
         // ====================  LIFECYCLE     ======================================= 
         ARC_Pair ( );
-        ARC_Pair ( Point2f src, Point2f ref, double ns );                             // constructor 
+        ARC_Pair ( Rect src, rect ref, double ns );       // constructor 
 
         // ====================  ACCESSORS     ======================================= 
         // ====================  MUTATORS      ======================================= 
@@ -50,9 +50,9 @@ class ARC_Pair
         }		
         // ====================  DATA MEMBERS  ======================================= 
         struct {
-            Point2f source;
-            Point2f reflection;
-        } points;
+            Rect source;
+            Rect reflection;
+        } roi;
         double nsigma;                    // Number of std above mean.
 
     protected:

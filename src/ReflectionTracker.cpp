@@ -20,18 +20,21 @@ bool displayRegions;
 bool displayWindows;
 
 //CREATES MAT TEMPLATES OF patchSize WIDTH AND HEIGHT, AND STORES THEM IN templates AND outvector
-void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, vector<Mat> *templates, vector<ARC_Pair> *outvector){
-
+void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, vector<Mat> *templates, vector<ARC_Pair> *outvector)
+{
 	int pointsLength = points->size();			
 	for( int i=0; i<pointsLength; i++ )
     {
-		(*points)[i].x-=patchSize/2; (*points)[i].y-=patchSize/2;//Figures out the top left corners from the goodfeaturestotrack points
+        //Figures out the top left corners from the goodfeaturestotrack points
+		(*points)[i].x-=patchSize/2; (*points)[i].y-=patchSize/2;
         if( verbosity==VERY_VERBOSE ) 
             cout<<" x: "<<(*points)[i].x<<" y: "<<(*points)[i].y<<endl;
 		//Only uses points that are within a patchSize distance away from the borders of the source image
-		if((*points)[i].x<0 || (*points)[i].y<0 || image.cols-(*points)[i].x-patchSize < 0 || image.rows-(*points)[i].y-patchSize<0 )
+		if((*points)[i].x<0 || (*points)[i].y<0 
+                || image.cols-(*points)[i].x-patchSize < 0 
+                || image.rows-(*points)[i].y-patchSize<0 )
         { 
-			(*points).erase((*points).begin()+i);
+			points->erase(points->begin()+i);
 			if(verbosity==VERY_VERBOSE) 
                 cout<<"failed\n";
 			i--;
@@ -42,17 +45,12 @@ void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, 
             Rect rect ((*points)[i].x,(*points)[i].y,patchSize,patchSize);
             if( verbosity>=VERY_VERBOSE ) cout << "Created template rect\n";
 			ARC_Pair temp_pair;
-			temp_pair.iter_count = 0;
-			temp_pair.no_match = 0;
-			temp_pair.direction.match = DOWN;
-			temp_pair.direction.track = DOWN;
-			temp_pair.slope=-INFINITY;
             temp_pair.roi.source = rect;
-            (*outvector).push_back( temp_pair );
+            outvector->push_back( temp_pair );
 
             Mat temp = image.clone();
             temp = temp( rect );
-            (*templates).push_back( temp );
+            templates->push_back( temp );
             if( verbosity>=VERY_VERBOSE ) 
                 cout<<"Added template rect to output vector\n";
 		}
@@ -60,10 +58,13 @@ void createTemplatesFromVector(Mat image, int patchSize, vector<Point> *points, 
 }
 
 //RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
-Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point TLCornerTemplate){
-
-		flip(sourceTemplate,sourceTemplate,0);//flips template to get the reflection used for matching
-		//Creates results matrix where the top left corner of the template is slid across each pixel of the source
+Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate,
+        Point TLCornerTemplate, double* nsigma )
+{
+        // flips template to get the reflection used for matching
+		flip(sourceTemplate,sourceTemplate,0);
+		// Creates results matrix where the top left corner of the 
+        // template is slid across each pixel of the source
 		int result_cols = image.cols-sourceTemplate.cols+1;
 		int result_rows = image.rows-sourceTemplate.rows+1;
 		Mat result;
@@ -76,10 +77,11 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		//4:CV_TM_CCOEFF
 		//5:CV_TM_CCOEFF_NORMED <----Most succesful at finding reflections
 		
-		int match_method = 5;
+		int match_method = 4; // 4 seemed good for stddev thresholding.
 
-		//Creates a search region around the template given slope information
-		//TODO: When slope is near horizontal, several times the mask isn't created properly - FIX 
+		// Creates a search region around the template given slope information
+		// TODO: When slope is near horizontal, several times the mask 
+        // isn't created properly - FIX 
 		Mat mask; Mat masked_scene;
 		mask = Mat::zeros(image.size(),CV_8UC1);
 		int xBot = (-TLCornerTemplate.y/slope)+TLCornerTemplate.x;
@@ -101,22 +103,23 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		int npt[] = {4};
 		fillPoly(mask,ppt,npt,1,Scalar(255,255,255));
 
-		if(searchRegion[0][1].x>640){
-			Mat mask2 = Mat::zeros(Size(searchRegion[0][2].x,480),CV_8UC1);
-			fillPoly(mask2,ppt,npt,1,Scalar(255,255,255));
-			mask = mask2(Rect(0,0,640,480));
-		
+		if( searchRegion[0][1].x>640 )
+        {
+			Mat mask2 = Mat::zeros( Size( searchRegion[0][2].x,480 ), CV_8UC1 );
+			fillPoly( mask2, ppt, npt, 1, Scalar( 255,255,255 ) );
+			mask = mask2( Rect( 0, 0, 640, 480 ) );
 		}
 
-		if(searchRegion[0][2].x<0){
-			Point shift (-searchRegion[0][1].x,0);
+		if( searchRegion[0][2].x<0 )
+        {
+			Point shift( -searchRegion[0][1].x, 0 );
 			searchRegion[0][0]+=shift;
 			searchRegion[0][1]+=shift;
 			searchRegion[0][2]+=shift;
 			searchRegion[0][3]+=shift;
-			Mat mask2 = Mat::zeros(Size(640-searchRegion[0][1].x,480),CV_8UC1);
-			fillPoly(mask2,ppt,npt,1,Scalar(255,255,255));
-			mask = (mask2(Rect(-searchRegion[0][1].x,0,640,480)));
+			Mat mask2 = Mat::zeros( Size( 640-searchRegion[0][1].x, 480 ), CV_8UC1 );
+			fillPoly( mask2, ppt, npt, 1, Scalar( 255, 255, 255 ) );
+			mask = ( mask2( Rect( -searchRegion[0][1].x, 0, 640, 480 ) ) );
 		}	
 		/*
 		//Specifies vertical search region with a mask 
@@ -128,15 +131,14 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		rectangle(mask,searchRegion,255,CV_FILLED);
 		*/
 	
-		image.copyTo(masked_scene,mask);
-		matchTemplate(masked_scene, sourceTemplate, result, match_method);
-		normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
+		image.copyTo( masked_scene, mask );
+		matchTemplate( masked_scene, sourceTemplate, result, match_method );
 
         if( verbosity>=VERY_VERBOSE ) 
             cout << "Ran matchTemplate and normalized\n";
-		double minVal; double maxVal; 
-		Point minLoc; Point maxLoc; Point matchLoc;
-		minMaxLoc(result, &minVal, &maxVal, &minLoc, &maxLoc, Mat());
+		double minVal, maxVal; 
+		Point minLoc, maxLoc, matchLoc;
+		minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
 		 
 		if( match_method == 0 || match_method == 1 )
         {
@@ -146,7 +148,10 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
         {
 			matchLoc = maxLoc;
 		}
-		//matchLoc is the location of the top left corner of the reflection that matchTemplate found
+        Scalar mean, stddev;
+        meadStdDev( result, mean, stddev, Mat() );
+		// matchLoc is the location of the top left corner of the reflection
+        // that matchTemplate found
 		return matchLoc;
 
 
@@ -177,23 +182,22 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 }
 
 //FINDS THE REFLECTIONS OF THE IMAGES IN templates ON image AND STORES THEM IN reflections AND outvector
-void findReflections(Mat image, int patchSize, double slope, vector<Point> *points, vector<Mat> *templates, vector<Rect> *reflections, vector<ARC_Pair> *outvector){
-
-
+void findReflections( Mat image, int patchSize, double slope, 
+        vector<Point> *points, vector<Mat> *templates, 
+        vector<Rect> *reflections, vector<ARC_Pair> *outvector )
+{
 	for( size_t i=0; i<(*points).size(); i++ )
     {
 		Mat tmplte = (*templates)[i];
 
 		Point TLCorner((*points)[i].x,(*points)[i].y);
-		Point matchLoc = findBestMatchLocation(slope,image,tmplte,TLCorner);
+		Point matchLoc = findBestMatchLocation( slope, image, tmplte, TLCorner );
 		
-		Rect rect(matchLoc.x, matchLoc.y, patchSize, patchSize);
+		Rect rect( matchLoc.x, matchLoc.y, patchSize, patchSize );
 		(*outvector)[i].roi.reflection = rect;
 
-		(*reflections).push_back( rect ); 
+		reflections->push_back( rect ); 
 	}
-
-	
 }
 
 //CHECKS TO SEE IF WHEN THE MATCHED REFLECTION IS RUN THROUGH MATCHTEMPLATE, IT GIVES THE LOCATION OF THE ORIGINAL SOURCE TEMPLATE
