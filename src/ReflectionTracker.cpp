@@ -4,7 +4,7 @@
 
 //To modify the the vertical strip around the template used as a mask, change 'searchMargin' in findBestMatchLocation()
 //To modify the number of features goodFeaturesToTrack should find, change 'numOfFeatures' in getReflections()
-/*
+
 #include <cv.h>
 #include <opencv2/highgui/highgui.hpp>
 #include <iostream>
@@ -78,7 +78,8 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		
 		int match_method = 5;
 
-		//Creates a search region around the template given slope information 
+		//Creates a search region around the template given slope information
+		//TODO: When slope is near horizontal, several times the mask isn't created properly - FIX 
 		Mat mask; Mat masked_scene;
 		mask = Mat::zeros(image.size(),CV_8UC1);
 		int xBot = (-TLCornerTemplate.y/slope)+TLCornerTemplate.x;
@@ -90,7 +91,7 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		int TRx = xTop+difference+sourceTemplate.cols;
 		int TRy=480;
 		Point searchRegion[1][4];
-		int searchMargin=0;//Change this to increase width of searchRegion
+		int searchMargin=30;//Change this to increase width of searchRegion
 		searchRegion[0][0] = Point (TLx-searchMargin,TLy);
 		searchRegion[0][1] = Point (xBot-searchMargin,0);
 		searchRegion[0][2] = Point (xBot+difference+sourceTemplate.cols+searchMargin,0);
@@ -117,7 +118,6 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 			fillPoly(mask2,ppt,npt,1,Scalar(255,255,255));
 			mask = (mask2(Rect(-searchRegion[0][1].x,0,640,480)));
 		}	
-*/
 		/*
 		//Specifies vertical search region with a mask 
 		Mat mask; Mat masked_scene;
@@ -128,7 +128,6 @@ Point findBestMatchLocation(double slope, Mat image,  Mat sourceTemplate, Point 
 		rectangle(mask,searchRegion,255,CV_FILLED);
 		*/
 	
-/*
 		image.copyTo(masked_scene,mask);
 		matchTemplate(masked_scene, sourceTemplate, result, match_method);
 		normalize(result,result,0,1,NORM_MINMAX,-1,Mat());
@@ -241,6 +240,7 @@ void runSymmetryTest(Mat frame, int patchSize, double slope, vector<Point> *poin
 }
 
 //VERIFIES THAT THE SOURCES AND REFLECTIONS IN THE ARC_Pair's ARE CORRECT
+//TODO: After identifying all the real objects, then make sure there are no overlapping regions
 void identifyRealObjects(vector<ARC_Pair> *outvector){
 
 	//If the y coordinate is lower, that is the real object, otherwise it is the reflection
@@ -252,7 +252,7 @@ void identifyRealObjects(vector<ARC_Pair> *outvector){
             (*outvector)[i].roi.reflection = (*outvector)[i].roi.source;
             (*outvector)[i].roi.source = temp;
         }
-		//cout<<"Outvector source at ("<<(*outvector)[i].roi.source.x<<","<<(*outvector)[i].roi.source.y<<") and reflection at ("<<(*outvector)[i].roi.reflection.x<<","			<<(*outvector)[i].roi.reflection.y<<")\n";
+		cout<<"Outvector source at ("<<(*outvector)[i].roi.source.x<<","<<(*outvector)[i].roi.source.y<<") and reflection at ("<<(*outvector)[i].roi.reflection.x<<","			<<(*outvector)[i].roi.reflection.y<<")\n";
 	}
 }
 
@@ -372,8 +372,6 @@ int getReflections(Mat frame, int patchSize, int numOfFeatures, double slope, ve
 //If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
 void displayReflectionMatches(Mat image, int patchSize, double slope,vector<ARC_Pair> *outvector){
 	
-	//			time_t beginning;
-	//			beginning=time(NULL);
 	int outvectorSize;
 	if(patchSize != 0){
 		outvectorSize = getReflections(image,patchSize,15,slope,*outvector);
@@ -381,22 +379,18 @@ void displayReflectionMatches(Mat image, int patchSize, double slope,vector<ARC_
 	else {
 		outvectorSize = (*outvector).size();
 	}
-	//cout<<"Outvector size: "<<outvectorSize<<endl;
+	cout<<"Outvector size: "<<outvectorSize<<endl;
 
     Mat draw = image.clone();
     Scalar originalColor(0,0,255);
     Scalar reflectionColor(0,0,0);
     for(int i=0;i<outvectorSize;i++){
-        rectangle(draw,(*outvector)[i].roi.source,originalColor,2,8,0);
-        rectangle(draw,(*outvector)[i].roi.reflection,reflectionColor,2,8,0);
+        rectangle(draw,(*outvector)[i].roi.source,originalColor,1,8,0);
+        rectangle(draw,(*outvector)[i].roi.reflection,reflectionColor,1,8,0);
         Point sourceTLCorner ((*outvector)[i].roi.source.x,(*outvector)[i].roi.source.y);
         Point reflectionTLCorner ((*outvector)[i].roi.reflection.x,(*outvector)[i].roi.reflection.y);
-        line(draw,sourceTLCorner,reflectionTLCorner,reflectionColor,2,8,0);
+        line(draw,sourceTLCorner,reflectionTLCorner,reflectionColor,1,8,0);
 	}
-	//			time_t end;
-	//			end = time(NULL);
-	//			double timeElapsed = difftime(beginning,end);
-	//			cout<<"Time Elapsed: "<<timeElapsed<<endl;
 	namedWindow("Reflections",CV_WINDOW_AUTOSIZE);
     imshow("Reflections",draw);
     waitKey(0);
@@ -429,4 +423,63 @@ ARC_Pair getOneReflectionPair(Mat source, int patchSize, double slope,bool *regi
 		return outvector[0];
 	}
 }
-*/
+
+//GIVEN AN IMAGE, A PATCHSIZE FOR THE INITIAL TEMPLATES AND A SIZE FOR THE SECONDARY, SMALLER, NESTED TEMPLATES, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTIONS IN AN OUTVECTOR OF ARC_PAIR'S 
+int getReflectionsPYR(Mat &image, int outerPatchSize, int innerPatchSize, double slope, vector<ARC_Pair> &outvector){
+
+	int patchSize = innerPatchSize;
+    vector<ARC_Pair> initialvector;
+	vector<ARC_Pair> finalvector;
+	//Gets an initial list of regions and reflections that can then be used to match much smaller templates
+	getReflections(image,outerPatchSize,15,slope,initialvector);
+	cout<<"Initial templates found\n";
+	cout<<""<<endl;
+	Mat imageClone = image.clone();
+
+	//Goes through every region found in the original image
+	for(unsigned int m=0;m<initialvector.size();m++){
+		vector<ARC_Pair> subvector;
+		vector<Point> features;
+		vector<Point> shiftedFeatures;
+		vector<Mat> templates;
+		vector<Rect> reflections;
+		ARC_Pair pair = initialvector[m];
+
+		//Draws the initial regions and their reflections
+		Scalar red (0,0,255);
+		Scalar black(0,0,0);
+		rectangle(image,pair.roi.source,red,2,8,0);
+		rectangle(image,pair.roi.reflection,black,2,8,0);
+		Point originalCorner (pair.roi.source.x,pair.roi.source.y);
+		Point reflectionCorner (pair.roi.reflection.x,pair.roi.reflection.y);
+		line(image,originalCorner,reflectionCorner,black,2,8,0);
+		
+		//Finds good points to track within one of the regions while checking for proximity to boundaries and converting to the original coordinate system
+		Mat original = imageClone(pair.roi.source);
+		cvtColor(original,original,CV_RGB2GRAY,1);
+		goodFeaturesToTrack(original,features,3,.01,patchSize+3,noArray(),3,false,0.04);
+		for(unsigned int i=0;i<features.size();i++){
+			Point shift (pair.roi.source.x,pair.roi.source.y);
+			Point shiftedPoint (features[i]+shift);
+			if(shiftedPoint.x>pair.roi.source.x+patchSize/2 && shiftedPoint.y>pair.roi.source.y+patchSize/2 && shiftedPoint.x<pair.roi.source.x+pair.roi.source.width-
+				patchSize/2 && shiftedPoint.y<pair.roi.source.y+pair.roi.source.height-patchSize/2) shiftedFeatures.push_back(shiftedPoint);
+		}
+
+		createTemplatesFromVector(imageClone,patchSize,&shiftedFeatures,&templates,&subvector);
+		//Creates a mask from the original larger reflected region, from which smaller reflection matches will be found
+		Mat mask; Mat masked_scene;
+		mask = Mat::zeros( image.size(), CV_8UC1 );
+		rectangle(mask,pair.roi.reflection,255,CV_FILLED);
+		imageClone.copyTo(masked_scene,mask);
+
+		findReflections(masked_scene,patchSize,slope,&shiftedFeatures,&templates,&reflections,&subvector);
+		identifyRealObjects(&subvector);
+	
+		//Pushes all matches found back to outvector
+		for(unsigned int j=0;j<subvector.size();j++){
+			outvector.push_back(subvector[j]);	
+		}	
+	}
+	cout<<"Reflections found\n";
+	return outvector.size();
+}
