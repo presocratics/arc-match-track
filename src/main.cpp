@@ -23,6 +23,61 @@
 using namespace std;
 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_imu_list
+ *  Description:  
+ * =====================================================================================
+ */
+    void
+get_imu_list ( string filename, vector<Point3f>* il )
+{
+
+    string    ifs_file_name = filename;                 /* input  file name */
+    ifstream  ifs;                                /* create ifstream object */
+
+    ifs.open ( ifs_file_name.c_str() );           /* open ifstream */
+    if (!ifs) {
+        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        exit (EXIT_FAILURE);
+    }
+    string line;
+    while( getline( ifs, line, '\n' ) )
+    {
+        double x, y, z;
+        string fn;
+        stringstream l(line);
+        l >> fn >> x >> y >> z;
+        il->push_back( Point3f( x, y, z ) );
+    }
+    ifs.close ();                                 /* close ifstream */
+    return ;
+}		/* -----  end of function get_imu_list  ----- */
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_image_list
+ *  Description:  Get a list of image files for the video stream.
+ * =====================================================================================
+ */
+void get_image_list(string filename, vector<string>* il)
+{
+ 
+    string    ifs_file_name = filename;         /* input  file name */
+    ifstream  ifs;                              /* create ifstream object */
+
+    ifs.open ( ifs_file_name.c_str() );         /* open ifstream */
+    if (!ifs) {
+        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        exit (EXIT_FAILURE);
+    }
+    string line;
+    while( getline(ifs, line, '\n') )
+    {
+        il->push_back(line);
+    }
+    ifs.close ();                                 /* close ifstream */
+}
 #ifndef  DEBUG_IMU
 void change_frame_number( int slider, void* fn )
 {
@@ -562,60 +617,6 @@ void arguments::arguments()
     return;
 }
 
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  get_imu_list
- *  Description:  
- * =====================================================================================
- */
-    void
-get_imu_list ( string filename, vector<Point3f>* il )
-{
-
-    string    ifs_file_name = filename;                 /* input  file name */
-    ifstream  ifs;                                /* create ifstream object */
-
-    ifs.open ( ifs_file_name.c_str() );           /* open ifstream */
-    if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
-        exit (EXIT_FAILURE);
-    }
-    string line;
-    while( getline( ifs, line, '\n' ) )
-    {
-        double x, y, z;
-        string fn;
-        stringstream l(line);
-        l >> fn >> x >> y >> z;
-        il->push_back( Point3f( x, y, z ) );
-    }
-    ifs.close ();                                 /* close ifstream */
-    return ;
-}		/* -----  end of function get_imu_list  ----- */
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  get_image_list
- *  Description:  Get a list of image files for the video stream.
- * =====================================================================================
- */
-void get_image_list(string filename, vector<string>* il)
-{
- 
-    string    ifs_file_name = filename;         /* input  file name */
-    ifstream  ifs;                              /* create ifstream object */
-
-    ifs.open ( ifs_file_name.c_str() );         /* open ifstream */
-    if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
-        exit (EXIT_FAILURE);
-    }
-    string line;
-    while( getline(ifs, line, '\n') )
-    {
-        il->push_back(line);
-    }
-    ifs.close ();                                 /* close ifstream */
-}
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -1082,48 +1083,44 @@ int main(int argc, char** argv)
 
 
 // ===  FUNCTION  ======================================================================
-//         Name:  compare_arc_pair
-//  Description:  
-// =====================================================================================
-
-struct below_threshold {
-    below_threshold( double t ): threshold(t){}
-    bool operator() (const ARC_Pair& value ) { return( value.nsigma<threshold ); }
-    private:
-    double threshold;
-};
-// ===  FUNCTION  ======================================================================
 //         Name:  main
 //  Description:  Function for testing ARC_IMU
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    list<ARC_Pair> pairs;
-    Point2f pt(1, 2);
-    double sig1 = 8;
-    ARC_Pair p( pt, pt, sig1 );
-    pairs.push_front( p );
-    pairs.push_front( ARC_Pair( pt, pt, 2 ) );
-    pairs.push_front( ARC_Pair( pt, pt, 3 ) );
-    
-    pairs.sort( );
+    vector<string> image_list;
+    vector<Point3f> imu_list;
+    list<ARC_Pair> outlist;
+    int num=atoi(argv[4]);
+    //int num=240;
+    get_image_list( argv[1], &image_list );     // Reads in the image list.
+    get_imu_list( argv[2], &imu_list );
 
-    list<ARC_Pair>::iterator it=pairs.begin();
-    while( it!=pairs.end() )
-        cout << *it++ << endl;
-    cout << endl;
-    pairs.remove_if( below_threshold(4) );
-    it=pairs.begin();
-    while( it!=pairs.end() )
-        cout << *it++ << endl;
+    ARC_IMU imu;
+    imu.set_A( A );
+    Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[num] );
+    double theta = imu.get_rotation_angle( rotation_matrix );
+    double slope = imu.theta_to_slope( theta );
+    //double slope = atof(argv[3]);
 
-    /*
-    double sig2 = 3;
-    double sig3 = 4;
-    double sig4 = 20;
-    double sig5 = 2;
-    double sig6 = 10;
-    */
+    //Mat img = imread ( "../test/test.jpg", CV_LOAD_IMAGE_COLOR );           // open image 
+    Mat img = imread ( image_list[num], CV_LOAD_IMAGE_COLOR );           // open image 
+    Size outerPatchSize( 30, 30 );
+    //int innerPatchSize = 10;
+
+
+    int n = getReflections( img, outerPatchSize, 25, slope, outlist);
+    cout << "N: " << n << endl;
+    outlist.sort();
+    for( list<ARC_Pair>::iterator it=outlist.begin();
+            it!=outlist.end(); ++it )
+    {
+        cout << *it << endl;
+    }
+        
+    //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, outvector );
+    cout << "Slope: " << slope << endl;
+    displayReflectionMatches( img, outerPatchSize, slope, &outlist );
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 

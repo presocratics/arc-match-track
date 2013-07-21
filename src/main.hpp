@@ -4,6 +4,7 @@
 #include <ostream>
 #include <string>
 #include <vector>
+#include <list>
 #include <fstream>
 #include <cstdlib>
 #include <cv.h>
@@ -14,7 +15,7 @@
 #include "ARC_Pair.hpp"
 #include "ARC_Write.hpp"
 #include "config.hpp"
-//#include "ReflectionTracker.hpp"
+#include "ReflectionTracker.hpp"
 #include "ARC_IMU.hpp"
 
 #define _USE_MATH_DEFINES

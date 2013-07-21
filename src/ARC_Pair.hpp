@@ -29,10 +29,11 @@ class ARC_Pair
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        ARC_Pair ( );
-        ARC_Pair ( Rect src, rect ref, double ns );       // constructor 
+        ARC_Pair (): nsigma(0){}
+        ARC_Pair ( Rect src, Rect ref, double ns );       // constructor 
 
         // ====================  ACCESSORS     ======================================= 
+
         // ====================  MUTATORS      ======================================= 
 
         // ====================  OPERATORS     ======================================= 
@@ -53,6 +54,7 @@ class ARC_Pair
             Rect source;
             Rect reflection;
         } roi;
+
         double nsigma;                    // Number of std above mean.
 
     protected:
