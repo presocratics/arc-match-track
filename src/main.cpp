@@ -1106,9 +1106,10 @@ int main ( int argc, char *argv[] )
     //Mat img = imread ( "../test/test.jpg", CV_LOAD_IMAGE_COLOR );           // open image 
     Mat img = imread ( image_list[num], CV_LOAD_IMAGE_COLOR );           // open image 
     Size outerPatchSize( 30, 30 );
-    //int innerPatchSize = 10;
+    Size innerPatchSize( 10, 10 );
 
 
+    /*
     int n = getReflections( img, outerPatchSize, 25, slope, outlist);
     cout << "N: " << n << endl;
     outlist.sort();
@@ -1117,10 +1118,12 @@ int main ( int argc, char *argv[] )
     {
         cout << *it << endl;
     }
+    */
         
-    //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, outvector );
     cout << "Slope: " << slope << endl;
-    displayReflectionMatches( img, outerPatchSize, slope, &outlist );
+    cout << "Theta: " << theta << endl;
+    //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, theta, outlist );
+    displayReflectionMatches( img, outerPatchSize, slope, theta, &outlist );
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 
