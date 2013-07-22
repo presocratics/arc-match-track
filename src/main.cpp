@@ -1090,40 +1090,61 @@ int main ( int argc, char *argv[] )
 {
     vector<string> image_list;
     vector<Point3f> imu_list;
-    list<ARC_Pair> outlist;
-    int num=atoi(argv[4]);
+    //int num=atoi(argv[4]);
     //int num=240;
     get_image_list( argv[1], &image_list );     // Reads in the image list.
     get_imu_list( argv[2], &imu_list );
 
     ARC_IMU imu;
     imu.set_A( A );
-    Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[num] );
-    double theta = imu.get_rotation_angle( rotation_matrix );
-    double slope = imu.theta_to_slope( theta );
-    //double slope = atof(argv[3]);
-
-    //Mat img = imread ( "../test/test.jpg", CV_LOAD_IMAGE_COLOR );           // open image 
-    Mat img = imread ( image_list[num], CV_LOAD_IMAGE_COLOR );           // open image 
-    Size outerPatchSize( 30, 30 );
-    Size innerPatchSize( 10, 10 );
-
-
-    /*
-    int n = getReflections( img, outerPatchSize, 25, slope, outlist);
-    cout << "N: " << n << endl;
-    outlist.sort();
-    for( list<ARC_Pair>::iterator it=outlist.begin();
-            it!=outlist.end(); ++it )
+    // Init Video
+    Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
+    VideoWriter vidout;
+    vidout.open( "mov.avi", CV_FOURCC('F','M','P','4'), 
+            20.0, first_frame.size(), true );
+    if( !vidout.isOpened() )
     {
-        cout << *it << endl;
+        cerr << "Could not open video file: " << "mov.avi" << endl;
+        exit( EXIT_FAILURE );
     }
-    */
-        
-    cout << "Slope: " << slope << endl;
-    cout << "Theta: " << theta << endl;
-    //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, theta, outlist );
-    displayReflectionMatches( img, outerPatchSize, slope, theta, &outlist );
+    for( size_t i=0; i<image_list.size(); ++i )
+    {
+        list<ARC_Pair> outlist;
+        Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
+        double theta = imu.get_rotation_angle( rotation_matrix );
+        double slope = imu.theta_to_slope( theta );
+        //double slope = atof(argv[3]);
+
+        //Mat img = imread ( "../test/test.jpg", CV_LOAD_IMAGE_COLOR );           // open image 
+        Mat img = imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
+        Size outerPatchSize( 50, 50 );
+        Size innerPatchSize( 10, 10 );
+
+
+        getReflections( img, outerPatchSize, 10, slope, outlist);
+        outlist.sort();
+        outlist.remove_if( outside_theta(theta) );
+        outlist.remove_if( below_threshold( 3 ) ) ;
+        outlist.remove_if( overlap() );
+        Scalar red (0,0,255);
+        Scalar black(0,0,0);
+        for( list<ARC_Pair>::iterator it=outlist.begin();
+                it!=outlist.end(); ++it )
+        {
+            Point s,r;
+            s = Point( it->roi.source.tl()+.5*Point(outerPatchSize) );
+            r = Point( it->roi.reflection.tl()+.5*Point(outerPatchSize) );
+            circle( img, s, 3, red );
+            circle( img, r, 3, black );
+            line( img, s, r, black, 1, 8, 0 );
+        }
+            
+        cout << "Slope: " << slope << endl;
+        cout << "Theta: " << theta << endl;
+        //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, theta, outlist );
+        //displayReflectionMatches( img, outerPatchSize, slope, theta, &outlist );
+        vidout << img;
+    }
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 

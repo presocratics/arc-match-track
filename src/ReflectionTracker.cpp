@@ -112,7 +112,7 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     //4:CV_TM_CCOEFF
     //5:CV_TM_CCOEFF_NORMED <----Most succesful at finding reflections
     
-    int match_method = CV_TM_CCOEFF; // 4 seemed good for stddev thresholding.
+    int match_method = CV_TM_CCOEFF_NORMED; // 4 seemed good for stddev thresholding.
 
 
     Mat search_image;
@@ -294,7 +294,8 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // Adds points from goodFeaturesToTrack one by one, and creates a mask for
     // each point to prevent clustering
     // TODO: We may be able to get rid of the anti-clustering code.
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
+    //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, 10, Mat(), 3, 0, 0.04);
     /*
     for( int i=0; i<numOfFeatures; ++i )
     {
@@ -404,16 +405,6 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 //  Description:  
 // =====================================================================================
 
-struct overlap {
-    //overlap( double t ): threshold(t){}
-    bool operator() (const ARC_Pair& value ) { return( (value.roi.source&value.roi.reflection).area()>0 ); }
-};
-struct below_threshold {
-    below_threshold( double t ): threshold(t){}
-    bool operator() (const ARC_Pair& value ) { return( value.nsigma<threshold ); }
-    private:
-    double threshold;
-};
 struct outside_slope {
     outside_slope( double m ): slope(m){}
     bool operator() (const ARC_Pair& value ) 
@@ -427,28 +418,15 @@ struct outside_slope {
     private:
     double slope;
 };
-struct outside_theta {
-    outside_theta( double m ): theta(m){}
-    bool operator() (const ARC_Pair& value ) 
-    { 
-        Point del = value.roi.reflection.tl()-value.roi.source.tl();
-        //double match_theta = (del.x==0) ? M_PI/2 : atan2(del.y/del.x);
-        double match_theta = atan2( del.y, del.x );
-        cout << "Match theta: " << match_theta << endl;
-        cout << "Diff theta: " << abs(match_theta-theta) << endl;
-        return( abs(theta-match_theta)>0.20 );
-    }
-    private:
-    double theta;
-};
 // DISPLAYS THE RESULTS OF getReflections()
 // If getReflections was already run and outvector is full, for patchSize enter 0
 // If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
 void displayReflectionMatches( Mat image, Size patchSize, double slope, double theta, list<ARC_Pair> *outlist )
 {
-    getReflections( image, patchSize, 20, slope, *outlist );
+    getReflections( image, patchSize, 15, slope, *outlist );
 
     outlist->remove_if( outside_theta(theta) );
+    //outlist->remove_if( outside_slope(slope) );
 
     /*
     int num_pairs = outlist->size();
@@ -465,6 +443,7 @@ void displayReflectionMatches( Mat image, Size patchSize, double slope, double t
     cout << "Mean: " << mean[0] << " STD: " << std[0] << endl;
     outlist->remove_if( below_threshold( mean[0] + N*std[0] ) );
     */
+    outlist->remove_if( below_threshold(3.5) );
     outlist->remove_if( overlap() );
     //outlist->remove_if( outside_slope(slope) );
 
@@ -474,6 +453,7 @@ void displayReflectionMatches( Mat image, Size patchSize, double slope, double t
     for( list<ARC_Pair>::iterator it=outlist->begin();
             it!=outlist->end(); ++it )
     {
+        cout << *it << endl;
         rectangle( draw, it->roi.source, originalColor, 1, 8, 0 );
         rectangle( draw, it->roi.reflection, reflectionColor, 1, 8, 0 );
         Point sourceTLCorner = it->roi.source.tl();
@@ -548,13 +528,13 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
 	list<ARC_Pair> final_list;
     // Gets an initial list of regions and reflections that can then be used
     // to match much smaller templates.
-    getReflections( image, outerPatchSize, 35, slope, initial_list );
+    getReflections( image, outerPatchSize, 15, slope, initial_list );
 	cout << "Initial templates found\n";
 	cout << "" << endl;
 	Mat imageClone = image.clone();
     
-    initial_list.remove_if( outside_theta(theta) );
 
+    /*
     int num_pairs = initial_list.size();
     Mat ns( num_pairs, 1, CV_64FC1 );
     unsigned int i =0;
@@ -567,11 +547,13 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
     //double N = 0;
     meanStdDev( ns, mean, std, Mat() );
     cout << "Mean: " << mean[0] << " STD: " << std[0] << endl;
+    */
 
 
     // Filtering
     //initial_list.remove_if( below_threshold( mean[0] + N*std[0] ) ) ;
-    initial_list.remove_if( below_threshold( 5 ) ) ;
+    initial_list.remove_if( outside_theta(theta) );
+    initial_list.remove_if( below_threshold( 3 ) ) ;
     initial_list.remove_if( overlap() );
 
     Scalar red (0,0,255);
@@ -587,6 +569,7 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
 		//vector<Mat> templates;
 		//vector<Rect> reflections;
 
+        /*
 		//Draws the initial regions and their reflections
 		rectangle( image, it->roi.source, red, 2, 8, 0 );
 		rectangle( image, it->roi.reflection, black, 2, 8, 0 );
@@ -594,6 +577,7 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
 		Point originalCorner = it->roi.source.tl();
 		Point reflectionCorner = it->roi.reflection.tl();
 		line( image, originalCorner, reflectionCorner, black, 2, 8, 0 );
+        */
 		
         // Finds good points to track within one of the regions while
         // checking for proximity to boundaries and converting to the
@@ -650,9 +634,11 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
         //sublist.remove_if( below_threshold( 25.262 ) );
         sublist.remove_if( overlap() );
         sublist.remove_if( outside_theta(theta) );
+        sublist.remove_if( below_threshold(22) );
         for( list<ARC_Pair>::iterator subit=sublist.begin();
                 subit!=sublist.end(); ++subit )
         {
+            cout << *subit << endl;
             finner << subit->nsigma << endl;
             rectangle( image, subit->roi.source, red, 1, 8, 0 );
             rectangle( image, subit->roi.reflection, black, 1, 8, 0 );
@@ -660,9 +646,6 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
             Point reflectionCorner = subit->roi.reflection.tl();
             line( image, originalCorner, reflectionCorner, black, 1, 8, 0 );
         }
-        namedWindow( "MARTIN", CV_WINDOW_AUTOSIZE );
-        imshow( "MARTIN", image );
-        waitKey( 0 );
 
         /*
 		findReflections( masked_scene, patchSize, slope, &shiftedFeatures, &templates, &reflections, &subvector );
@@ -675,6 +658,9 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
 		}	
         */
 	}
+    //namedWindow( "MARTIN", CV_WINDOW_AUTOSIZE );
+    //imshow( "MARTIN", image );
+    //waitKey( 15 );
     fouter.close ();                                 /* close foutertream */
     finner.close ();                                 /* close foutertream */
 	//cout << "Reflections found\n";
