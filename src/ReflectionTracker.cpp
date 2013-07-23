@@ -138,7 +138,6 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     {
         matchLoc = maxLoc;
     }
-    cout << "Matchloc: " << matchLoc << endl;
     Scalar mean, stddev;
     meanStdDev( result, mean, stddev, Mat() );
     *nsigma = ( maxVal-mean[0] )/ stddev[0];
@@ -506,23 +505,6 @@ ARC_Pair getOneReflectionPair( Mat source, int patchSize, double slope,
 int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize, 
         double slope, double theta, list<ARC_Pair> &outlist )
 {
-    
-    string    fouter_file_name2 = "inner_nsigmas.txt";                 /* output file name */
-    ofstream  finner;                                /* create foutertream object */
-
-    finner.open ( fouter_file_name2.c_str(), fstream::app );           /* open foutertream */
-    if (!finner) {
-        cerr << "\nERROR : failed to open output file " << fouter_file_name2 << endl;
-        exit (EXIT_FAILURE);
-    }
-    string    fouter_file_name = "outer_nsigmas.txt";                 /* output file name */
-    ofstream  fouter;                                /* create foutertream object */
-
-    fouter.open ( fouter_file_name.c_str(), fstream::app );           /* open foutertream */
-    if (!fouter) {
-        cerr << "\nERROR : failed to open output file " << fouter_file_name << endl;
-        exit (EXIT_FAILURE);
-    }
 	Size patchSize = innerPatchSize;
     list<ARC_Pair> initial_list;
 	list<ARC_Pair> final_list;
@@ -533,23 +515,6 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
 	cout << "" << endl;
 	Mat imageClone = image.clone();
     
-
-    /*
-    int num_pairs = initial_list.size();
-    Mat ns( num_pairs, 1, CV_64FC1 );
-    unsigned int i =0;
-    for( list<ARC_Pair>::iterator it=initial_list.begin();
-            it!=initial_list.end(); ++it, ++i )
-    {
-        ns.at<double>(i,1)=it->nsigma;
-    }
-    Scalar mean, std;
-    //double N = 0;
-    meanStdDev( ns, mean, std, Mat() );
-    cout << "Mean: " << mean[0] << " STD: " << std[0] << endl;
-    */
-
-
     // Filtering
     //initial_list.remove_if( below_threshold( mean[0] + N*std[0] ) ) ;
     initial_list.remove_if( outside_theta(theta) );
@@ -559,26 +524,12 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
     Scalar red (0,0,255);
     Scalar black(0,0,0);
 	//Goes through every region found in the original image
+    list<ARC_Pair> sublist;
     for( list<ARC_Pair>::iterator it=initial_list.begin();
             it!=initial_list.end(); ++it )
     {
-        fouter << it->nsigma << endl;
-		list<ARC_Pair> sublist;
 		vector<Point> features;
-		//vector<Point> shiftedFeatures;
-		//vector<Mat> templates;
-		//vector<Rect> reflections;
 
-        /*
-		//Draws the initial regions and their reflections
-		rectangle( image, it->roi.source, red, 2, 8, 0 );
-		rectangle( image, it->roi.reflection, black, 2, 8, 0 );
-
-		Point originalCorner = it->roi.source.tl();
-		Point reflectionCorner = it->roi.reflection.tl();
-		line( image, originalCorner, reflectionCorner, black, 2, 8, 0 );
-        */
-		
         // Finds good points to track within one of the regions while
         // checking for proximity to boundaries and converting to the
         // original coordinate system.
@@ -590,30 +541,12 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
         Mat original = imageClone;
 		cvtColor( original, original, CV_RGB2GRAY, 1 );
 		goodFeaturesToTrack( original, features, 3, .01, patchSize.width+3, gft_mask, 3, false, 0.04 );
-        // TODO: Just shift then '&' with the frame in the matching loop.
-        /*
-		for( size_t i=0; i<features.size(); i++ )
-        {
-			Point shift = it->roi.source.tl();
-			Point shiftedPoint( features[i]+shift );
-			if( shiftedPoint.x>it->roi.source.x+patchSize.width/2 
-                    && shiftedPoint.y>it->roi.source.y+patchSize.height/2 
-                    && shiftedPoint.x<it->roi.source.x+it->roi.source.width-patchSize.width/2 
-                    && shiftedPoint.y<it->roi.source.y+it->roi.source.height-patchSize.height/2) 
-            {
-                shiftedFeatures.push_back(shiftedPoint);
-            }
-		}
-        */
-
-		//createTemplatesFromVector( imageClone, patchSize, &shiftedFeatures, &templates, &subvector );
 		//Creates a mask from the original larger reflected region, from which smaller reflection matches will be found
 		Mat mask, masked_scene;
 		mask = Mat::zeros( image.size(), CV_8UC1 );
 		rectangle( mask, it->roi.reflection, 255, CV_FILLED );
         
         Rect frame_rect( it->roi.source.tl(), it->roi.source.size() );
-
         for( vector<Point>::iterator subit=features.begin();
             subit!=features.end(); ++subit )
         {
@@ -628,13 +561,12 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
             ARC_Pair pair( a, b, nsigma );
             // Add to list
             sublist.push_back( pair );
-            cout << "Pair: " << pair << endl;
-
         }
         //sublist.remove_if( below_threshold( 25.262 ) );
-        sublist.remove_if( overlap() );
-        sublist.remove_if( outside_theta(theta) );
+        //sublist.remove_if( overlap() );
+        //sublist.remove_if( outside_theta(theta) );
         sublist.remove_if( below_threshold(22) );
+        /*
         for( list<ARC_Pair>::iterator subit=sublist.begin();
                 subit!=sublist.end(); ++subit )
         {
@@ -646,24 +578,13 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
             Point reflectionCorner = subit->roi.reflection.tl();
             line( image, originalCorner, reflectionCorner, black, 1, 8, 0 );
         }
-
-        /*
-		findReflections( masked_scene, patchSize, slope, &shiftedFeatures, &templates, &reflections, &subvector );
-		identifyRealObjects(&subvector);
-	
-		//Pushes all matches found back to outvector
-		for( size_t j=0; j<subvector.size(); j++ )
-        {
-			outvector.push_back(subvector[j]);	
-		}	
         */
 	}
     //namedWindow( "MARTIN", CV_WINDOW_AUTOSIZE );
     //imshow( "MARTIN", image );
     //waitKey( 15 );
-    fouter.close ();                                 /* close foutertream */
-    finner.close ();                                 /* close foutertream */
 	//cout << "Reflections found\n";
 	//return outvector.size();
+    outlist = sublist;
     return 1;
 }

@@ -34,6 +34,8 @@ struct outside_theta {
         cout << "Match theta: " << match_theta << endl;
         cout << "Diff theta: " << abs(match_theta-theta) << endl;
         return( abs(theta-match_theta)>0.10 );
+        //return( abs(theta-match_theta)>0.30 );
+        //return( abs(theta-match_theta)>0.60 );
     }
     private:
     double theta;

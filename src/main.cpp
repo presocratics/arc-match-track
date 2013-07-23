@@ -87,8 +87,8 @@ void change_frame_number( int slider, void* fn )
 
 void change_patch_size( int slider, void* ps )
 {
-    int* ps_typed = (int *) ps;
-    *ps_typed = slider;
+    Size* ps_typed = (Size *) ps;
+    *ps_typed = Size( slider, slider );
 }
 
 void change_num_regions( int slider, void* nr )
@@ -150,25 +150,22 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta, int max_de
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( Mat& frame, vector<ARC_Pair>* regions, unsigned int nregions, int patch_size, double slope )
+void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
+        unsigned int nregions, Size patch_size, double slope, double theta )
 {
+    pairs->clear();
     cout << "Num regions: " << nregions << endl;
-    cout << "Patch size: " << patch_size << endl;
-    // Remove bad regions.
-    vector<ARC_Pair>::iterator it=regions->begin();
+    cout << "Patch size: " << Point(patch_size) << endl;
     // Get new regions.
-    if( regions->size()<nregions )
+    //if( pairs->size()<nregions )
+    if( 1 )
     {
-        /*
-        vector<ARC_Pair> new_regions;
-        getReflections( frame, 50, 5, new_regions );
-        // Fill up regions vector until there are nregions regions.
-        unsigned int nnr = new_regions.size();
-        unsigned int ele = (unsigned int) fmin( nnr, nregions - regions->size() ) ;
-        regions->insert( regions->end(), new_regions.begin(), new_regions.begin() + ele );
-        */
-        getReflections( frame, patch_size, nregions, slope, *regions );
+        getReflections( frame, patch_size, nregions, slope, *pairs );
+        //getReflectionsPYR( frame, patch_size, Size( 10, 10 ), slope, theta, *pairs );
     }
+    pairs->remove_if( below_threshold( 3 ) );
+    pairs->remove_if( outside_theta( theta ) );
+    pairs->remove_if( overlap() );
         
     return ;
 }		// -----  end of function update_regions  ----- 
@@ -426,7 +423,7 @@ void help( string program_name )
          << "Default: " << ARC_DEFAULT_SLOPE_DEV << endl
 
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
-         << "Default: " << ARC_DEFAULT_PATCH_SIZE << endl
+         << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
 
          << ARC_ARG_RADIUS << spc << "[0-1]" << tab << "Set match radius threshold." << spc
          << "Default: " << ARC_DEFAULT_RADIUS << endl
@@ -450,71 +447,75 @@ void help( string program_name )
 }		// -----  end of function help()  ----- 
 
 // ===  FUNCTION  ======================================================================
+//         Name:  pairs_to_points
+//  Description:  Writes centers of ARC_Pair ROIs to source and reflection point vectors.
+// =====================================================================================
+void pairs_to_points ( list<ARC_Pair>* pairs, vector<Point2f>* src, vector<Point2f>* ref )
+{
+    for( list<ARC_Pair>::iterator it=pairs->begin();
+            it!=pairs->end(); ++it )
+    {
+        Point2f s, r;
+        s = Point( it->roi.source.tl() + 0.5*Point( it->roi.source.tl() ) );
+        r = Point( it->roi.reflection.tl() + 0.5*Point( it->roi.reflection.tl() ) );
+        src->push_back( s );
+        ref->push_back( r );
+    }
+    return ;
+}		// -----  end of function pairs_to_points  ----- 
+
+// ===  FUNCTION  ======================================================================
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, ARC_Pair* r, double theta, int max_dev )
+bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
     Size win_size(31,31);
-    vector<uchar> object_status, scene_status;
-    vector<float> object_error, scene_error;
-    PPC good_points, new_points;
+    PPC points, new_points;
 
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
+    pairs_to_points( pairs, &points.source, &points.reflection );
+    for( size_t i=0; i<points.source.size(); ++i )
+        cout << points.source[i] << endl;
+    for( size_t i=0; i<points.reflection.size(); ++i )
+        cout << points.reflection[i] << endl;
 
-    if( r->direction.track==DOWN )
-    {
-        keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
-                &good_points.source, &good_points.reflection,
-                r->matches, r->roi.source, r->direction.match );
-    }
-    else
-    {
-        keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
-                &good_points.reflection, &good_points.source,
-                r->matches, r->roi.reflection, r->direction.match );
-    }
+
     // Do the tracking.
     size_t i;
-    if( good_points.source.size()!=0 )
+    if( points.source.size()!=0 )
     {
-        calcOpticalFlowPyrLK( prev_gray, gray, good_points.source, new_points.source,
-                object_status, object_error, win_size, 3, termcrit, 0, 0.001 );
+        vector<uchar> source_status, reflection_status;
+        vector<float> source_error, reflection_error;
+
+        calcOpticalFlowPyrLK( prev_gray, gray, points.source, new_points.source,
+                source_status, source_error, win_size, 3, termcrit, 0, 0.001 );
+
+        calcOpticalFlowPyrLK(prev_gray, gray, points.reflection,
+                new_points.reflection, reflection_status, 
+                reflection_error, win_size, 3, termcrit, 0, 0.001);
+        
         // Set lost points to (-1, -1), so we know they are lost.
+        list<ARC_Pair>::iterator it=pairs->begin();
         for( i=0; i<(new_points.source.size()); i++ )
-            if( !object_status[i] ) new_points.source[i]=Point2f(-1,-1); 
-    }
-
-    if( good_points.reflection.size()!=0 )
-    {
-        calcOpticalFlowPyrLK(prev_gray, gray, good_points.reflection,
-                new_points.reflection, scene_status, 
-                scene_error, win_size, 3, termcrit, 0, 0.001);
-        for( i=0; i<new_points.reflection.size(); i++ )
-            if( !scene_status[i] ) new_points.reflection[i] = Point2f(-1, -1);
-    }
-    // Update KeyPoints.
-    if( r->direction.track==DOWN )
-    {
-        // Update ROI.
-        if( new_points.source.size()>0 && new_points.reflection.size()>0 )
         {
-            r->roi.source = update_roi( r->roi.source, good_points.source );
-            r->roi.reflection = update_roi( r->roi.reflection, good_points.reflection );
+            Point sdel, rdel;
+            if( !source_status[i] || !reflection_status[i] ) 
+            {
+                it = pairs->erase( it );
+                continue;
+            }
+            // Get difference between old and move.
+            sdel = new_points.source[i] - points.source[i];
+            rdel = new_points.reflection[i] - points.reflection[i];
+            // Shift by difference.
+            it->roi.source += sdel;
+            it->roi.reflection += rdel;
+            ++it;
         }
-
-        good_points_to_keypoints( new_points.source, &(r->keypoints.source),
-            new_points.reflection, &(r->keypoints.reflection), &(r->matches), r->roi.source, 
-            r->direction.match, theta, max_dev );
-    }
-    else
-    {
-        good_points_to_keypoints( new_points.reflection, &(r->keypoints.reflection),
-            new_points.source, &(r->keypoints.source), &(r->matches), r->roi.reflection,
-            r->direction.match, theta, max_dev );
     }
 
     return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
@@ -606,7 +607,7 @@ void arguments::arguments()
     match_ratio = DEFAULT_MATCH_RATIO;
     slope_dev = ARC_DEFAULT_SLOPE_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
-    patch_size = ARC_DEFAULT_PATCH_SIZE;
+    patch_size = Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
     radius = ARC_DEFAULT_RADIUS;
     debug = NO_DEBUG;
     verbosity = NOT_VERBOSE;
@@ -625,13 +626,14 @@ void arguments::arguments()
  *  File Format:  <x> <y> <width> <height> [direction] [slope]
  * =====================================================================================
  */
+/*
 bool get_regions(string filename, vector<ARC_Pair>* regions)
 {
     bool status=true;
-    string    ifs_file_name = filename;                 /* input  file name */
-    ifstream  ifs;                                /* create ifstream object */
+    string    ifs_file_name = filename;                 // input  file name
+    ifstream  ifs;                                // create ifstream object 
 
-    ifs.open ( ifs_file_name.c_str() );           /* open ifstream */
+    ifs.open ( ifs_file_name.c_str() );           // open ifstream 
     if (!ifs) {
         cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
         exit (EXIT_FAILURE);
@@ -655,9 +657,6 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
                 region.roi.source = roi;
             else
                 region.roi.reflection = roi;
-            region.direction.track = region.direction.match = direction;
-            region.slope = -slope;
-            region.iter_count = 0;
             regions->push_back(region);
         }
         else
@@ -666,9 +665,10 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
             status=false;
         }
     }
-    ifs.close ();                                 /* close ifstream */
+    ifs.close ();                                 // close ifstream 
     return status;
 }
+*/
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -722,7 +722,8 @@ bool get_arguments ( int argc, char** argv, arguments* a)
         }
         if( !strcmp(argv[i], ARC_ARG_PATCH_SIZE) ) 
         {
-            a->patch_size=atof(argv[++i]);
+            int dim = atoi( argv[++i] );
+            a->patch_size=Size( dim, dim );
             continue;
         }
         if( !strcmp(argv[i], ARG_VID_FILE) ) 
@@ -750,13 +751,12 @@ int main(int argc, char** argv)
 {
     vector<string> image_list;                  // Video frames for tracking.
     vector<Point3f> imu_list;                  // IMU data for slope.
-    vector<ARC_Pair> regions;                   // Container for selected reflections and matches.
+    list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
 
     // Parse Arguments
     arguments a;
     a.arguments();                              // TODO should init automatically.
     namedWindow( DEFAULT_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
-
 
     if( !get_arguments(argc, argv, &a) )        // Parse command line args.
     {
@@ -786,18 +786,17 @@ int main(int argc, char** argv)
 
     // Create GUI objects
     unsigned int i = 0;                               // Image index
-    int match_ratio = (int) (a.match_ratio *100);
-    int radius = (int) (a.radius *100);
-    createTrackbar( "match_ratio", DEFAULT_WINDOW_NAME, &match_ratio, 100, change_match_ratio, &a.match_ratio );
-    createTrackbar( "slope_dev", DEFAULT_WINDOW_NAME, &a.slope_dev, 90, change_slope_dev, &a.slope_dev );
-    createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 50, change_num_regions, &a.num_regions );
-    createTrackbar( "patch_size", DEFAULT_WINDOW_NAME, &a.patch_size, 150, change_patch_size, &a.patch_size );
-    createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, image_list.size(), change_frame_number, &i );
-    createTrackbar( "radius", DEFAULT_WINDOW_NAME, &radius, 100, change_radius, &a.radius );
-    //createButton( "TEST", change_frame_number, &i, CV_PUSH_BUTTON );
+    createTrackbar( "slope_dev", DEFAULT_WINDOW_NAME, &a.slope_dev, 
+            90, change_slope_dev, &a.slope_dev );
+    createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
+            50, change_num_regions, &a.num_regions );
+    createTrackbar( "patch_size", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
+            150, change_patch_size, &a.patch_size );
+    createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
+            image_list.size(), change_frame_number, &i );
 
     // Init text file
-    ARC_Write writer( a.text_filename );
+    //ARC_Write writer( a.text_filename );
 
     // Init Video
     Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
@@ -810,261 +809,68 @@ int main(int argc, char** argv)
         exit( EXIT_FAILURE );
     }
 
-    // initialize matching object.
-    Ptr<FeatureDetector> pfd = new SurfFeatureDetector( 1 );
-    Ptr<DescriptorExtractor> pde = new SurfDescriptorExtractor();
-    Ptr<DescriptorMatcher> pdm = new FlannBasedMatcher();
-    
-    //Ptr<FeatureDetector> pfd = new SiftFeatureDetector( );
-    //Ptr<DescriptorExtractor> pde = new SiftDescriptorExtractor();
-    //Ptr<DescriptorMatcher> pdm = new BFMatcher( NORM_L1, false );
-
-    double confidence = 0.99f;                  // Confidence ratio for RANSAC.
-    double distance = 3.5;                      // Max distance from epipolar lines.
-    bool rf = true;                             // Match refining in RANSAC.
-
-    ARC_Match m;
-
-    m.set_confidence( confidence );
-    m.set_distance( distance );
-    m.set_ratio( a.match_ratio );
-    m.set_refineF( rf );
-    m.set_min_points( a.min_match_points );
-    m.set_ratio_test( a.isRatio );
-    m.set_symmetry_test( a.isSym );
-    m.set_ransac_test( a.isRansac );
-    m.set_verbosity( a.verbosity );
-    m.set_radius( a.radius );
-
-    m.set_feature_detector( pfd );
-    m.set_descriptor_extractor( pde );
-    m.set_descriptor_matcher( pdm );
-
     // Init ARC_IMU for rotation matrix.
     ARC_IMU imu;
     imu.set_A( A );
     //Begin image loop.
     Point2f mid_pt( 320, 240 );
     Mat cur_frame, gray, prev_gray;
-    // TODO: read in IMU data and get Rotation Matrix.
     while( i<image_list.size() )
     {
         setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
-        m.set_ratio( a.match_ratio );           // Update match ratio.
-        m.set_radius( a.radius );
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         double theta = imu.get_rotation_angle( rotation_matrix );
         double slope = imu.theta_to_slope( theta );
-        cout << "Theta: " << theta << endl;
 
-        cur_frame=imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
+        cur_frame=imread( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
         if ( !cur_frame.data ) {
             cerr << "\nERROR : failed to open input file " << image_list[i] << endl;
             exit (EXIT_FAILURE);
         }
         cvtColor(cur_frame, gray, CV_BGR2GRAY);
         if( a.blur )
-            medianBlur( gray, gray, 7 );
+        {
+            //medianBlur( gray, gray, 7 );        // TODO: Should be parameter
+            //medianBlur( gray, gray, 5 );        // TODO: Should be parameter
+            medianBlur( gray, gray, 3 );        // TODO: Should be parameter
+        }
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
-        // Update regions
-        if( i%50==0 )
-            update_regions( cur_frame, &regions, a.num_regions, a.patch_size, slope );
 
-        // Begin region loop.
-        vector<ARC_Pair>::iterator r=regions.begin(); 
-        while( r!=regions.end() )
+        // Filter pairs.
+        // Update regions.
+        //if( i%50==0 )
+        if( 1 )
+            update_regions( cur_frame, &pairs, a.num_regions, a.patch_size, slope, theta );
+        if( 0 )
+        //if( i%200==0 )
         {
-            Rect scene_rect( Point( 0, 0 ), cur_frame.size() );
-            Rect roi_test = r->roi.source & scene_rect ;
-            Rect src_ref_overlap = r->roi.source & r->roi.reflection;
-            if ( r->no_match>5 
-                    || roi_test.area()<1600 
-                    || src_ref_overlap.area()> 400 )
-            {
-                r = regions.erase( r );
-                continue;
-            }
-            Mat object_mask, scene_mask;
-            // Prepare object for matching.
-            Mat flipped;
-            if( r->direction.match==DOWN )
-                flipped = process_object( &cur_frame, r->roi.source, &object_mask );
-            else
-                flipped = process_object( &cur_frame, r->roi.reflection, &object_mask );
-
-            if( r->iter_count%a.refresh_count==0 ) // Refresh match.
-            {
-                // Remove all keypoints that don't have matches.
-                // TODO: Handles direction.
-                prune_keypoints( &(r->keypoints.source), &(r->keypoints.reflection),
-                        r->matches );
-                if( r->keypoints.source.size()<2 && a.verbosity>=VERY_VERBOSE )
-                    cout << "main: Too few keypoints." << endl;
-
-                // Update search ROI
-                r->roi.reflection = findOneReflection( slope, cur_frame, r->roi.source );
-                // mask the search region
-                Mat masked_frame;
-                if( r->direction.match==DOWN )
-                {
-                    masked_frame = mask_scene( r->roi.reflection, cur_frame );
-                    //masked_frame = get_masked_frame( r->roi.source, r->slope,
-                    //       r->direction.match, &cur_frame, &scene_mask );
-                }
-                else
-                {
-                    masked_frame = get_masked_frame( r->roi.reflection, r->slope,
-                            r->direction.match, &cur_frame, &scene_mask );
-                }
-
-                // Run matcher
-                bool isMatch;
-                //Mat regShow = cur_frame.clone();
-                //rectangle( regShow, r->roi.source, Scalar(0, 255, 0 ), 1 );
-                //rectangle( regShow, r->roi.reflection, Scalar(0, 255, 0 ), 1 );
-                //imshow( DEFAULT_WINDOW_NAME, regShow );
-                //waitKey( 10 );
-                if( r->direction.match==DOWN)
-                {
-                    if( a.debug==DEBUG ) cout << "Enter match direction down." << endl;
-                    isMatch = m.match( masked_frame, flipped, 
-                                        scene_mask, object_mask, r->matches,
-                                        r->keypoints.reflection, r->keypoints.source );
-                    if( a.debug==DEBUG ) cout << "Leave match direction down." << endl;
-                }
-                else
-                {
-                    if( a.debug==DEBUG ) cout << "Enter match direction up." << endl;
-                    isMatch = m.match( masked_frame, flipped, 
-                                        scene_mask, object_mask, r->matches,
-                            r->keypoints.source, r->keypoints.reflection );
-                    if( a.debug==DEBUG ) cout << "Leave match direction up." << endl;
-                }
-                if( isMatch )
-                {
-                    ++r->iter_count;
-                    if( a.verbosity>=VERBOSE ) cout << "Match found." << endl;
-                    if( a.show_match==SHOW_MATCHES )
-                    {
-                        imshow( DEFAULT_WINDOW_NAME, flipped );
-                        waitKey( 0 );
-                        imshow( DEFAULT_WINDOW_NAME, masked_frame );
-                        waitKey( 0 );
-
-                        Mat match_img;
-                        if( r->direction.match==DOWN )
-                        {
-                        drawMatches( cur_frame, r->keypoints.reflection,
-                              flipped, r->keypoints.source,
-                              r->matches, match_img, Scalar::all(-1), Scalar::all(-1),
-                              vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-                        }
-                        else
-                        {
-                        drawMatches( cur_frame, r->keypoints.source,
-                              flipped, r->keypoints.reflection,
-                              r->matches, match_img, Scalar::all(-1), Scalar::all(-1),
-                              vector<char>(), DrawMatchesFlags::NOT_DRAW_SINGLE_POINTS );
-                        }
-                        imshow( DEFAULT_WINDOW_NAME, match_img );
-                        waitKey(0);
-
-                    }
-                    // When we track we'll remember which direction the match came from.
-                    r->direction.track = r->direction.match; 
-                    r->direction.match = DOWN;
-                    r->no_match = 0;
-                }
-                else
-                {
-                    // TODO: any other action if no match found?
-                    // Maybe we should remove a region if it goes N cycles without a match.
-                    r->iter_count = 0 ;
-                    ++r->no_match;
-                }
-            }
-            else                                // Perform tracking.
-            {
-                r->iter_count+=1;
-                PPC good_points, old_good_points;
-
-                if( a.debug==DEBUG )
-                {
-                    if( r->direction.track==DOWN )
-                    {
-                        // train, query, train, query, matches, roi
-                        keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
-                                &old_good_points.source, &old_good_points.reflection,
-                                r->matches, r->roi.source, r->direction.match );
-                    }
-                    else
-                    {
-                        keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
-                                &old_good_points.reflection, &old_good_points.source,
-                                r->matches, r->roi.reflection, r->direction.match );
-                    }
-                }
-
-                if( a.verbosity>=VERY_VERBOSE )
-                {
-                    if( r->direction.track==DOWN )
-                        cout << "ROI at " << r->roi.source.tl() << (Point2f) r->roi.source.size() << endl;
-                    else
-                        cout << "ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
-                }
-                if ( !track( gray, prev_gray, &(*r), theta, a.slope_dev )  )
-                {
-                    //r->iter_count=0;
-                    r = regions.erase(r);
-                    continue;
-                }
-                if( a.verbosity>=VERY_VERBOSE )
-                {
-                    if( r->direction.track==DOWN )
-                        cout << "New ROI at " << r->roi.source.tl() << (Point2f) r->roi.source.size() << endl;
-                    else
-                        cout << "New ROI at " << r->roi.reflection.tl() << (Point2f) r->roi.reflection.size() << endl;
-                }
-
-                if( r->direction.track==DOWN )
-                {
-                    // train, query, train, query, matches, roi
-                    keypoints_to_goodpoints( r->keypoints.source, r->keypoints.reflection,
-                            &good_points.source, &good_points.reflection,
-                            r->matches, r->roi.source, r->direction.match );
-                }
-                else
-                {
-                    keypoints_to_goodpoints( r->keypoints.reflection, r->keypoints.source,
-                            &good_points.reflection, &good_points.source,
-                            r->matches, r->roi.reflection, r->direction.match );
-                }
-                if( a.debug==DEBUG )
-                {
-                    cout << "main: track:" << endl;
-                    // TODO: So, what happens when we remove a keypoints, does
-                    // the index get out of whack?
-                    for( size_t i=0; i<good_points.source.size(); ++i )
-                    {
-                        cout << "SOURCE:" << endl;
-                        cout << "Before: " << old_good_points.source[i] << tab
-                             << "After: " << good_points.source[i] << endl;
-                        cout << "REFLECTION:" << endl;
-                        cout << "Before: " << old_good_points.reflection[i] << tab
-                             << "After: " << good_points.reflection[i] << endl;
-                    }
-                }
-                
-                writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
-                        r->matches, r->roi.source );
-                draw_match_by_hand( &drawn_matches, &cur_frame,
-                        &flipped, r->roi.source , r->roi.reflection,
-                        good_points.source, good_points.reflection );
-            }
-            ++r;
+            // Update reflection ROIs.
+            cout << "Update reflection ROIs not implemented." << endl;
+        }
+        else
+        {
+            // track.
+            track( gray, prev_gray, &pairs );
+            //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
+             //       r->matches, r->roi.source );
+            //draw_match_by_hand( &drawn_matches, &cur_frame,
+             //       &flipped, r->roi.source , r->roi.reflection,
+             //       good_points.source, good_points.reflection );
         } 
+        Scalar red (0,0,255);
+        Scalar black(0,0,0);
+        for( list<ARC_Pair>::iterator it=pairs.begin();
+                it!=pairs.end(); ++it )
+        {
+            Point s,r;
+            s = Point( it->roi.source.tl()+.5*Point(it->roi.source.size()) );
+            r = Point( it->roi.reflection.tl()+.5*Point(it->roi.reflection.size()) );
+            circle( drawn_matches, s, 3, red );
+            circle( drawn_matches, r, 3, black );
+            line( drawn_matches, s, r, black, 1, 8, 0 );
+        }
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
@@ -1132,6 +938,10 @@ int main ( int argc, char *argv[] )
                 it!=outlist.end(); ++it )
         {
             Point s,r;
+            Rect little_s, little_r;
+            vector<Point> sv, rv;
+            goodFeaturesToTrack( img, sv, 1, 0.01, 10, img(), 3, 0, 0.04);
+            goodFeaturesToTrack( img, sv, 1, 0.01, 10, img(), 3, 0, 0.04);
             s = Point( it->roi.source.tl()+.5*Point(outerPatchSize) );
             r = Point( it->roi.reflection.tl()+.5*Point(outerPatchSize) );
             circle( img, s, 3, red );
@@ -1148,3 +958,4 @@ int main ( int argc, char *argv[] )
     return EXIT_SUCCESS;
 }				// ----------  end of function main  ---------- 
 #endif     // -----  not DEBUG_IMU  ----- 
+
