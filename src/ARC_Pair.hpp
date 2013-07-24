@@ -34,7 +34,8 @@ class ARC_Pair
             nsigma=0;
             id=++num;
         }
-        ARC_Pair ( Rect src, Rect ref, double ns );       // constructor 
+        ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error );   // constructor 
+        ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error ); // constructor
 
         // ====================  ACCESSORS     ======================================= 
 
@@ -56,8 +57,8 @@ class ARC_Pair
         // ====================  DATA MEMBERS  ======================================= 
         static int num;
         struct {
-            Rect source;
-            Rect reflection;
+            Point source;
+            Point reflection;
         } roi;
 
         double nsigma;                    // Number of std above mean.
@@ -70,6 +71,7 @@ class ARC_Pair
 
     private:
         // ====================  METHODS       ======================================= 
+        Point convert_to_point ( Rect r, Mat img, Size s );
 
         // ====================  DATA MEMBERS  ======================================= 
 

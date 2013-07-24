@@ -200,11 +200,12 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
         a = Rect( *it-( .5*Point( patchSize ) ), patchSize ) & frame_rect;
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
-		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, Mat(), false );
+		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, Mat() );
         // Create ARC_Pair
-        ARC_Pair pair( a, b, nsigma );
+        bool err;
+        ARC_Pair pair( *it, b, nsigma, sourceCopy2, &err );
         // Add to list
-        outlist.push_back( pair );
+        if( !err ) outlist.push_back( pair );
     }
 	
     /*
@@ -264,6 +265,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 	return outlist.size();
 }
 
+/*
 // DISPLAYS THE RESULTS OF getReflections()
 // If getReflections was already run and outvector is full, for patchSize enter 0
 // If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
@@ -274,21 +276,6 @@ void displayReflectionMatches( Mat image, Size patchSize, double slope, double t
     outlist->remove_if( outside_theta(theta) );
     //outlist->remove_if( outside_slope(slope) );
 
-    /*
-    int num_pairs = outlist->size();
-    Mat ns( num_pairs, 1, CV_64FC1 );
-    unsigned int i =0;
-    for( list<ARC_Pair>::iterator it=outlist->begin();
-            it!=outlist->end(); ++it, ++i )
-    {
-        ns.at<double>(i,1)=it->nsigma;
-    }
-    Scalar mean, std;
-    double N = 0;
-    meanStdDev( ns, mean, std, Mat() );
-    cout << "Mean: " << mean[0] << " STD: " << std[0] << endl;
-    outlist->remove_if( below_threshold( mean[0] + N*std[0] ) );
-    */
     outlist->remove_if( below_threshold(3.5) );
     outlist->remove_if( overlap() );
     //outlist->remove_if( outside_slope(slope) );
@@ -310,6 +297,7 @@ void displayReflectionMatches( Mat image, Size patchSize, double slope, double t
     imshow( "Reflections", draw );
     waitKey(0);
 }
+*/
 /*
 
 // GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT
@@ -346,6 +334,7 @@ ARC_Pair getOneReflectionPair( Mat source, int patchSize, double slope,
 }
 */
 
+/*
 // GIVEN AN IMAGE, A PATCHSIZE FOR THE INITIAL TEMPLATES AND A SIZE FOR THE
 // SECONDARY, SMALLER, NESTED TEMPLATES, PUTS A SEQUENCE OF REAL OBJECTS AND
 // THEIR REFLECTIONS IN AN OUTVECTOR OF ARC_PAIR'S. 
@@ -413,19 +402,6 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
         //sublist.remove_if( overlap() );
         //sublist.remove_if( outside_theta(theta) );
         sublist.remove_if( below_threshold(22) );
-        /*
-        for( list<ARC_Pair>::iterator subit=sublist.begin();
-                subit!=sublist.end(); ++subit )
-        {
-            cout << *subit << endl;
-            finner << subit->nsigma << endl;
-            rectangle( image, subit->roi.source, red, 1, 8, 0 );
-            rectangle( image, subit->roi.reflection, black, 1, 8, 0 );
-            Point originalCorner = subit->roi.source.tl();
-            Point reflectionCorner = subit->roi.reflection.tl();
-            line( image, originalCorner, reflectionCorner, black, 1, 8, 0 );
-        }
-        */
 	}
     //namedWindow( "MARTIN", CV_WINDOW_AUTOSIZE );
     //imshow( "MARTIN", image );
@@ -435,3 +411,4 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
     outlist = sublist;
     return 1;
 }
+*/

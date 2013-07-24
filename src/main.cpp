@@ -219,31 +219,8 @@ void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, vector<Point2f>* src, ve
     for( list<ARC_Pair>::iterator it=pairs->begin();
             it!=pairs->end(); ++it )
     {
-        Point2f s, r;
-        Rect little_s, little_r;
-        vector<Point> sv, rv;
-        little_r = it->roi.reflection;
-        little_s = it->roi.source;
-        // TODO: dynamic sizing.
-        little_r += Point( 20, 20 );
-        little_r -= Size(40, 40);
-        little_s += Point( 20, 20 );
-        little_s -= Size(40, 40);
-
-        Mat mask_s, mask_r;
-        mask_s = Mat::zeros( gray.size(), CV_8UC1 );
-        mask_r = Mat::zeros( gray.size(), CV_8UC1 );
-        rectangle( mask_s, little_s, 255, CV_FILLED );
-        rectangle( mask_r, little_r, 255, CV_FILLED );
-        goodFeaturesToTrack( gray, sv, 1, 0.01, 10, mask_s, 3, 0, 0.04);
-        goodFeaturesToTrack( gray, rv, 1, 0.01, 10, mask_r, 3, 0, 0.04);
-        if( rv.size()>0 && sv.size()>0 )
-        {
-            s=sv[0];
-            r=rv[0];
-        }
-        src->push_back( s );
-        ref->push_back( r );
+        src->push_back( it->roi.source );
+        ref->push_back( it->roi.reflection );
     }
     return ;
 }		// -----  end of function pairs_to_points  ----- 
@@ -567,8 +544,8 @@ int main(int argc, char** argv)
                 it!=pairs.end(); ++it )
         {
             Point s,r;
-            s = Point( it->roi.source.tl()+.5*Point(it->roi.source.size()) );
-            r = Point( it->roi.reflection.tl()+.5*Point(it->roi.reflection.size()) );
+            s = it->roi.source;
+            r = it->roi.reflection;
             circle( drawn_matches, s, 3, red );
             circle( drawn_matches, r, 3, black );
             line( drawn_matches, s, r, black, 1, 8, 0 );
@@ -643,26 +620,12 @@ int main ( int argc, char *argv[] )
                 it!=outlist.end(); ++it )
         {
             Point s,r;
-            Rect little_r;
-            vector<Point> rv;
-            little_r = it->roi.reflection;
-            little_r += Point( 20, 20 );
-            little_r -= Size(40, 40);
-            Mat gray;
-            Mat mask;
-            cvtColor(img, gray, CV_BGR2GRAY);
-            mask = Mat::zeros( img.size(), CV_8UC1 );
-            rectangle( mask, little_r, 255, CV_FILLED );
-            goodFeaturesToTrack( gray, rv, 1, 0.01, 10, mask, 3, 0, 0.04);
-            s = Point( it->roi.source.tl()+.5*Point(outerPatchSize) );
-            //r = Point( it->roi.reflection.tl()+.5*Point(outerPatchSize) );
-            if( rv.size()>0 )
-            {
-                r=rv[0];
-                circle( img, s, 3, red );
-                circle( img, r, 3, black );
-                line( img, s, r, black, 1, 8, 0 );
-            }
+            s = it->roi.source;
+            r = it->roi.reflection;
+
+            circle( img, s, 3, red );
+            circle( img, r, 3, black );
+            line( img, s, r, black, 1, 8, 0 );
         }
             
         cout << "Slope: " << slope << endl;

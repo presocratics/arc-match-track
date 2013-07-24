@@ -25,7 +25,7 @@ struct outside_theta {
     outside_theta( double m ): theta(m){}
     bool operator() (const ARC_Pair& value ) 
     { 
-        Point del = value.roi.reflection.tl()-value.roi.source.tl();
+        Point del = value.roi.reflection-value.roi.source;
         //double match_theta = (del.x==0) ? M_PI/2 : atan2(del.y/del.x);
         double match_theta = atan2( del.y, del.x );
         //cout << "Match theta: " << match_theta << endl;
@@ -39,7 +39,11 @@ struct outside_theta {
 };
 struct overlap {
     //overlap( double t ): threshold(t){}
-    bool operator() (const ARC_Pair& value ) { return( (value.roi.source&value.roi.reflection).area()>0 ); }
+    bool operator() (const ARC_Pair& value ) 
+    { 
+        return false;
+        //return( (value.roi.source&value.roi.reflection).area()>0 ); 
+    }
 };
 struct below_threshold {
     below_threshold( double t ): threshold(t){}
