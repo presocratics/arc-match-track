@@ -29,7 +29,11 @@ class ARC_Pair
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        ARC_Pair (): nsigma(0){}
+        ARC_Pair ()
+        {
+            nsigma=0;
+            id=++num;
+        }
         ARC_Pair ( Rect src, Rect ref, double ns );       // constructor 
 
         // ====================  ACCESSORS     ======================================= 
@@ -50,6 +54,7 @@ class ARC_Pair
             return ( first.nsigma < second.nsigma );
         }		
         // ====================  DATA MEMBERS  ======================================= 
+        static int num;
         struct {
             Rect source;
             Rect reflection;
@@ -66,34 +71,9 @@ class ARC_Pair
         // ====================  METHODS       ======================================= 
 
         // ====================  DATA MEMBERS  ======================================= 
+        unsigned int id;
 
 }; // -----  end of class ARC_Pair  ----- 
-
-/*
- * =====================================================================================
- *        struct:  ARC_Pair
- *  Description:  Stores match information for a source-reflection pair.
- * =====================================================================================
-typedef struct ARC_Pair_t
-{
-    unsigned int iter_count, no_match;
-    struct {
-        unsigned int match;
-        unsigned int track;
-    } direction;
-    struct {
-        Rect source;
-        Rect reflection;
-    } roi;
-    double slope;
-    struct {
-        vector<KeyPoint> reflection;
-        vector<KeyPoint> source;
-    } keypoints;
-    vector<DMatch> matches;
-} ARC_Pair; 
- */
-
 
 
 #endif     /* -----  ARC_PAIR_H  ----- */

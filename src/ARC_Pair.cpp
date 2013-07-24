@@ -34,15 +34,19 @@ ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns)
         roi.reflection = first;
     }
     nsigma = ns;
+    id = ++num;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
     ostream &
 operator << ( ostream &os, const ARC_Pair &obj )
 {
-    os << obj.roi.source.tl() << spc
+    os << obj.id << spc
+       << obj.roi.source.tl() << spc
        << (Point) obj.roi.source.size() << spc
        << obj.roi.reflection.tl() << spc
        << (Point) obj.roi.reflection.size() << spc
        << obj.nsigma ;
     return os;
 }		// -----  end of function operator <<  ----- 
+
+int ARC_Pair::num=0;

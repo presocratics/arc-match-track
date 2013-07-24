@@ -43,8 +43,8 @@
 #define ARC_DEFAULT_PATCH_SIZE 50
 #define ARC_ARG_NUM_REGIONS "-nr"
 #define ARC_DEFAULT_NUM_REGIONS 25
-#define ARC_ARG_SLOPE_DEV "-sd"
-#define ARC_DEFAULT_SLOPE_DEV 10
+#define ARC_ARG_THETA_DEV "-td"
+#define ARC_DEFAULT_THETA_DEV 0.10
 #define ARG_MATCH_RATIO "--match-ratio"         // Set threshold for ratio_test.
 #define DEFAULT_MATCH_RATIO 0.70                // 
 #define ARG_MIN_MATCH_POINTS "--min-match-points" // Set minimum points to declare successful match. For RANSAC only.

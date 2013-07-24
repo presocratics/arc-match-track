@@ -40,7 +40,7 @@ typedef struct arguments_t {
     int show_match;
     int show_track;
     double match_ratio;
-    int slope_dev;
+    double theta_dev;
     int num_regions;
     Size patch_size;
     float radius;
@@ -55,7 +55,7 @@ typedef struct arguments_t {
 void change_frame_number( int slider, void* fn );
 void change_patch_size( int slider, void* ps );
 void change_num_regions( int slider, void* nr );
-void change_slope_dev( int slider, void* sd );
+void change_theta_dev( int slider, void* sd );
 void change_match_ratio( int slider, void* mr );
 void slope_endpoints ( double theta, Point2f* ol );
 bool slope_filter ( Point2f src_pt, Point2f ref_pt, double slope, int max_dev );

@@ -97,10 +97,10 @@ void change_num_regions( int slider, void* nr )
     *nr_typed = slider;
 }
 
-void change_slope_dev( int slider, void* sd )
+void change_theta_dev( int slider, void* sd )
 {
-    int* sd_typed = (int *) sd;
-    *sd_typed = slider;
+    double* sd_typed = (double *) sd;
+    *sd_typed = slider/100.0;
 }
 
 void change_radius( int slider, void* r )
@@ -153,7 +153,7 @@ bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta, int max_de
 void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta )
 {
-    pairs->clear();
+    //pairs->clear();
     cout << "Num regions: " << nregions << endl;
     cout << "Patch size: " << Point(patch_size) << endl;
     // Get new regions.
@@ -419,8 +419,8 @@ void help( string program_name )
          << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test." << spc
          << "Default: " << DEFAULT_MATCH_RATIO << endl
 
-         << ARC_ARG_SLOPE_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
-         << "Default: " << ARC_DEFAULT_SLOPE_DEV << endl
+         << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
+         << "Default: " << ARC_DEFAULT_THETA_DEV << endl
 
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
@@ -628,7 +628,7 @@ void arguments::arguments()
     refresh_count = DEFAULT_REFRESH_COUNT;
     min_match_points=DEFAULT_MIN_MATCH_POINTS;
     match_ratio = DEFAULT_MATCH_RATIO;
-    slope_dev = ARC_DEFAULT_SLOPE_DEV;
+    theta_dev = ARC_DEFAULT_THETA_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
     patch_size = Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
     radius = ARC_DEFAULT_RADIUS;
@@ -733,9 +733,9 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->match_ratio=atof(argv[++i]);
             continue;
         }
-        if( !strcmp(argv[i], ARC_ARG_SLOPE_DEV) ) 
+        if( !strcmp(argv[i], ARC_ARG_THETA_DEV) ) 
         {
-            a->slope_dev=atof(argv[++i]);
+            a->theta_dev=atof(argv[++i]);
             continue;
         }
         if( !strcmp(argv[i], ARC_ARG_NUM_REGIONS) ) 
@@ -809,8 +809,9 @@ int main(int argc, char** argv)
 
     // Create GUI objects
     unsigned int i = 0;                               // Image index
-    createTrackbar( "slope_dev", DEFAULT_WINDOW_NAME, &a.slope_dev, 
-            90, change_slope_dev, &a.slope_dev );
+    int td = a.theta_dev * 100;
+    createTrackbar( "theta_dev", DEFAULT_WINDOW_NAME, &td, 
+            100, change_theta_dev, &a.theta_dev );
     createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
             50, change_num_regions, &a.num_regions );
     createTrackbar( "patch_size", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
@@ -892,6 +893,7 @@ int main(int argc, char** argv)
             circle( drawn_matches, s, 3, red );
             circle( drawn_matches, r, 3, black );
             line( drawn_matches, s, r, black, 1, 8, 0 );
+            cout << *it << endl;
         }
         //Point2f src_pt( 320, 80 );
 
