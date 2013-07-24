@@ -20,68 +20,9 @@ bool displayRegions;
 bool displayWindows;
 
 
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  slope_mask
- *  Description:  
- * =====================================================================================
- */
-    Mat
-slope_mask ( Mat image, double slope, Rect roi )
-{
-    // Mask off the image_copy using slope.
-    // Creates a search region around the template given slope information
-    // TODO: When slope is near horizontal, several times the mask 
-    // isn't created properly - FIX 
-    Point2f TLCornerTemplate = roi.tl();
-    Mat mask, masked_scene;
-    mask = Mat::zeros(image.size(),CV_8UC1);
-
-    int xBot = (-TLCornerTemplate.y/slope)+TLCornerTemplate.x;
-    int xTop = ((480-TLCornerTemplate.y)/slope)+TLCornerTemplate.x;
-    int xStripSide= ((TLCornerTemplate.y-roi.height-TLCornerTemplate.y)/slope)+TLCornerTemplate.x;
-    int difference = abs(TLCornerTemplate.x-xStripSide);
-    int TLx = xTop;
-    int TLy=480;
-    int TRx = xTop+difference+roi.width;
-    int TRy=480;
-
-    Point searchRegion[1][4];
-    int searchMargin=0;//Change this to increase width of searchRegion
-    searchRegion[0][0] = Point (TLx-searchMargin,TLy);
-    searchRegion[0][1] = Point (xBot-searchMargin,0);
-    searchRegion[0][2] = Point (xBot+difference+roi.width+searchMargin,0);
-    searchRegion[0][3] = Point (TRx+searchMargin,TRy);
-
-    const Point* ppt[1] = {searchRegion[0]};
-    int npt[] = {4};
-    fillPoly( mask,ppt,npt,1,Scalar(255,255,255));
-
-    if( searchRegion[0][1].x>640 )
-    {
-        Mat mask2 = Mat::zeros( Size( searchRegion[0][2].x,480 ), CV_8UC1 );
-        fillPoly( mask2, ppt, npt, 1, Scalar( 255,255,255 ) );
-        mask = mask2( Rect( 0, 0, 640, 480 ) );
-    }
-
-    if( searchRegion[0][2].x<0 )
-    {
-        Point shift( -searchRegion[0][1].x, 0 );
-        searchRegion[0][0]+=shift;
-        searchRegion[0][1]+=shift;
-        searchRegion[0][2]+=shift;
-        searchRegion[0][3]+=shift;
-        Mat mask2 = Mat::zeros( Size( 640-searchRegion[0][1].x, 480 ), CV_8UC1 );
-        fillPoly( mask2, ppt, npt, 1, Scalar( 255, 255, 255 ) );
-        mask = ( mask2( Rect( -searchRegion[0][1].x, 0, 640, 480 ) ) );
-    }	
-    image.copyTo( masked_scene, mask );
-    return masked_scene;
-}		/* -----  end of function slope_mask  ----- */
-
 //RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
 Rect findBestMatchLocation( double slope, Mat image, Rect source_rect, 
-        double* nsigma, Mat mask, bool s_mask )
+        double* nsigma, Mat mask )
 {
     Mat image_copy = image.clone();
     
@@ -116,10 +57,7 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
 
 
     Mat search_image;
-    if( s_mask )
-        search_image = slope_mask ( image_copy, slope, source_rect );
-    else
-        search_image = image_copy;
+    search_image = image_copy;
 
     //matchTemplate( masked_scene, sourceTemplate, result, match_method );
     matchTemplate( search_image, sourceTemplate, result, match_method );
@@ -171,79 +109,6 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     }
     return Rect( matchLoc, source_rect.size() );
 }
-
-
-
-/*  
-//CHECKS TO SEE IF WHEN THE MATCHED REFLECTION IS RUN THROUGH MATCHTEMPLATE, IT GIVES THE LOCATION OF THE ORIGINAL SOURCE TEMPLATE
-void runSymmetryTest(Mat frame, int patchSize, double slope, 
-        vector<Point> *points, vector<Rect> *reflections, 
-        vector<Rect> *originalMatches, vector<ARC_Pair> *outvector)
-{
-	if( verbosity>=VERBOSE ) 
-    {
-        cout << "\n\n" <<endl;
-        cout << "Running symmetry test\n";
-    }
-	for( size_t i=0; i<reflections->size(); i++ )
-    {
-        double nsigma;
-		Mat temp = frame.clone();	
-		Mat refl = temp( (*reflections)[i] );
-		
-        // Runs the reflections found through matchTemplate to get another
-        // vector of matched originals
-        Point tlCorner = (*reflections)[i].tl();
-		Point matchLoc = findBestMatchLocation( slope, frame, refl, tlCorner, &nsigma );
-
-		Rect org_rfl( matchLoc.x,matchLoc.y, patchSize,patchSize );
-		originalMatches->push_back( org_rfl );
-	
-	}
-	
-	int symmetrySize = reflections->size();
-	for( int i=0; i<symmetrySize; i++ )
-    {
-        // If the originals found through MatchTemplate are more than a
-        // patchSize distance from the actual original templates, the matches
-        // are discarded Also if the matches are right on top of each other,
-        // they're discarded too
-		int xdifference = abs((*points)[i].x-(*originalMatches)[i].x);
-		int ydifference = abs((*points)[i].y-(*originalMatches)[i].y);
-		int reflectionYdifference = abs( (*points)[i].y-(*reflections)[i].y );
-		if( xdifference>patchSize || ydifference>patchSize ||  reflectionYdifference<patchSize )
-        {
-			points->erase( points->begin()+i );
-			reflections->erase( reflections->begin()+i );
-			originalMatches->erase( originalMatches->begin()+i );
-			outvector->erase( outvector->begin()+i );
-			i--; 
-            symmetrySize--;
-		}
-		if( verbosity==VERY_VERBOSE ) 
-            cout << "Outvector array size after test: " << (*reflections).size() << endl;
-	}
-}
-
-// VERIFIES THAT THE SOURCES AND REFLECTIONS IN THE ARC_Pair's ARE CORRECT
-// TODO: After identifying all the real objects, then make sure there are no overlapping regions
-void identifyRealObjects(vector<ARC_Pair> *outvector)
-{
-    // If the y coordinate is lower, that is the real object, otherwise it is
-    // the reflection.
-    for( size_t i=0; i<outvector->size(); i++ )
-    {
-        if( (*outvector)[i].roi.source.y>(*outvector)[i].roi.reflection.y )
-        {
-            Rect temp = (*outvector)[i].roi.reflection;
-            (*outvector)[i].roi.reflection = (*outvector)[i].roi.source;
-            (*outvector)[i].roi.source = temp;
-        }
-		cout << "Outvector source at: " <<(*outvector)[i].roi.source.tl() 
-             << " and reflection at: " << (*outvector)[i].roi.reflection.tl() << endl;
-	}
-}
-*/
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
@@ -399,24 +264,6 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 	return outlist.size();
 }
 
-// ===  FUNCTION  ======================================================================
-//         Name:  compare_arc_pair
-//  Description:  
-// =====================================================================================
-
-struct outside_slope {
-    outside_slope( double m ): slope(m){}
-    bool operator() (const ARC_Pair& value ) 
-    { 
-        Point del = value.roi.source.tl()-value.roi.reflection.tl();
-        double match_slope = (del.x==0) ? 100 : del.y/del.x;
-        //cout << "Match slope: " << match_slope << endl;
-        double ratio = match_slope/slope;
-        return( ratio>1.5 || ratio<0.5 );
-    }
-    private:
-    double slope;
-};
 // DISPLAYS THE RESULTS OF getReflections()
 // If getReflections was already run and outvector is full, for patchSize enter 0
 // If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's

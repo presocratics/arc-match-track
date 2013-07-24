@@ -6,12 +6,9 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "ARC_Pair.hpp"
 
-Mat slope_mask ( Mat image, double slope, Rect roi );
 void createTemplatesFromVector(Mat image, Size patchSize, vector<Point> *points, list<ARC_Pair> *outlist);
-Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, double* nsigma, Mat mask, bool s_mask );
+Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, double* nsigma, Mat mask );
 void findReflections(Mat image, Size patchSize, double slope, list<ARC_Pair> *outlist);
-void runSymmetryTest(Mat frame, int patchSize, double slope, vector<Point> *points, vector<Rect> *reflections, vector<Rect> *originalMatches, vector<ARC_Pair> *outvector);
-void identifyRealObjects(vector<ARC_Pair> *outvector);
 
 //The following functions are meant to be called on by a user, the previous ones are only used by getReflections()
 

@@ -573,9 +573,8 @@ int main(int argc, char** argv)
             circle( drawn_matches, r, 3, black );
             line( drawn_matches, s, r, black, 1, 8, 0 );
             cout << image_list[i] << spc
-                 << it->id << spc 
-                 << it->roi.source.tl()+0.5*Point(it->roi.source.size()) << spc
-                 << it->roi.reflection.tl()+0.5*Point(it->roi.reflection.size()) << endl;
+                 << *it
+                 << endl;
         }
         //Point2f src_pt( 320, 80 );
 
