@@ -61,6 +61,7 @@ class ARC_Pair
         } roi;
 
         double nsigma;                    // Number of std above mean.
+        unsigned int id;
 
     protected:
         // ====================  METHODS       ======================================= 
@@ -71,7 +72,6 @@ class ARC_Pair
         // ====================  METHODS       ======================================= 
 
         // ====================  DATA MEMBERS  ======================================= 
-        unsigned int id;
 
 }; // -----  end of class ARC_Pair  ----- 
 

@@ -103,17 +103,6 @@ void change_theta_dev( int slider, void* sd )
     *sd_typed = slider/100.0;
 }
 
-void change_radius( int slider, void* r )
-{
-    float* r_typed = (float *) r;
-    *r_typed = slider/100.0;
-}
-
-void change_match_ratio( int slider, void* mr )
-{
-    double* mr_typed = (double *) mr;
-    *mr_typed = slider/100.0;
-}
 
 // ===  FUNCTION  ======================================================================
 //         Name:  slope_endpoints
@@ -130,23 +119,6 @@ void slope_endpoints ( double slope, Point2f* ol )
 }		// -----  end of function slope_endpoints  ----- 
 
 // ===  FUNCTION  ======================================================================
-//         Name:  slope_filter
-//  Description:  Checks if regions don't deviate too far from slope.
-// =====================================================================================
-bool slope_filter ( Point2f src_pt, Point2f ref_pt, double imu_theta, int max_dev )
-{
-    //Point2f del = pair.roi.reflection.tl() - pair.roi.source.tl();
-    //float roi_slope = del.y/del.x;
-    // Create and set A matrix.
-    cout << "Slope dev: " << max_dev << endl;
-    imu_theta = imu_theta * 180/M_PI;           // Convert to degrees.
-    double match_theta = (atan2( ref_pt.y-src_pt.y, ref_pt.x-src_pt.x ) * 180/M_PI);
-    
-    cout << "Diff: " << abs(match_theta - imu_theta ) << endl;
-    return ( abs(match_theta-imu_theta)<max_dev );
-}		// -----  end of function slope_filter  ----- 
-
-// ===  FUNCTION  ======================================================================
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
@@ -154,8 +126,8 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta )
 {
     //pairs->clear();
-    cout << "Num regions: " << nregions << endl;
-    cout << "Patch size: " << Point(patch_size) << endl;
+    //cout << "Num regions: " << nregions << endl;
+    //cout << "Patch size: " << Point(patch_size) << endl;
     // Get new regions.
     //if( pairs->size()<nregions )
     if( 1 )
@@ -169,157 +141,6 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         
     return ;
 }		// -----  end of function update_regions  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  update_roi
-//  Description:  Returns a new ROI centerd on the center of mass of the input
-//  set of points. If the center of mass is NaN, then the input ROI is
-//  returned.
-//  =====================================================================================
-Rect update_roi ( Rect roi, vector<Point2f> pts )
-{
-    Point2f scm;
-    //TODO Moments doesn't work...
-    if( pts.size()>0 )
-        scm = pts[0];
-    else
-    {
-        Moments mome = moments( pts, false );
-        scm = Point2f( mome.m10/mome.m00, mome.m01/mome.m00 );
-        if( isnan( scm.x) || isnan( scm.y ) )
-        {
-            cerr << "ERROR: Failed to update roi at " << roi.tl() << endl;
-            return roi;
-        }
-    }
-    Point2f tl;
-    tl.x =scm.x - roi.width/2;
-    tl.y =scm.y - roi.height/2;
-    return Rect( tl, roi.size() );
-}		// -----  end of function update_roi  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  prune_keypoints
-//  Description:  Removes all keypoints that do not have an associated match.
-// =====================================================================================
-void prune_keypoints ( vector<KeyPoint>* train_kpt, vector<KeyPoint>* query_kpt,
-        vector<DMatch>& matches )
-{
-    vector<KeyPoint> new_train_kpt, new_query_kpt;
-    for( vector<DMatch>::iterator it=matches.begin() ;
-            it!=matches.end(); ++it )
-    {
-        KeyPoint tkp, qkp;
-        tkp = (*train_kpt)[ it->trainIdx ];
-        qkp = (*query_kpt)[ it->queryIdx ];
-        new_train_kpt.push_back( tkp );
-        new_query_kpt.push_back( qkp );
-    }
-    (*train_kpt) = new_train_kpt;
-    (*query_kpt) = new_query_kpt;
-    return ;
-}		// -----  end of function prune_keypoints  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  reflect_point
-//  Description:  Reflects point over the middle row of a roi.
-// =====================================================================================
-inline Point2f reflect_point ( Point2f point, Rect roi )
-{
-    // flip the points over the middle row
-    float num_rows;
-    int middle_row;
-    float new_row;
-
-    num_rows = roi.height;                      // Typecast int->float for next step.
-    middle_row = ceil( num_rows/2 );
-    new_row = 2*middle_row - point.y;           // Calculate new row assignment.
-    point.y = new_row;
-    return point ;
-}		// -----  end of function reflect_point  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  keypoints_to_goodpoints
-//  Description:  Converts a set of keypoints to a set of good points. A vector
-//  of points is extracted from the keypoints. Then the subvector of
-//  good_points is extracted, the points are flipped across the roi and then
-//  transposed to the scene's origin.
-//  =====================================================================================
-void keypoints_to_goodpoints ( vector<KeyPoint>& kpt_train, vector<KeyPoint>& kpt_query,
-        vector<Point2f>* good_train, vector<Point2f>* good_query, 
-        vector<DMatch>& matches, Rect roi, unsigned int direction )
-{
-    Point2f transform = roi.tl();
-    // Get the points
-    vector<Point2f> pt_train, pt_query;
-    // Extract all points from the KeyPoints.
-    KeyPoint::convert( kpt_train, pt_train ); 
-    KeyPoint::convert( kpt_query, pt_query ); 
-
-    // Push only the points that have a match onto new set of points.
-    for( vector<DMatch>::iterator it=matches.begin() ;
-            it!=matches.end(); ++it )
-    {
-        Point2f new_train, new_query;
-        if( direction==DOWN )
-        {
-            new_train = reflect_point( pt_train[ it->trainIdx ], roi ) + transform ;
-            new_query = pt_query[ it->queryIdx ] ;
-        }
-        else
-        {
-            new_train = pt_train[ it->trainIdx ] ;
-            new_query = reflect_point( pt_query[ it->queryIdx ], roi ) + transform ;
-        }
-        good_train->push_back( new_train );
-        good_query->push_back( new_query );
-    }
-    return ;
-}		// -----  end of function keypoints_to_goodpoints  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  good_points_to_keypoints
-//  Description:  Update KeyPoint vector with new locations. Removes the
-//  transform, reflects back to the flipped image, then updates point locations.
-//  =====================================================================================
-void good_points_to_keypoints( vector<Point2f> train_pts, vector<KeyPoint>* train_kpt,
-        vector<Point2f> query_pts, vector<KeyPoint>* query_kpt,
-        vector<DMatch>* matches, Rect roi, unsigned int direction,
-        double theta, int max_dev )
-{
-    Point2f transform = -roi.tl();
-    vector<Point2f> trans_train, trans_query;
-    vector<DMatch>::iterator it=matches->begin();
-    size_t i=0;
-    while( it!=matches->end() )
-    {
-        Point2f new_train, new_query;
-        if( train_pts[i]==Point2f(-1, -1) 
-                || query_pts[i]==Point2f(-1, -1)
-                || !slope_filter( train_pts[i], query_pts[i], theta, max_dev ))
-        {
-            // Tracking point lost, remove from matches.
-            ++i;
-            it = matches->erase(it);
-            continue; 
-        }
-        if( direction==DOWN )
-        {
-            new_train = reflect_point( train_pts[i] + transform, roi );
-            new_query = query_pts[i];
-        }
-        else
-        {
-            new_train = train_pts[i];
-            new_query = reflect_point( query_pts[i] + transform, roi );
-        }
-        (*train_kpt)[ it->trainIdx ].pt = new_train;
-        (*query_kpt)[ it->queryIdx ].pt = new_query;
-        ++i;
-        ++it;
-    }
-    return ;
-}		// -----  end of function good_points_to_keypoints  ----- 
 
 // ===  FUNCTION  ======================================================================
 //         Name:  draw_match_by_hand
@@ -349,51 +170,6 @@ void draw_match_by_hand( Mat* out_img, Mat* scene,
     return ;
 }		// -----  end of function draw_match_by_hand  ----- 
 
-// ===  FUNCTION  ======================================================================
-//         Name:  transpose
-//  Description:  Transposes a set of points to an ROI.
-// =====================================================================================
-void transpose( vector<Point2f>& pts, Rect roi )
-{
-    Point2f c = Point2f( roi.x, roi.y );
-    for( size_t i=0; i<pts.size(); ++i ) pts[i] += c;
-    return ;
-}		// -----  end of function transpose  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  extract_good_points
-//  Description:  Uses matches to put matching points into new vectors, indices are aligned.
-// =====================================================================================
-void extract_good_points( vector<Point2f>& in_train_pts, vector<Point2f>* out_train_pts,
-        vector<Point2f>& in_query_pts, vector<Point2f>* out_query_pts,
-        vector<DMatch>& matches )
-{
-    for( vector<DMatch>::iterator it=matches.begin() ;
-            it!=matches.end(); ++it )
-    {
-        out_train_pts->push_back( in_train_pts[it->trainIdx] );
-        out_query_pts->push_back( in_query_pts[it->queryIdx] );
-    }
-    return ;
-}		// -----  end of function extract_good_points  ----- 
-
-// ===  FUNCTION  ======================================================================
-//         Name:  process_object
-//  Description:  Crops frame to roi, ensuring frame bounds are not exceeded.
-//  Returns the flipped crop. Mask pointer input is the mask.
-//  TODO: Mask may not be necessary.
-//  =====================================================================================
-Mat process_object ( Mat* frame, Rect roi, Mat* mask )
-{
-    // Flip the roi
-    Mat object, flipped;
-    Rect scene_rect( Point( 0, 0 ), frame->size() );
-    object = (*frame)(roi & scene_rect);
-    flip(object, flipped, 0);
-
-    return flipped;
-    //return masked_frame;
-}		// -----  end of function process_object  ----- 
 
 // ===  FUNCTION  ======================================================================
 //         Name:  help()
@@ -409,15 +185,8 @@ void help( string program_name )
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
          << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
-         << ARG_RATIO_OFF << tab << "Disable ratio test." << endl
-         << ARG_SYMTEST_OFF << tab << "Disable symmetry test (DOES NOT WORK)." << endl
-         << ARG_RANSAC_OFF << tab << "Disable ransac test (default)." << endl
-         << ARG_RANSAC_ON << tab << "Enable ransac test." << endl
          << ARG_BLUR << tab << "Median blur scene for tracking." << endl
          << ARG_NO_BLUR << tab << "No median blur scene for tracking." << endl
-
-         << ARG_MATCH_RATIO << spc << "(0-1)" << tab << "Set ratio for knn matching test." << spc
-         << "Default: " << DEFAULT_MATCH_RATIO << endl
 
          << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
          << "Default: " << ARC_DEFAULT_THETA_DEV << endl
@@ -425,15 +194,10 @@ void help( string program_name )
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
 
-         << ARC_ARG_RADIUS << spc << "[0-1]" << tab << "Set match radius threshold." << spc
-         << "Default: " << ARC_DEFAULT_RADIUS << endl
-
          << ARC_ARG_NUM_REGIONS << spc << "[0-50]" << tab << "Set desired number of regions to track." << spc
          << "Actual number tracked may be less." << spc
          << "Default: " << ARC_DEFAULT_NUM_REGIONS << endl
 
-         << ARG_MIN_MATCH_POINTS << spc << "<N>" << tab << "Minimum match points after "
-         << "symmetry test. Default: " << DEFAULT_MIN_MATCH_POINTS << endl
          << ARG_REFRESH_COUNT << spc << "<N>" << tab << "Number of iterations before rematching. "
          << "Default: " << DEFAULT_REFRESH_COUNT << endl
 
@@ -477,9 +241,6 @@ void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, vector<Point2f>* src, ve
         {
             s=sv[0];
             r=rv[0];
-        //    circle( img, s, 3, red );
-         //   circle( img, r, 3, black );
-          //  line( img, s, r, black, 1, 8, 0 );
         }
         src->push_back( s );
         ref->push_back( r );
@@ -501,10 +262,12 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
     pairs_to_points( gray, pairs, &points.source, &points.reflection );
+    /*
     for( size_t i=0; i<points.source.size(); ++i )
         cout << points.source[i] << endl;
     for( size_t i=0; i<points.reflection.size(); ++i )
         cout << points.reflection[i] << endl;
+        */
 
 
     // Do the tracking.
@@ -557,64 +320,7 @@ Mat mask_scene ( Rect roi, Mat& frame )
 
     return masked_frame;
 }		// -----  end of function mask_scene  ----- 
-// ===  FUNCTION  ======================================================================
-//         Name:  get_masked_frame
-//  Description:  Masks the frame based on slope and roi. Mask returned by pointer.
-// =====================================================================================
-Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat* mask )
-{
-    Point corners[1][4];
-    //Set the frame
-    *mask=Mat::zeros( frame->size(), CV_8UC1 );
-    Mat masked_frame;
-    if( slope==0 )
-    {
-        // TODO: Could use direction handling here.
-        corners[0][0] = roi.br();
-        corners[0][1] = Point( frame->cols, roi.y+roi.height );
-        corners[0][2] = corners[0][1]-Point( 0, roi.height );
-        corners[0][3] = corners[0][0]-Point( 0, roi.height );
-    }
-    else if( isinf( slope ) )
-    {
-        if( dir==DOWN )
-        {
-            corners[0][0] = Point( roi.x, frame->rows );
-            corners[0][1] = Point( roi.x, roi.y+roi.height);
-        }
-        else
-        {
-            corners[0][0] = roi.tl();
-            corners[0][1] = Point( roi.x, 0 );
-        }
-        corners[0][2] = corners[0][1]+Point( roi.width, 0);
-        corners[0][3] = corners[0][0]+Point( roi.width, 0 );
-    }
-    else
-    {
-        if( dir==DOWN )
-        {
-            corners[0][0].x = ( int ) ( (frame->rows + slope*roi.x-roi.y)/slope );
-            corners[0][0].y = frame->rows;
-            corners[0][1] = roi.tl()+Point(0,roi.height);
-        }
-        else
-        {
-            corners[0][0] = Point( ( int )( (-roi.y + slope * roi.x ) / slope ), 0 );
-            corners[0][1] = roi.tl();
-        }
-        corners[0][2] = corners[0][1] + Point(roi.width, 0);
-        corners[0][3] = corners[0][0] + Point(roi.width, 0);
-    }
 
-    // This is weird, but follows OpenCV docs.
-    const Point* ppt[1] = { corners[0] };
-    const int npt[] = { 4 };
-
-    fillPoly( *mask, ppt, npt, 1, 255 );
-    frame->copyTo(masked_frame, *mask);
-    return masked_frame;
-}		// -----  end of function get_masked_frame  ----- 
 
 /*
  * arguments constructor
@@ -622,16 +328,10 @@ Mat get_masked_frame ( Rect roi, double slope, unsigned int dir, Mat* frame, Mat
 void arguments::arguments()
 {
     blur = ARC_DEFAULT_BLUR;
-    isSym = true;
-    isRatio = true;
-    isRansac = ARC_DEFAULT_RANSAC;
     refresh_count = DEFAULT_REFRESH_COUNT;
-    min_match_points=DEFAULT_MIN_MATCH_POINTS;
-    match_ratio = DEFAULT_MATCH_RATIO;
     theta_dev = ARC_DEFAULT_THETA_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
     patch_size = Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
-    radius = ARC_DEFAULT_RADIUS;
     debug = NO_DEBUG;
     verbosity = NOT_VERBOSE;
     show_match = NO_SHOW_MATCHES;
@@ -706,9 +406,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     for ( int i = 3; i < argc; i += 1 ) 
     {
         if( !strcmp(argv[i], ARG_BLUR) ) a->blur = true;
-        if( !strcmp(argv[i], ARG_RATIO_OFF) ) a->isRatio = false;
-        if( !strcmp(argv[i], ARG_SYMTEST_OFF) ) a->isSym = false;
-        if( !strcmp(argv[i], ARG_RANSAC_OFF) ) a->isRansac = false;
         if( !strcmp(argv[i], ARG_DEBUG_MODE) ) a->debug=DEBUG;
         if( !strcmp(argv[i], ARG_VERBOSE) ) a->verbosity=VERBOSE;
         if( !strcmp(argv[i], ARG_VERY_VERBOSE) ) a->verbosity=VERY_VERBOSE;
@@ -718,21 +415,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
         if( !strcmp(argv[i], ARG_SHOW_MATCHES) ) a->show_match=SHOW_MATCHES;
 
         if( !strcmp(argv[i], ARG_SHOW_TRACKING) ) a->show_track=SHOW_TRACKING;
-        if( !strcmp(argv[i], ARG_MIN_MATCH_POINTS) ) 
-        {
-            a->min_match_points=atoi(argv[++i]);
-            continue;
-        }
-        if( !strcmp(argv[i], ARC_ARG_RADIUS) ) 
-        {
-            a->radius=atof(argv[++i]);
-            continue;
-        }
-        if( !strcmp(argv[i], ARG_MATCH_RATIO) ) 
-        {
-            a->match_ratio=atof(argv[++i]);
-            continue;
-        }
         if( !strcmp(argv[i], ARC_ARG_THETA_DEV) ) 
         {
             a->theta_dev=atof(argv[++i]);
@@ -769,7 +451,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 }		/* -----  end of function get_arguments  ----- */
 
 
-
 int main(int argc, char** argv)
 {
     vector<string> image_list;                  // Video frames for tracking.
@@ -797,8 +478,6 @@ int main(int argc, char** argv)
             << "Verbosity:" << tab << a.verbosity << endl
             << "Show Match:" << tab<< a.show_match << endl
             << "Show Track:" << tab << a.show_track << endl
-            << "Match Ratio:" << tab << a.match_ratio << endl
-            << "Min Match Points:" << tab << a.min_match_points << endl
             << "Blur: " << tab << blur_status << endl
             << "Video Filename:" << tab << a.video_filename <<
             endl;
@@ -893,7 +572,10 @@ int main(int argc, char** argv)
             circle( drawn_matches, s, 3, red );
             circle( drawn_matches, r, 3, black );
             line( drawn_matches, s, r, black, 1, 8, 0 );
-            cout << *it << endl;
+            cout << image_list[i] << spc
+                 << it->id << spc 
+                 << it->roi.source.tl()+0.5*Point(it->roi.source.size()) << spc
+                 << it->roi.reflection.tl()+0.5*Point(it->roi.reflection.size()) << endl;
         }
         //Point2f src_pt( 320, 80 );
 

@@ -31,8 +31,8 @@ struct outside_theta {
         Point del = value.roi.reflection.tl()-value.roi.source.tl();
         //double match_theta = (del.x==0) ? M_PI/2 : atan2(del.y/del.x);
         double match_theta = atan2( del.y, del.x );
-        cout << "Match theta: " << match_theta << endl;
-        cout << "Diff theta: " << abs(match_theta-theta) << endl;
+        //cout << "Match theta: " << match_theta << endl;
+        //cout << "Diff theta: " << abs(match_theta-theta) << endl;
         return( abs(theta-match_theta)>0.10 );
         //return( abs(theta-match_theta)>0.30 );
         //return( abs(theta-match_theta)>0.60 );

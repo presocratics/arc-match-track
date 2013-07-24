@@ -410,7 +410,7 @@ struct outside_slope {
     { 
         Point del = value.roi.source.tl()-value.roi.reflection.tl();
         double match_slope = (del.x==0) ? 100 : del.y/del.x;
-        cout << "Match slope: " << match_slope << endl;
+        //cout << "Match slope: " << match_slope << endl;
         double ratio = match_slope/slope;
         return( ratio>1.5 || ratio<0.5 );
     }
@@ -511,8 +511,8 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
     // Gets an initial list of regions and reflections that can then be used
     // to match much smaller templates.
     getReflections( image, outerPatchSize, 15, slope, initial_list );
-	cout << "Initial templates found\n";
-	cout << "" << endl;
+	//cout << "Initial templates found\n";
+	//cout << "" << endl;
 	Mat imageClone = image.clone();
     
     // Filtering
