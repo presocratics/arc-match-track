@@ -134,8 +134,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 
     //vector<Rect> originalMatches;
 
-	//Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
-    /*
+	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
 
     // Goes through any ARC_Pairs already in the outvector and creates a mask to
     // prevent rematching those regions
@@ -144,12 +143,13 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     for( list<ARC_Pair>::iterator it=outlist.begin();
             it!=outlist.end(); ++it )
     {
-		Rect blockedRegionSource( it->roi.source.tl()-shift30, it->roi.source.size() + shift60 );
-		Rect blockedRegionReflection( it->roi.reflection.tl()-shift30, it->roi.reflection.size() + shift60 );
+		Rect blockedRegionSource( it->roi.source-shift30, shift60 );
+		Rect blockedRegionReflection( it->roi.reflection-shift30, shift60 );
 		rectangle( mask, blockedRegionSource, 0, CV_FILLED );
 		rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
 	}
 
+    /*
 	list<ARC_Pair> tempoutlist;
 	tempoutlist = outlist;
 	outlist.clear();
@@ -159,7 +159,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // each point to prevent clustering
     // TODO: We may be able to get rid of the anti-clustering code.
     //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, 10, Mat(), 3, 0, 0.04);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.1, 20, mask, 3, 0, 0.04);
     /*
     for( int i=0; i<numOfFeatures; ++i )
     {
@@ -187,8 +187,6 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     verbosity=NOT_VERBOSE;
     */
 
-    //TODO Why median blur?
-	//medianBlur( frame, frame, 3 );
     Rect frame_rect( Point(0, 0), frame.size() );
     for( vector<Point>::iterator it=points.begin();
             it!=points.end(); ++it )

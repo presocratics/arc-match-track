@@ -226,7 +226,6 @@ void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs,
         r = it->roi.reflection;
         if( fbt )
         {
-            cout << "trig" << endl;
             Mat masks, maskr;
             vector<Point2f> vs, vr;
             Point2f shift( 5, 5 );
@@ -524,7 +523,7 @@ int main(int argc, char** argv)
     //Begin image loop.
     Point2f mid_pt( 320, 240 );
     Mat cur_frame, gray, prev_gray;
-    double alpha = .15;
+    double alpha = .125;
     double theta = -1;
     while( i<image_list.size() )
     {

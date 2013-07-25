@@ -28,7 +28,6 @@ struct outside_theta {
     }
     bool operator() (const ARC_Pair& value ) 
     { 
-        cout << "Dev: " << dev << endl;
         Point del = value.roi.reflection-value.roi.source;
         double match_theta = atan2( del.y, del.x );
         return( abs(theta-match_theta)>dev );
