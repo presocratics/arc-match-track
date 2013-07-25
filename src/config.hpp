@@ -37,29 +37,19 @@
 #define ARG_TXT_FILE "-o"                      // Set output text filename.
 
 // Match parameters
-#define ARC_ARG_RADIUS "-r"
-#define ARC_DEFAULT_RADIUS 1
 #define ARC_ARG_PATCH_SIZE "-ps"
 #define ARC_DEFAULT_PATCH_SIZE 50
 #define ARC_ARG_NUM_REGIONS "-nr"
 #define ARC_DEFAULT_NUM_REGIONS 25
 #define ARC_ARG_THETA_DEV "-td"
 #define ARC_DEFAULT_THETA_DEV 0.10
-#define ARG_MATCH_RATIO "--match-ratio"         // Set threshold for ratio_test.
-#define DEFAULT_MATCH_RATIO 0.70                // 
-#define ARG_MIN_MATCH_POINTS "--min-match-points" // Set minimum points to declare successful match. For RANSAC only.
-#define DEFAULT_MIN_MATCH_POINTS 7            
-#define ARG_RATIO_OFF "--no-ratio"              // Do not perform ratio_test.
-#define ARG_SYMTEST_OFF "--no-sym"              // Do not perform symmetry_test.
-#define ARG_RANSAC_OFF "--no-ransac"            // Do not perform ransac_test.
-#define ARG_RANSAC_ON "--ransac"            // Perform ransac_test.
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
 #define ARG_NO_BLUR "--no-blur"                       // Don't blur the source before matching.
 #define ARC_DEFAULT_BLUR true
-#define ARC_DEFAULT_RANSAC false
 
-#define UP 1                                    // match to scene above object
-#define DOWN 2                                  // match to scene below object
+// Track parameters
+#define ARC_ARG_FEATURES_BEFORE_TRACK "-fbt"         // Get goodFeaturesToTrack on point before tracking.
+#define ARC_DEFAULT_FEATURES_BEFORE_TRACK false
 
 // Main parameters
 #define ARG_REFRESH_COUNT "-rc"

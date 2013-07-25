@@ -45,6 +45,7 @@ typedef struct arguments_t {
     string video_filename;
     string text_filename;
     bool blur;
+    bool features_before_track;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
@@ -75,6 +76,8 @@ bool get_regions(string filename, vector<ARC_Pair>* regions);
 bool get_arguments(int argc, char** argv, arguments* a);
 
 bool track (Mat gray, Mat prev_gray, list<ARC_Pair>* pairs );
-void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, vector<Point2f>* src, vector<Point2f>* ref );
+void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, 
+        vector<Point2f>* src, vector<Point2f>* ref,
+        bool fbt );
 
 #endif /* MAIN_H */

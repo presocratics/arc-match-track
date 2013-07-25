@@ -135,9 +135,6 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         getReflections( frame, patch_size, nregions, slope, *pairs );
         //getReflectionsPYR( frame, patch_size, Size( 10, 10 ), slope, theta, *pairs );
     }
-    pairs->remove_if( below_threshold( 3 ) );
-    pairs->remove_if( outside_theta( theta ) );
-    pairs->remove_if( overlap() );
         
     return ;
 }		// -----  end of function update_regions  ----- 
@@ -181,6 +178,9 @@ void help( string program_name )
          << "Usage: " << program_name << spc << "<list of image files> <list of regions> [options]"
          << endl
          << "OPTIONS" << endl
+         << ARC_ARG_FEATURES_BEFORE_TRACK << tab 
+         << "Run goodFeaturesToTrack in each frame before tracking." 
+         << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << endl
          << ARG_SHOW_MATCHES << tab << "Show matches." << endl
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
@@ -214,13 +214,40 @@ void help( string program_name )
 //         Name:  pairs_to_points
 //  Description:  Writes centers of ARC_Pair ROIs to source and reflection point vectors.
 // =====================================================================================
-void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, vector<Point2f>* src, vector<Point2f>* ref )
+void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, 
+        vector<Point2f>* src, vector<Point2f>* ref,
+        bool fbt )
 {
     for( list<ARC_Pair>::iterator it=pairs->begin();
             it!=pairs->end(); ++it )
     {
-        src->push_back( it->roi.source );
-        ref->push_back( it->roi.reflection );
+        Point2f s, r;
+        s = it->roi.source;
+        r = it->roi.reflection;
+        if( fbt )
+        {
+            cout << "trig" << endl;
+            Mat masks, maskr;
+            vector<Point2f> vs, vr;
+            Point2f shift( 5, 5 );
+            Size sz( 10, 10 );
+            Rect rs, rr;
+
+            rs = Rect( s-shift, sz );
+            rr = Rect( r-shift, sz );
+
+            masks = Mat::zeros( gray.size(), CV_8UC1 );
+            maskr = Mat::zeros( gray.size(), CV_8UC1 );
+            rectangle( masks, rs, 255, CV_FILLED );
+            rectangle( maskr, rr, 255, CV_FILLED );
+
+            goodFeaturesToTrack( gray, vs, 1, 0.01, 10, masks, 3, 0, 0.04);
+            goodFeaturesToTrack( gray, vr, 1, 0.01, 10, maskr, 3, 0, 0.04);
+            s = ( vs.size()>0 ) ? vs[0] : s;
+            r = ( vr.size()>0 ) ? vr[0] : r;
+        }
+        src->push_back( s );
+        ref->push_back( r );
     }
     return ;
 }		// -----  end of function pairs_to_points  ----- 
@@ -238,7 +265,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
 
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
-    pairs_to_points( gray, pairs, &points.source, &points.reflection );
+    pairs_to_points( gray, pairs, &points.source, &points.reflection, true );
     /*
     for( size_t i=0; i<points.source.size(); ++i )
         cout << points.source[i] << endl;
@@ -304,6 +331,7 @@ Mat mask_scene ( Rect roi, Mat& frame )
  */
 void arguments::arguments()
 {
+    features_before_track = ARC_DEFAULT_FEATURES_BEFORE_TRACK;
     blur = ARC_DEFAULT_BLUR;
     refresh_count = DEFAULT_REFRESH_COUNT;
     theta_dev = ARC_DEFAULT_THETA_DEV;
@@ -382,6 +410,7 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     if( argc==1 ) return false;
     for ( int i = 3; i < argc; i += 1 ) 
     {
+        if( !strcmp(argv[i], ARC_ARG_FEATURES_BEFORE_TRACK ) ) a->features_before_track = true;
         if( !strcmp(argv[i], ARG_BLUR) ) a->blur = true;
         if( !strcmp(argv[i], ARG_DEBUG_MODE) ) a->debug=DEBUG;
         if( !strcmp(argv[i], ARG_VERBOSE) ) a->verbosity=VERBOSE;
@@ -495,12 +524,17 @@ int main(int argc, char** argv)
     //Begin image loop.
     Point2f mid_pt( 320, 240 );
     Mat cur_frame, gray, prev_gray;
+    double alpha = .15;
+    double theta = -1;
     while( i<image_list.size() )
     {
         setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
-        double theta = imu.get_rotation_angle( rotation_matrix );
+        if( theta==-1 )
+            theta = imu.get_rotation_angle( rotation_matrix );
+        else
+            theta = (1-alpha)*theta+alpha*imu.get_rotation_angle( rotation_matrix );
         double slope = imu.theta_to_slope( theta );
 
         cur_frame=imread( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
@@ -522,6 +556,9 @@ int main(int argc, char** argv)
         // Update regions.
         if( i%50==0 )
             update_regions( cur_frame, &pairs, a.num_regions, a.patch_size, slope, theta );
+        pairs.remove_if( below_threshold( 3 ) );
+        pairs.remove_if( outside_theta( theta, a.theta_dev ) );
+        pairs.remove_if( overlap() );
         if( 0 )
         //if( i%200==0 )
         {

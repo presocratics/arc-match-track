@@ -22,20 +22,20 @@ Rect findOneReflection(double slope,Mat source, Rect tmplte);
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, bool *regionFound);
 int getReflectionsPYR(Mat &image, Size outerPatchSize, Size innerPatchSize, double slope, double theta, list<ARC_Pair> &outlist);
 struct outside_theta {
-    outside_theta( double m ): theta(m){}
+    outside_theta( double m, double d ){
+        theta =m;
+        dev = d;
+    }
     bool operator() (const ARC_Pair& value ) 
     { 
+        cout << "Dev: " << dev << endl;
         Point del = value.roi.reflection-value.roi.source;
-        //double match_theta = (del.x==0) ? M_PI/2 : atan2(del.y/del.x);
         double match_theta = atan2( del.y, del.x );
-        //cout << "Match theta: " << match_theta << endl;
-        //cout << "Diff theta: " << abs(match_theta-theta) << endl;
-        return( abs(theta-match_theta)>0.10 );
-        //return( abs(theta-match_theta)>0.30 );
-        //return( abs(theta-match_theta)>0.60 );
+        return( abs(theta-match_theta)>dev );
     }
     private:
     double theta;
+    double dev;
 };
 struct overlap {
     //overlap( double t ): threshold(t){}

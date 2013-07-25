@@ -148,15 +148,13 @@ ARC_IMU::poToCr ( Point2f pt2d, Matx33d rot_mat )
     //cout << "input: " << Mat(mat2d) << endl;
     Matx31d hCi = A*mat2d;                      // Multiply by A matrix to get h_o
     //cout << "h_o: " << Mat(hCi) << endl;
-    /*
     // Normalize
     Matx31d hCi_norm;
     normalize( hCi, hCi_norm );                 // Normalize h_o
     //cout << "h_o_norm: " << Mat(hCi_norm) << endl;
     Matx31d inRc = rot_mat * hCi_norm;          // Transform to C_r
-    */
 
-    Matx31d inRc = rot_mat * hCi;
+    //Matx31d inRc = rot_mat * hCi;
     Point3f ptRc = (Point3f) Mat(inRc);         // Convert C_r to Point
     //cout << ptRc << endl;
 
