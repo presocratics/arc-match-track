@@ -274,11 +274,11 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
         vector<float> source_error, reflection_error;
 
         calcOpticalFlowPyrLK( prev_gray, gray, points.source, new_points.source,
-                source_status, source_error, win_size, 3, termcrit, 1, 0.001 );
+                source_status, source_error, win_size, 3, termcrit, 0, 0.001 );
 
         calcOpticalFlowPyrLK(prev_gray, gray, points.reflection,
                 new_points.reflection, reflection_status, 
-                reflection_error, win_size, 3, termcrit, 1, 0.001);
+                reflection_error, win_size, 3, termcrit, 0, 0.001);
         
         // Set lost points to (-1, -1), so we know they are lost.
         list<ARC_Pair>::iterator it=pairs->begin();
