@@ -265,13 +265,6 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
     pairs_to_points( gray, pairs, &points.source, &points.reflection, true );
-    /*
-    for( size_t i=0; i<points.source.size(); ++i )
-        cout << points.source[i] << endl;
-    for( size_t i=0; i<points.reflection.size(); ++i )
-        cout << points.reflection[i] << endl;
-        */
-
 
     // Do the tracking.
     size_t i;
@@ -292,6 +285,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
         for( i=0; i<(new_points.source.size()); i++ )
         {
             Point sdel, rdel;
+            double smag, rmag;
             if( !source_status[i] || !reflection_status[i] ) 
             {
                 it = pairs->erase( it );
@@ -300,6 +294,15 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             // Get difference between old and move.
             sdel = new_points.source[i] - points.source[i];
             rdel = new_points.reflection[i] - points.reflection[i];
+            smag = sqrt( pow( sdel.x, 2 ) + pow( sdel.y, 2 ) );
+            rmag = sqrt( pow( rdel.x, 2 ) + pow( rdel.y, 2 ) );
+            if( smag>4*rmag || rmag>4*smag )
+            {
+                cout << "Large SDEL-RDEL diff" << endl;
+                it->nNoMatch=50;
+                continue;
+            }
+            
             // Shift by difference.
             it->roi.source += sdel;
             it->roi.reflection += rdel;
@@ -553,32 +556,30 @@ int main(int argc, char** argv)
 
         // Filter pairs.
         // Update regions.
-        if( i%50==0 )
-            update_regions( cur_frame, &pairs, a.num_regions, a.patch_size, slope, theta );
+        if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
+            update_regions( cur_frame, &pairs, 12, a.patch_size, slope, theta );
         pairs.remove_if( below_threshold( 3 ) );
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
-        pairs.remove_if( overlap() );
-        if( 0 )
-        //if( i%200==0 )
-        {
-            // Update reflection ROIs.
-            cout << "Update reflection ROIs not implemented." << endl;
-        }
-        else
-        {
-            // track.
-            track( gray, prev_gray, &pairs );
-            //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
-             //       r->matches, r->roi.source );
-            //draw_match_by_hand( &drawn_matches, &cur_frame,
-             //       &flipped, r->roi.source , r->roi.reflection,
-             //       good_points.source, good_points.reflection );
-        } 
+        pairs.remove_if( overlap( a.patch_size ) );
+        // track.
+        track( gray, prev_gray, &pairs );
+        //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
+         //       r->matches, r->roi.source );
+        //draw_match_by_hand( &drawn_matches, &cur_frame,
+         //       &flipped, r->roi.source , r->roi.reflection,
+         //       good_points.source, good_points.reflection );
         Scalar red (0,0,255);
         Scalar black(0,0,0);
         for( list<ARC_Pair>::iterator it=pairs.begin();
                 it!=pairs.end(); ++it )
         {
+            ++it->nNoMatch;
+            if( it->nNoMatch%50==0 )
+            {
+                rematch( cur_frame, a.patch_size, *it, slope );
+                it->nNoMatch=0;
+                continue;
+            }
             Point s,r;
             s = it->roi.source;
             r = it->roi.reflection;

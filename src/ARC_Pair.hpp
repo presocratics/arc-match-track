@@ -33,6 +33,7 @@ class ARC_Pair
         {
             nsigma=0;
             id=++num;
+            nNoMatch=0;
         }
         ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error );   // constructor 
         ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error ); // constructor
@@ -40,6 +41,7 @@ class ARC_Pair
         // ====================  ACCESSORS     ======================================= 
 
         // ====================  MUTATORS      ======================================= 
+        void set_reflection( Mat img, Rect r, Size s );
 
         // ====================  OPERATORS     ======================================= 
 
@@ -62,6 +64,7 @@ class ARC_Pair
         } roi;
 
         double nsigma;                    // Number of std above mean.
+        unsigned int nNoMatch;
         unsigned int id;
 
     protected:

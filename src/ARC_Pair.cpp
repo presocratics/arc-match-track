@@ -16,6 +16,13 @@
 
 #include "ARC_Pair.hpp"
 
+    void
+ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
+{
+    roi.reflection = convert_to_point( r, img, s );
+    return ;
+}		/* -----  end of method ARC_Pair::set_reflection  ----- */
+
 //--------------------------------------------------------------------------------------
 //       Class:  ARC_Pair
 //      Method:  ARC_Pair :: convert_to_point
@@ -25,6 +32,7 @@
     Point
 ARC_Pair::convert_to_point ( Rect r, Mat img, Size s )
 {
+    nNoMatch=0;
     vector<Point> lv;
     Rect little;
     Mat gray;
@@ -50,6 +58,7 @@ ARC_Pair::convert_to_point ( Rect r, Mat img, Size s )
 //--------------------------------------------------------------------------------------
 ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
 {
+    nNoMatch=0;
     Point f, s;
     Size inner_size( 10, 10 );
     f = convert_to_point( first, img, inner_size );

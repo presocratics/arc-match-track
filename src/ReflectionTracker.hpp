@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "ARC_Pair.hpp"
 
+bool rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope );
 void createTemplatesFromVector(Mat image, Size patchSize, vector<Point> *points, list<ARC_Pair> *outlist);
 Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, double* nsigma, Mat mask );
 void findReflections(Mat image, Size patchSize, double slope, list<ARC_Pair> *outlist);
@@ -37,12 +38,15 @@ struct outside_theta {
     double dev;
 };
 struct overlap {
-    //overlap( double t ): threshold(t){}
+    overlap( Size p ): patchSize(p){}
     bool operator() (const ARC_Pair& value ) 
     { 
-        return false;
-        //return( (value.roi.source&value.roi.reflection).area()>0 ); 
+        Rect a, b;
+        a = Rect( value.roi.source - 0.5*Point( patchSize ), patchSize );
+        b = Rect( value.roi.reflection - 0.5*Point( patchSize ), patchSize );
+        return ( (a&b).area()>0.3*patchSize.area() );
     }
+    Size patchSize;
 };
 struct below_threshold {
     below_threshold( double t ): threshold(t){}

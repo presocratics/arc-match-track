@@ -110,6 +110,35 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     return Rect( matchLoc, source_rect.size() );
 }
 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  rematch
+ *  Description:  
+ * =====================================================================================
+ */
+    bool
+rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
+{
+    if( !frame.data )
+    {
+        cout << "Image couldn't be loaded." << endl;
+        exit( EXIT_FAILURE );
+    }
+    Mat sourceCopy;
+    cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
+    Rect frame_rect( Point(0, 0), frame.size() );
+    Rect a, b;
+    double nsigma;
+    // Get Rect A
+    a = Rect( pair.roi.source-( .5*Point( patchSize ) ), patchSize ) & frame_rect;
+    if( a.width==0 || a.height==0 ) return false;
+    // Get Rect B and nsigma
+    b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, Mat() );
+    // Create ARC_Pair
+    pair.set_reflection( sourceCopy, b, patchSize );
+    return true;
+}		/* -----  end of function rematch  ----- */
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
@@ -138,13 +167,12 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 
     // Goes through any ARC_Pairs already in the outvector and creates a mask to
     // prevent rematching those regions
-    Point shift30( 30, 30 );
-    Size shift60( 60, 60 );
+    Size shift( 20, 20 );
     for( list<ARC_Pair>::iterator it=outlist.begin();
             it!=outlist.end(); ++it )
     {
-		Rect blockedRegionSource( it->roi.source-shift30, shift60 );
-		Rect blockedRegionReflection( it->roi.reflection-shift30, shift60 );
+		Rect blockedRegionSource( it->roi.source-0.5*Point(shift), shift );
+		Rect blockedRegionReflection( it->roi.reflection-0.5*Point(shift), shift );
 		rectangle( mask, blockedRegionSource, 0, CV_FILLED );
 		rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
 	}
