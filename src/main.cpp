@@ -299,7 +299,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             if( smag>4*rmag || rmag>4*smag )
             {
                 cout << "Large SDEL-RDEL diff" << endl;
-                it->nNoMatch=50;
+                it->nNoMatch=49;
                 continue;
             }
             
@@ -570,14 +570,20 @@ int main(int argc, char** argv)
          //       good_points.source, good_points.reflection );
         Scalar red (0,0,255);
         Scalar black(0,0,0);
-        for( list<ARC_Pair>::iterator it=pairs.begin();
-                it!=pairs.end(); ++it )
+        list<ARC_Pair>::iterator it=pairs.begin();
+        while( it!=pairs.end() )
         {
             ++it->nNoMatch;
             if( it->nNoMatch%50==0 )
             {
-                rematch( cur_frame, a.patch_size, *it, slope );
                 it->nNoMatch=0;
+                if( !rematch( cur_frame, a.patch_size, *it, slope ) )
+                {
+                    it=pairs.erase( it );
+                    continue;
+                }
+                ++it->age;
+                ++it;
                 continue;
             }
             Point s,r;
@@ -585,17 +591,19 @@ int main(int argc, char** argv)
             r = it->roi.reflection;
             circle( drawn_matches, s, 3, red );
             circle( drawn_matches, r, 3, black );
-            line( drawn_matches, s, r, black, 1, 8, 0 );
+            line( drawn_matches, s, r, black, 1, CV_AA, 0 );
             cout << image_list[i] << spc
                  << *it
                  << endl;
+            ++it->age;
+            ++it;
         }
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
         Point2f ol[2];
         slope_endpoints( slope, ol );
-        line( drawn_matches, ol[0], ol[1], 200, 3 );
+        line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         waitKey(5);
@@ -662,7 +670,7 @@ int main ( int argc, char *argv[] )
 
             circle( img, s, 3, red );
             circle( img, r, 3, black );
-            line( img, s, r, black, 1, 8, 0 );
+            line( img, s, r, black, 1, CV_AA, 0 );
         }
             
         cout << "Slope: " << slope << endl;

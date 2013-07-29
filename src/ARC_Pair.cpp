@@ -16,11 +16,11 @@
 
 #include "ARC_Pair.hpp"
 
-    void
+    bool
 ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
 {
     roi.reflection = convert_to_point( r, img, s );
-    return ;
+    return ( roi.reflection!=Point( -1, -1 ) );
 }		/* -----  end of method ARC_Pair::set_reflection  ----- */
 
 //--------------------------------------------------------------------------------------
@@ -30,9 +30,8 @@ ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
 // the center by Size s.
 //--------------------------------------------------------------------------------------
     Point
-ARC_Pair::convert_to_point ( Rect r, Mat img, Size s )
+ARC_Pair::convert_to_point ( Rect r, Mat& img, Size s )
 {
-    nNoMatch=0;
     vector<Point> lv;
     Rect little;
     Mat gray;
@@ -58,6 +57,7 @@ ARC_Pair::convert_to_point ( Rect r, Mat img, Size s )
 //--------------------------------------------------------------------------------------
 ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
 {
+    age=0;
     nNoMatch=0;
     Point f, s;
     Size inner_size( 10, 10 );
@@ -85,6 +85,8 @@ ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
 
 ARC_Pair::ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error )
 {
+    age=0;
+    nNoMatch=0;
     Point s;
     Size inner_size( 10, 10 );
     s = convert_to_point( second, img, inner_size );
@@ -114,7 +116,9 @@ operator << ( ostream &os, const ARC_Pair &obj )
     os << obj.id << spc
        << obj.roi.source << spc
        << obj.roi.reflection << spc
-       << obj.nsigma ;
+       << obj.nsigma << spc
+       << obj.nNoMatch << spc
+       << obj.age ;
     return os;
 }		// -----  end of function operator <<  ----- 
 

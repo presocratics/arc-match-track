@@ -136,9 +136,20 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
     // Get Rect B and nsigma
     b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, Mat() );
     // Create ARC_Pair
-    pair.set_reflection( sourceCopy, b, patchSize );
-    return true;
+    bool success = pair.set_reflection( frame, b, patchSize );
+    /*
+    Scalar reflectionColor(0,0,0);
+    Scalar pointColor (0,255,0);
+    circle(sourceCopy,pair.roi.source,4,reflectionColor,-1,8,0);
+    circle(sourceCopy,pair.roi.reflection,4,pointColor,-1,8,0);
+    line(sourceCopy,pair.roi.source,pair.roi.reflection,reflectionColor,1,CV_AA,0);
+    namedWindow("M", CV_WINDOW_AUTOSIZE );
+    imshow( "M", sourceCopy );
+    waitKey( 0 );
+    */
+    return success;
 }		/* -----  end of function rematch  ----- */
+
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,

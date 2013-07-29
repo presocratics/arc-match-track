@@ -34,6 +34,7 @@ class ARC_Pair
             nsigma=0;
             id=++num;
             nNoMatch=0;
+            age=0;
         }
         ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error );   // constructor 
         ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error ); // constructor
@@ -41,7 +42,7 @@ class ARC_Pair
         // ====================  ACCESSORS     ======================================= 
 
         // ====================  MUTATORS      ======================================= 
-        void set_reflection( Mat img, Rect r, Size s );
+        bool set_reflection( Mat img, Rect r, Size s );
 
         // ====================  OPERATORS     ======================================= 
 
@@ -66,6 +67,7 @@ class ARC_Pair
         double nsigma;                    // Number of std above mean.
         unsigned int nNoMatch;
         unsigned int id;
+        unsigned int age;
 
     protected:
         // ====================  METHODS       ======================================= 
@@ -74,7 +76,7 @@ class ARC_Pair
 
     private:
         // ====================  METHODS       ======================================= 
-        Point convert_to_point ( Rect r, Mat img, Size s );
+        Point convert_to_point ( Rect r, Mat& img, Size s );
 
         // ====================  DATA MEMBERS  ======================================= 
 
