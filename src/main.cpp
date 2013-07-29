@@ -274,18 +274,18 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
         vector<float> source_error, reflection_error;
 
         calcOpticalFlowPyrLK( prev_gray, gray, points.source, new_points.source,
-                source_status, source_error, win_size, 3, termcrit, 0, 0.001 );
+                source_status, source_error, win_size, 3, termcrit, 1, 0.001 );
 
         calcOpticalFlowPyrLK(prev_gray, gray, points.reflection,
                 new_points.reflection, reflection_status, 
-                reflection_error, win_size, 3, termcrit, 0, 0.001);
+                reflection_error, win_size, 3, termcrit, 1, 0.001);
         
         // Set lost points to (-1, -1), so we know they are lost.
         list<ARC_Pair>::iterator it=pairs->begin();
         for( i=0; i<(new_points.source.size()); i++ )
         {
             Point sdel, rdel;
-            double smag, rmag;
+            //double smag, rmag;
             if( !source_status[i] || !reflection_status[i] ) 
             {
                 it = pairs->erase( it );
@@ -294,14 +294,16 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             // Get difference between old and move.
             sdel = new_points.source[i] - points.source[i];
             rdel = new_points.reflection[i] - points.reflection[i];
+            /*
             smag = sqrt( pow( sdel.x, 2 ) + pow( sdel.y, 2 ) );
             rmag = sqrt( pow( rdel.x, 2 ) + pow( rdel.y, 2 ) );
-            if( smag>4*rmag || rmag>4*smag )
+            if( (smag>4*rmag || rmag>4*smag )
             {
                 cout << "Large SDEL-RDEL diff" << endl;
                 it->nNoMatch=49;
                 continue;
             }
+            */
             
             // Shift by difference.
             it->roi.source += sdel;
