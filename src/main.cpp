@@ -264,7 +264,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
 
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
-    pairs_to_points( gray, pairs, &points.source, &points.reflection, true );
+    pairs_to_points( gray, pairs, &points.source, &points.reflection, false );
 
     // Do the tracking.
     size_t i;

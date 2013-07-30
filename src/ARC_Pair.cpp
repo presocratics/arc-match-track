@@ -78,6 +78,7 @@ ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
         roi.source = s;
         roi.reflection = f;
     }
+    last_good=roi;
     nsigma = ns;
     id = ++num;
     *error = false;
@@ -105,6 +106,7 @@ ARC_Pair::ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error )
         roi.source = s;
         roi.reflection = f;
     }
+    last_good=roi;
     nsigma = ns;
     id = ++num;
     *error = false;

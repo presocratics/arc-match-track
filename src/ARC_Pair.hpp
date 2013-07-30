@@ -14,6 +14,7 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
+#include "ARC_Point_Pair.hpp"
 #include "ARC_Match.hpp"
 #include "config.hpp"
 
@@ -59,10 +60,17 @@ class ARC_Pair
         }		
         // ====================  DATA MEMBERS  ======================================= 
         static int num;
+        ARC_Point_Pair roi, last_good;
+        /*
         struct {
             Point source;
             Point reflection;
         } roi;
+        struct {
+            Point source;
+            Point reflection;
+        } last_good;
+        */
 
         double nsigma;                    // Number of std above mean.
         unsigned int nNoMatch;
