@@ -299,6 +299,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             {
                 //cout << "Large SDEL-RDEL diff" << endl;
                 it->nNoMatch=1;
+                ++it;
                 continue;
             }
             
