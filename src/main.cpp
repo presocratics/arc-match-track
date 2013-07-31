@@ -264,7 +264,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
 
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
-    pairs_to_points( gray, pairs, &points.source, &points.reflection, false );
+    pairs_to_points( gray, pairs, &points.source, &points.reflection, true );
 
     // Do the tracking.
     size_t i;
@@ -294,16 +294,13 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             // Get difference between old and move.
             sdel = new_points.source[i] - points.source[i];
             rdel = new_points.reflection[i] - points.reflection[i];
-            /*
-            smag = sqrt( pow( sdel.x, 2 ) + pow( sdel.y, 2 ) );
-            rmag = sqrt( pow( rdel.x, 2 ) + pow( rdel.y, 2 ) );
-            if( (smag>4*rmag || rmag>4*smag )
+            //cout << it->id << spc << sdel.y-rdel.y << endl;
+            if( abs( sdel.y-rdel.y ) > 2 )
             {
-                cout << "Large SDEL-RDEL diff" << endl;
-                it->nNoMatch=49;
+                //cout << "Large SDEL-RDEL diff" << endl;
+                it->nNoMatch=1;
                 continue;
             }
-            */
             
             // Shift by difference.
             it->roi.source += sdel;
@@ -575,23 +572,28 @@ int main(int argc, char** argv)
         list<ARC_Pair>::iterator it=pairs.begin();
         while( it!=pairs.end() )
         {
-            ++it->nNoMatch;
-            if( it->nNoMatch%50==0 )
+            if( it->nNoMatch>0 )
             {
-                it->nNoMatch=0;
                 if( !rematch( cur_frame, a.patch_size, *it, slope ) )
                 {
-                    it=pairs.erase( it );
+                    if( it->nNoMatch++>10 )
+                        it=pairs.erase( it );
                     continue;
                 }
+                it->nNoMatch=0;
                 ++it->age;
                 ++it;
                 continue;
             }
-            Point s,r;
+            Point s, r, t;
             s = it->roi.source;
             r = it->roi.reflection;
+            t = Point( 5, 5 );
             circle( drawn_matches, s, 3, red );
+            stringstream sid;
+            sid << it->id;
+
+            putText( drawn_matches, ( sid.str() ).c_str(), s-t, FONT_HERSHEY_SIMPLEX, .3, 100 );
             circle( drawn_matches, r, 3, black );
             line( drawn_matches, s, r, black, 1, CV_AA, 0 );
             cout << image_list[i] << spc

@@ -136,7 +136,7 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
     // Get Rect B and nsigma
     b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, Mat() );
     // Create ARC_Pair
-    bool success = pair.set_reflection( frame, b, patchSize );
+    pair.set_reflection( frame, b, patchSize );
     /*
     Scalar reflectionColor(0,0,0);
     Scalar pointColor (0,255,0);
@@ -147,7 +147,7 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
     imshow( "M", sourceCopy );
     waitKey( 0 );
     */
-    return success;
+    return true;
 }		/* -----  end of function rematch  ----- */
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF

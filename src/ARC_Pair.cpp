@@ -20,7 +20,9 @@
 ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
 {
     roi.reflection = convert_to_point( r, img, s );
-    return ( roi.reflection!=Point( -1, -1 ) );
+    if( roi.reflection==Point( -1, -1 ) )
+        roi.reflection=r.tl()-0.5*Point(s);
+    return true;
 }		/* -----  end of method ARC_Pair::set_reflection  ----- */
 
 //--------------------------------------------------------------------------------------
