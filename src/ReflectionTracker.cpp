@@ -198,7 +198,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // each point to prevent clustering
     // TODO: We may be able to get rid of the anti-clustering code.
     //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.1, 20, mask, 3, 0, 0.04);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.2, 20, mask, 3, 0, 0.04);
     /*
     for( int i=0; i<numOfFeatures; ++i )
     {
@@ -238,6 +238,9 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
 		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, Mat() );
+        //Mat mask;
+        //get_masked_frame( a, slope, &sourceCopy2, &mask );
+		//b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, mask );
         // Create ARC_Pair
         bool err;
         ARC_Pair pair( *it, b, nsigma, sourceCopy2, &err );
@@ -259,117 +262,8 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 	}
     */
 
-	//runSymmetryTest( sourceCopy2, patchSize, slope, &points, &reflections, &originalMatches, &outvector );
-//	identifyRealObjects( &outvector );
-	
-    /*
-	if( displayWindows )
-    {
-		cout << reflections.size() << endl;
-		for( size_t i=0; i<reflections.size(); i++ )
-        {
-			Scalar reflectionColor(0,0,0);
-			Point reflectionTLCorner(reflections[i].x,reflections[i].y);
-			cout << "Drew one rectangle\n";
-			Scalar pointColor (0,255,0);
- 			if( !displayRegions )
-            {
-				Point centerReflection(reflections[i].x+=patchSize/2,reflections[i].y+=patchSize/2);
-       	   		Point centerSource(originalMatches[i].x+patchSize/2,originalMatches[i].y+patchSize/2);
-       	     	circle(sourceCopy2,centerReflection,4,reflectionColor,-1,8,0);
-				circle(sourceCopy2,centerSource,4,pointColor,-1,8,0);
-       		    line(sourceCopy2,centerSource,centerReflection,reflectionColor,1,8,0);
-  	     	}
- 	     	else
-            {
-				Scalar originalColor(0,0,255);
-				Point sourceTL (originalMatches[i].x,originalMatches[i].y);
-				rectangle(sourceCopy2,originalMatches[i],originalColor,2,8,0);
-				rectangle(sourceCopy2, reflections[i],reflectionColor ,2,8,0);
-        	    line(sourceCopy2,sourceTL,reflectionTLCorner,reflectionColor,1,8,0);
-    	    }
-		}
-	}
-
-	for( list<ARC_Pair>::iterator it=outlist.begin();
-            it!=outlist.end(); ++it )
-    {
-		tempoutlist.push_back( *it );
-	}
-	outlist.clear();
-	outlist=tempoutlist;
-    */
 	return outlist.size();
 }
-
-/*
-// DISPLAYS THE RESULTS OF getReflections()
-// If getReflections was already run and outvector is full, for patchSize enter 0
-// If you only have an image, enter the desired patchSize and an empty outvector of ARC_Pair's
-void displayReflectionMatches( Mat image, Size patchSize, double slope, double theta, list<ARC_Pair> *outlist )
-{
-    getReflections( image, patchSize, 15, slope, *outlist );
-
-    outlist->remove_if( outside_theta(theta) );
-    //outlist->remove_if( outside_slope(slope) );
-
-    outlist->remove_if( below_threshold(3.5) );
-    outlist->remove_if( overlap() );
-    //outlist->remove_if( outside_slope(slope) );
-
-    Mat draw = image.clone();
-    Scalar originalColor(0,0,255);
-    Scalar reflectionColor(0,0,0);
-    for( list<ARC_Pair>::iterator it=outlist->begin();
-            it!=outlist->end(); ++it )
-    {
-        cout << *it << endl;
-        rectangle( draw, it->roi.source, originalColor, 1, 8, 0 );
-        rectangle( draw, it->roi.reflection, reflectionColor, 1, 8, 0 );
-        Point sourceTLCorner = it->roi.source.tl();
-        Point reflectionTLCorner = it->roi.reflection.tl();
-        line( draw, sourceTLCorner, reflectionTLCorner, reflectionColor, 1, 8, 0 );
-	}
-	namedWindow( "Reflections", CV_WINDOW_AUTOSIZE );
-    imshow( "Reflections", draw );
-    waitKey(0);
-}
-*/
-/*
-
-// GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT
-// OF THE REFLECTION.
-Rect findOneReflection( double slope, Mat source, Rect tmplte )
-{
-    double nsigma;
-	Point TLCorner = tmplte.tl();
-	Mat templateMat = source.clone();
-	templateMat = templateMat(tmplte);
-	Point matchLoc = findBestMatchLocation( slope, source, templateMat, TLCorner, &nsigma );
-	Rect rect( matchLoc, Size( templateMat.cols, templateMat.cols ) );
-	return rect;
-}
-
-// GIVEN A source MAT, patchSize, slope INFORMATION,AND A BOOLEAN FLAG, IT
-// TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION.
-ARC_Pair getOneReflectionPair( Mat source, int patchSize, double slope, 
-        bool *regionFound )
-{
-	vector<ARC_Pair> outvector;
-	ARC_Pair empty;	
-	getReflections( source, patchSize, 5, slope, outvector );
-	if( outvector.size()==0 )
-    {
-		*regionFound = false;
-		return empty;	 
-	}
-	else
-    {
-		*regionFound = true;
-		return outvector[0];
-	}
-}
-*/
 
 /*
 // GIVEN AN IMAGE, A PATCHSIZE FOR THE INITIAL TEMPLATES AND A SIZE FOR THE
@@ -449,3 +343,52 @@ int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize,
     return 1;
 }
 */
+
+// === FUNCTION ======================================================================
+// Name: get_masked_frame
+// Description: Masks the frame based on slope and roi. Mask returned by pointer.
+// =====================================================================================
+Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask )
+{
+    Point corners[1][4];
+    //Set the frame
+    *mask=Mat::zeros( frame->size(), CV_8UC1 );
+    Mat masked_frame;
+    if( slope==0 )
+    {
+        // TODO: Could use direction handling here.
+        corners[0][0] = roi.br();
+        corners[0][1] = Point( frame->cols, roi.y+roi.height );
+        corners[0][2] = corners[0][1]-Point( 0, roi.height );
+        corners[0][3] = corners[0][0]-Point( 0, roi.height );
+    }
+    else if( isinf( slope ) )
+    {
+        {
+            corners[0][0] = Point( roi.x, frame->rows );
+            corners[0][1] = Point( roi.x, roi.y+roi.height);
+        }
+        {
+            corners[0][0] = roi.tl();
+            corners[0][1] = Point( roi.x, 0 );
+        }
+        corners[0][2] = corners[0][1]+Point( roi.width, 0);
+        corners[0][3] = corners[0][0]+Point( roi.width, 0 );
+    }
+    else
+    {
+        corners[0][0].x = ( int ) ( (frame->rows + slope*roi.x-roi.y)/slope );
+        corners[0][0].y = frame->rows;
+        corners[0][1] = Point( ( int )( (-roi.y + slope * roi.x ) / slope ), 0 );
+        corners[0][2] = corners[0][1] + Point(roi.width, 0);
+        corners[0][3] = corners[0][0] + Point(roi.width, 0);
+    }
+
+    // This is weird, but follows OpenCV docs.
+    const Point* ppt[1] = { corners[0] };
+    const int npt[] = { 4 };
+
+    fillPoly( *mask, ppt, npt, 1, 255 );
+    frame->copyTo(masked_frame, *mask);
+    return masked_frame;
+}	// ----- end of function get_masked_frame ----- 

@@ -87,8 +87,8 @@ void change_frame_number( int slider, void* fn )
 
 void change_patch_size( int slider, void* ps )
 {
-    Size* ps_typed = (Size *) ps;
-    *ps_typed = Size( slider, slider );
+    int* ps_typed = (int *) ps;
+    *ps_typed = slider;
 }
 
 void change_num_regions( int slider, void* nr )
@@ -264,7 +264,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
 
     if( prev_gray.empty() )
         gray.copyTo(prev_gray);
-    pairs_to_points( gray, pairs, &points.source, &points.reflection, true );
+    pairs_to_points( gray, pairs, &points.source, &points.reflection, false );
 
     // Do the tracking.
     size_t i;
@@ -299,13 +299,13 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
             {
                 //cout << "Large SDEL-RDEL diff" << endl;
                 it->nNoMatch=1;
-                ++it;
-                continue;
+                //++it;
+                //continue;
             }
             
             // Shift by difference.
-            it->roi.source += sdel;
-            it->roi.reflection += rdel;
+            it->roi.source = new_points.source[i];
+            it->roi.reflection = new_points.reflection[i];
             ++it;
         }
     }
@@ -501,8 +501,10 @@ int main(int argc, char** argv)
             100, change_theta_dev, &a.theta_dev );
     createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
             50, change_num_regions, &a.num_regions );
-    createTrackbar( "patch_size", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
-            150, change_patch_size, &a.patch_size );
+    createTrackbar( "patch_size_x", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
+            150, change_patch_size, &a.patch_size.width );
+    createTrackbar( "patch_size_y", DEFAULT_WINDOW_NAME, &a.patch_size.height, 
+            150, change_patch_size, &a.patch_size.height );
     createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
             image_list.size(), change_frame_number, &i );
 
@@ -548,8 +550,8 @@ int main(int argc, char** argv)
         if( a.blur )
         {
             //medianBlur( gray, gray, 7 );        // TODO: Should be parameter
-            //medianBlur( gray, gray, 5 );        // TODO: Should be parameter
-            medianBlur( gray, gray, 3 );        // TODO: Should be parameter
+            medianBlur( gray, gray, 5 );        // TODO: Should be parameter
+            //medianBlur( gray, gray, 3 );        // TODO: Should be parameter
         }
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
@@ -557,8 +559,9 @@ int main(int argc, char** argv)
         // Filter pairs.
         // Update regions.
         if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
-            update_regions( cur_frame, &pairs, 12, a.patch_size, slope, theta );
-        pairs.remove_if( below_threshold( 3 ) );
+            update_regions( cur_frame, &pairs, 36, a.patch_size, slope, theta );
+        pairs.remove_if( below_threshold( 3.5 ) ); // patch 50x50
+        //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
         // track.
@@ -573,6 +576,7 @@ int main(int argc, char** argv)
         list<ARC_Pair>::iterator it=pairs.begin();
         while( it!=pairs.end() )
         {
+            /*
             if( it->nNoMatch>0 )
             {
                 if( !rematch( cur_frame, a.patch_size, *it, slope ) )
@@ -586,20 +590,34 @@ int main(int argc, char** argv)
                 ++it;
                 continue;
             }
-            Point s, r, t;
-            s = it->roi.source;
-            r = it->roi.reflection;
-            t = Point( 5, 5 );
-            circle( drawn_matches, s, 3, red );
-            stringstream sid;
-            sid << it->id;
+            */
+            if( it->age>5 )
+            {
+                Point s, r, t;
+                s = it->roi.source;
+                r = it->roi.reflection;
+                t = Point( 5, 5 );
+                circle( drawn_matches, s, 3, red );
+                rectangle( drawn_matches, Rect( s -0.5*Point( a.patch_size ), a.patch_size ), red, 1 );
+                stringstream sid;
+                sid << it->id;
 
-            putText( drawn_matches, ( sid.str() ).c_str(), s-t, FONT_HERSHEY_SIMPLEX, .3, 100 );
-            circle( drawn_matches, r, 3, black );
-            line( drawn_matches, s, r, black, 1, CV_AA, 0 );
-            cout << image_list[i] << spc
-                 << *it
-                 << endl;
+                putText( drawn_matches, ( sid.str() ).c_str(), s-t, FONT_HERSHEY_SIMPLEX, .3, 100 );
+                circle( drawn_matches, r, 3, black );
+                rectangle( drawn_matches, Rect( r -0.5*Point( a.patch_size ), a.patch_size ), black, 1 );
+                if( it->nNoMatch>0 )
+                {
+                line( drawn_matches, s, r, black, 1, CV_AA, 0 );
+                it->nNoMatch=0;
+                }
+                else
+                {
+                    line( drawn_matches, s, r, black, 1, CV_AA, 0 );
+                }
+                cout << image_list[i] << spc
+                     << *it
+                     << endl;
+            }
             ++it->age;
             ++it;
         }

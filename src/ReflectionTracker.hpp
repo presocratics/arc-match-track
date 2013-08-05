@@ -6,6 +6,7 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "ARC_Pair.hpp"
 
+Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask );
 bool rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope );
 void createTemplatesFromVector(Mat image, Size patchSize, vector<Point> *points, list<ARC_Pair> *outlist);
 Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, double* nsigma, Mat mask );
