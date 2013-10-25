@@ -51,7 +51,6 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
-Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask );
 void change_frame_number( int slider, void* fn );
 void change_patch_size( int slider, void* ps );
 void change_num_regions( int slider, void* nr );
