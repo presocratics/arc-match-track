@@ -175,7 +175,7 @@ void draw_match_by_hand( Mat* out_img, Mat* scene,
 void help( string program_name )
 {
     cout 
-         << "Usage: " << program_name << spc << "<list of image files> <list of regions> [options]"
+         << "Usage: " << program_name << spc << "<list of image files> <frame gyro data> [options]"
          << endl
          << "OPTIONS" << endl
          << ARC_ARG_FEATURES_BEFORE_TRACK << tab 
