@@ -39,6 +39,7 @@ ARC_IMU::quaternion_to_rotation ( double* q )
 
 ARC_IMU::ARC_IMU ( )
 {
+    /* TODO: get q from file input */
     double q[4] = { 
 /*
             -0.0017705, 
@@ -46,10 +47,17 @@ ARC_IMU::ARC_IMU ( )
             0.0039022, 
             0.8099};
     */
+        /* June Data 
             0.4823,
             0.4668,
             0.53082,
             -0.5174
+        */
+        /* Fall Data */
+            0.50798,
+            0.50067,
+            0.49636,
+            -0.49489
     };
 /*
     Matx33d Rb2b(
