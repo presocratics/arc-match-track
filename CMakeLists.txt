@@ -29,7 +29,7 @@ set(CMAKE_CURRENT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 # -------------------------------------------------------------------- #
 
 	SET ( APPLICATION_NAME waterline )
-    FILE( GLOB_RECURSE PROJECT_SOURCES src/waterline2.cpp )
+    FILE( GLOB_RECURSE PROJECT_SOURCES src/waterline.cpp )
 
 # -------------------------------------------------------------------- #
 # Change with caution!
