@@ -21,6 +21,14 @@
 
 #define _USE_MATH_DEFINES
 // A Matrix
+/* June Data */
+/*
+const double fx = 492.42317;
+const double fy = 489.98014;
+const double cx = 313.71144;
+const double cy = 261.27213;
+*/
+/* Fall Data */
 const double fx = 492.42317;
 const double fy = 489.98014;
 const double cx = 313.71144;
