@@ -1,10 +1,10 @@
 # -------------------------------------------------------------------- #
-# Author: Shubham Gupta
-#         sgupta18@illinois.edu
+# Author: Martin Miller
+#         miller7@illinois.edu
 # -------------------------------------------------------------------- #
 
 cmake_minimum_required (VERSION 2.6)
-project (ARCMatch)
+project (waterline)
 
 set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
 set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
@@ -13,8 +13,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 set(CMAKE_CURRENT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 
 	MESSAGE(STATUS "--------------------------------------------------")
-    MESSAGE(STATUS "Project: ARC Segment ")
-	MESSAGE(STATUS "contributed by Shubham Gupta <sgupta18@illinois.edu>")
+    MESSAGE(STATUS "Project: Waterline ")
 	MESSAGE(STATUS "by Martin Miller <miller7@illinois.edu>")
 	MESSAGE(STATUS "--------------------------------------------------")
 
@@ -29,8 +28,8 @@ set(CMAKE_CURRENT_BINARY_DIR ${PROJECT_SOURCE_DIR}/build)
 # Application setup
 # -------------------------------------------------------------------- #
 
-	SET ( APPLICATION_NAME segment )
-    FILE( GLOB_RECURSE PROJECT_SOURCES src/*.cpp )
+	SET ( APPLICATION_NAME waterline )
+    FILE( GLOB_RECURSE PROJECT_SOURCES src/waterline2.cpp )
 
 # -------------------------------------------------------------------- #
 # Change with caution!
