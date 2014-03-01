@@ -39,6 +39,25 @@ void getImageList( std::string filename,  std::vector<std::string>* il )
     ifs.close ( );                                 /* close ifstream */
 }
 
+    cv::Mat
+maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
+{
+    cv::Mat mask, masked_contour ;
+    std::vector<std::vector<cv::Point> > contours;
+
+    contours.push_back( snake );
+    // mask the image with the contour.
+    mask= cv::Mat::zeros(image.size(), CV_8UC1 );
+    cv::drawContours(mask, contours, -1, cv::Scalar(255,255,255), CV_FILLED );
+    masked_contour = cv::Mat( image.size(), CV_8UC3 );
+    if( c!=cv::Scalar(-1,-1,-1,-1) )
+    {
+        masked_contour.setTo(c);
+    }
+    image.copyTo(masked_contour, mask);
+    return masked_contour;
+}		/* -----  end of function maskImage  ----- */
+
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  main
@@ -52,6 +71,7 @@ main ( int argc, char *argv[] )
     std::string listname;
     cv::VideoWriter vidout;
     cv::Mat firstFrame;
+    cv::Point bottom_left;
 
     if( argc!=2 )
     {
@@ -62,6 +82,8 @@ main ( int argc, char *argv[] )
     getImageList( listname, &images );
 
     firstFrame = cv::imread( images[0], CV_LOAD_IMAGE_UNCHANGED );
+    bottom_left = cv::Point( 0, firstFrame.size().height );
+
     vidout.open( std::string("out.avi"), CV_FOURCC('F','M','P','4'), 20.0, firstFrame.size(), true);
     if( !vidout.isOpened() )
     {
@@ -72,21 +94,39 @@ main ( int argc, char *argv[] )
     for( std::vector<std::string>::iterator img_name=images.begin();
             img_name!=images.end(); ++img_name  )
     {
+        std::vector<std::vector<cv::Point> > contours;
+        std::vector<cv::Vec4i> hierarchy;
         // Initialize some Mats
+        cv::Mat water_mask;
         cv::Mat imgColor = cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
         cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_GRAYSCALE );
         cv::Mat img2( imgColor.size(), CV_8UC3 );
 
-        // Blur some stuff
+        // Find water areas
         cv::medianBlur( img, img, 5 );
         cv::adaptiveThreshold( img, img, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
         cv::blur( img, img, cv::Size(100, 100) );
         cv::medianBlur( img, img, 5 );
         cv::threshold( img, img, 50, 255, CV_THRESH_BINARY_INV );
 
-        cv::cvtColor( img, img2, CV_GRAY2RGB );
-        cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
+        // Select the contour that is in the bottom left
+        std::vector<cv::Point> water;
+        findContours( img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+        for( std::vector<std::vector<cv::Point> >::iterator c=contours.begin();
+                c!=contours.end(); ++c )
+        {
+            if( cv::pointPolygonTest( *c, bottom_left, true )>=-10 )
+            {
+                water=*c;
+                break;
+            }
+        }
 
+        if( water.size()==0 ) continue;
+        water_mask = maskImage( img, water, cv::Scalar(255,255,255) );
+
+        cv::cvtColor( water_mask, img2, CV_GRAY2RGB );
+        cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
 
         cv::imshow("Vid", img2 );
         vidout << img2;
