@@ -39,6 +39,44 @@ void getImageList( std::string filename,  std::vector<std::string>* il )
     ifs.close ( );                                 /* close ifstream */
 }
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  maximum_rgb
+ *  Description:  Sets maximum channel at each pixel to 255, zeros the others. 
+ * =====================================================================================
+ */
+    void
+maximum_rgb ( cv::Mat& src, cv::Mat& dst )
+{
+    cv::Mat tmp = src.clone();
+    for( int i=0; i<src.rows; ++i )
+    {
+        for( int j=0; j<src.cols; ++j )
+        {
+            cv::Vec3b pixel;
+            pixel=src.at<cv::Vec3b>(i,j);
+            if( pixel[0]>pixel[1] && pixel[0]>pixel[2] )
+            {
+                pixel[0]=255;
+                pixel[1]=pixel[2]=0;
+            }
+            else if( pixel[1]>pixel[2] )
+            {
+                pixel[1]=255;
+                pixel[0]=pixel[2]=0;
+            }
+            else
+            {
+                pixel[2]=255;
+                pixel[0]=pixel[1]=0;
+            }
+            tmp.at<cv::Vec3b>(i,j)=pixel;
+        }
+    }
+    dst=tmp;
+    return;
+}		/* -----  end of function maximum_rgb  ----- */
+
     cv::Mat
 maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
 {
@@ -99,15 +137,25 @@ main ( int argc, char *argv[] )
         // Initialize some Mats
         cv::Mat water_mask;
         cv::Mat imgColor = cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
-        cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_GRAYSCALE );
+        //cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_GRAYSCALE );
+        cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
         cv::Mat img2( imgColor.size(), CV_8UC3 );
 
+        cv::dilate( img, img, cv::Mat(), cv::Point(-1,-1), 2 );
+        cv::erode( img, img, cv::Mat(), cv::Point(-1,-1), 4 );
+        
+        cv::cvtColor( img, img, CV_RGB2GRAY );
+
+
+        
         // Find water areas
-        cv::medianBlur( img, img, 5 );
+        //cv::medianBlur( img, img, 5 );
         cv::adaptiveThreshold( img, img, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
         cv::blur( img, img, cv::Size(100, 100) );
         cv::medianBlur( img, img, 5 );
         cv::threshold( img, img, 50, 255, CV_THRESH_BINARY_INV );
+        cv::dilate( img, img, cv::Mat(), cv::Point(-1,-1), 1 );
+        cv::erode( img, img, cv::Mat(), cv::Point(-1,-1), 1 );
 
         // Select the contour that is in the bottom left
         std::vector<cv::Point> water;
@@ -122,13 +170,19 @@ main ( int argc, char *argv[] )
             }
         }
 
-        if( water.size()==0 ) continue;
+        if( water.size()==0 ) 
+        {
+            std::cerr << "No water." <<std::endl;
+            continue;   
+        }
         water_mask = maskImage( img, water, cv::Scalar(255,255,255) );
 
         cv::cvtColor( water_mask, img2, CV_GRAY2RGB );
         cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
+        //maximum_rgb( img2, img2 );
 
         cv::imshow("Vid", img2 );
+        //cv::imshow("VidColor", imgColor );
         vidout << img2;
         cv::waitKey(3);
     }
