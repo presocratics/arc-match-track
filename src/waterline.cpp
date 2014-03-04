@@ -14,6 +14,67 @@
 #include <fstream>
 #include <vector>
 #include <string>
+
+
+void find_water ( cv::Mat& src, cv::Mat& dst );
+void getImageList( std::string filename,  std::vector<std::string>* il );
+void maximum_rgb ( cv::Mat& src, cv::Mat& dst );
+cv::Mat maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c );
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  find_water
+ *  Description:  Quick and dirty approach to finding water in a the src image.
+ *  Returns a mask of the water in dst
+ *  =====================================================================================
+ */
+    void
+find_water ( cv::Mat& src, cv::Mat& dst )
+{
+    cv::Point bottom_left;
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    std::vector<cv::Point> water;
+
+    bottom_left = cv::Point( 0, src.size().height );
+
+    // Find water areas
+    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 2 );
+    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 4 );
+    cv::cvtColor( src, src, CV_RGB2GRAY );
+    
+    cv::adaptiveThreshold( src, src, 255,
+            CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
+    cv::blur( src, src, cv::Size(100, 100) );
+    cv::medianBlur( src, src, 5 );
+    cv::threshold( src, src, 50, 255, CV_THRESH_BINARY_INV );
+    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
+    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
+
+    // Select the contour that is in the bottom left
+    findContours( src, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+    for( std::vector<std::vector<cv::Point> >::iterator c=contours.begin();
+            c!=contours.end(); ++c )
+    {
+        if( cv::pointPolygonTest( *c, bottom_left, true )>=-10 )
+        {
+            water=*c;
+            break;
+        }
+    }
+
+    if( water.size()==0 ) 
+    {
+        std::cerr << "No water." <<std::endl;
+        dst = cv::Mat();
+    }
+    else
+    {
+        dst = maskImage( src, water, cv::Scalar(255,255,255) );
+    }
+    return;
+}		/* -----  end of function find_water  ----- */
+
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  getImageList
@@ -109,7 +170,6 @@ main ( int argc, char *argv[] )
     std::string listname;
     cv::VideoWriter vidout;
     cv::Mat firstFrame;
-    cv::Point bottom_left;
 
     if( argc!=2 )
     {
@@ -120,7 +180,6 @@ main ( int argc, char *argv[] )
     getImageList( listname, &images );
 
     firstFrame = cv::imread( images[0], CV_LOAD_IMAGE_UNCHANGED );
-    bottom_left = cv::Point( 0, firstFrame.size().height );
 
     vidout.open( std::string("out.avi"), CV_FOURCC('F','M','P','4'), 20.0, firstFrame.size(), true);
     if( !vidout.isOpened() )
@@ -132,56 +191,19 @@ main ( int argc, char *argv[] )
     for( std::vector<std::string>::iterator img_name=images.begin();
             img_name!=images.end(); ++img_name  )
     {
-        std::vector<std::vector<cv::Point> > contours;
-        std::vector<cv::Vec4i> hierarchy;
-        // Initialize some Mats
-        cv::Mat water_mask;
         cv::Mat imgColor = cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
-        //cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_GRAYSCALE );
-        cv::Mat img = cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
+        cv::Mat img= cv::imread( *img_name, CV_LOAD_IMAGE_UNCHANGED );
         cv::Mat img2( imgColor.size(), CV_8UC3 );
-
-        cv::dilate( img, img, cv::Mat(), cv::Point(-1,-1), 2 );
-        cv::erode( img, img, cv::Mat(), cv::Point(-1,-1), 4 );
-        
-        cv::cvtColor( img, img, CV_RGB2GRAY );
-
-
-        
-        // Find water areas
-        //cv::medianBlur( img, img, 5 );
-        cv::adaptiveThreshold( img, img, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
-        cv::blur( img, img, cv::Size(100, 100) );
-        cv::medianBlur( img, img, 5 );
-        cv::threshold( img, img, 50, 255, CV_THRESH_BINARY_INV );
-        cv::dilate( img, img, cv::Mat(), cv::Point(-1,-1), 1 );
-        cv::erode( img, img, cv::Mat(), cv::Point(-1,-1), 1 );
-
-        // Select the contour that is in the bottom left
-        std::vector<cv::Point> water;
-        findContours( img, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
-        for( std::vector<std::vector<cv::Point> >::iterator c=contours.begin();
-                c!=contours.end(); ++c )
-        {
-            if( cv::pointPolygonTest( *c, bottom_left, true )>=-10 )
-            {
-                water=*c;
-                break;
-            }
-        }
-
-        if( water.size()==0 ) 
-        {
-            std::cerr << "No water." <<std::endl;
-            continue;   
-        }
-        water_mask = maskImage( img, water, cv::Scalar(255,255,255) );
+        cv::Mat water_mask;//=cv::Mat::zeros( imgColor.size(), CV_8UC1 );
+        find_water( img, water_mask );
+        if( water_mask.size()==cv::Size(0,0) ) continue;
 
         cv::cvtColor( water_mask, img2, CV_GRAY2RGB );
         cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
-        //maximum_rgb( img2, img2 );
 
-        cv::imshow("Vid", img2 );
+        //cv::dilate(water_mask, water_mask, cv::Mat(), cv::Point(-1,-1),5);
+
+        cv::imshow("Vid", water_mask );
         //cv::imshow("VidColor", imgColor );
         vidout << img2;
         cv::waitKey(3);
