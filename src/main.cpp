@@ -564,6 +564,7 @@ int main(int argc, char** argv)
         //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
+		pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
         track( gray, prev_gray, &pairs );
         //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,

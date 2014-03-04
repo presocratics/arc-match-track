@@ -23,6 +23,11 @@ Rect findOneReflection(double slope,Mat source, Rect tmplte);
 //GIVEN A source MAT, patchSize, slope INFORMATION, AND A BOOLEAN FLAG, IT TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, bool *regionFound);
 int getReflectionsPYR(Mat &image, Size outerPatchSize, Size innerPatchSize, double slope, double theta, list<ARC_Pair> &outlist);
+
+void get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter );
+void find_water ( cv::Mat& src, cv::Mat& dst );
+cv::Mat maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c );
+
 struct outside_theta {
     outside_theta( double m, double d ){
         theta =m;
@@ -55,4 +60,31 @@ struct below_threshold {
     private:
     double threshold;
 };
+
+struct within_shore {
+    within_shore(Mat src) {
+        cv::Mat water_mask;
+        find_water(src,water_mask);
+        cv::Mat edges;
+        get_shorline_margin(water_mask,edges,64);
+        shoreMask = edges.clone();
+    }   
+    bool operator() (const ARC_Pair& value)
+    {   
+        if(shoreMask.size()!=cv::Size(0,0))
+        {   
+            int sourcePixel = shoreMask.at<uchar>(value.roi.source.y,value.roi.source.x);
+            int reflPixel = shoreMask.at<uchar>(value.roi.reflection.y,value.roi.reflection.x);
+            //return true if either the source or reflection is outside the shoreline margin - that ARC_Pair will be thrown out
+            return sourcePixel==0 || reflPixel==0;
+        }   
+        //if no shoreline was detected, return false so that ARC_Pairs aren't all thrown out
+        return false;
+    }   
+    private:
+    cv::Mat shoreMask;
+};
+
+
+		
 #endif /*REFLECTION_TRACKER_H*/
