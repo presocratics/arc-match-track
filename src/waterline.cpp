@@ -198,12 +198,15 @@ main ( int argc, char *argv[] )
         find_water( img, water_mask );
         if( water_mask.size()==cv::Size(0,0) ) continue;
 
-        cv::cvtColor( water_mask, img2, CV_GRAY2RGB );
+
+        cv::Mat edges;
+        cv::Canny(water_mask, edges, 100, 200, 3);
+        cv::dilate(edges, edges, cv::Mat(), cv::Point(-1,-1),64);
+
+        cv::cvtColor( edges, img2, CV_GRAY2RGB );
         cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
 
-        //cv::dilate(water_mask, water_mask, cv::Mat(), cv::Point(-1,-1),5);
-
-        cv::imshow("Vid", water_mask );
+        cv::imshow("Vid", img2 );
         //cv::imshow("VidColor", imgColor );
         vidout << img2;
         cv::waitKey(3);
