@@ -25,7 +25,7 @@ ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, bool *regi
 int getReflectionsPYR(Mat &image, Size outerPatchSize, Size innerPatchSize, double slope, double theta, list<ARC_Pair> &outlist);
 
 void get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter );
-void find_water ( cv::Mat& src, cv::Mat& dst );
+void find_water ( cv::Mat src, cv::Mat& dst );
 cv::Mat maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c );
 
 struct outside_theta {

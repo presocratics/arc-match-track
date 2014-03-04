@@ -392,3 +392,91 @@ Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask )
     frame->copyTo(masked_frame, *mask);
     return masked_frame;
 }	// ----- end of function get_masked_frame ----- 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_shorline_mask
+ *  Description:  finds the shorline edge from a water mask. Returns the edges with some
+ *  margin that increases with iter.
+ * =====================================================================================
+ */
+    void
+get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter )
+{
+    cv::Canny(src, dst, 100, 200, 3);
+    cv::dilate(dst, dst, cv::Mat(), cv::Point(-1,-1), iter );
+    return;
+}		/* -----  end of function get_shorline_mask  ----- */
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  find_water
+ *  Description:  Quick and dirty approach to finding water in a the src image.
+ *  Returns a mask of the water in dst. If no water found, dst=cv::Mat()
+ *  =====================================================================================
+ */
+    void
+find_water ( cv::Mat src, cv::Mat& dst )
+{
+    cv::Point bottom_left;
+    std::vector<std::vector<cv::Point> > contours;
+    std::vector<cv::Vec4i> hierarchy;
+    std::vector<cv::Point> water;
+
+    bottom_left = cv::Point( 0, src.size().height );
+
+    // Find water areas
+    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 2 );
+    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 4 );
+    cv::cvtColor( src, src, CV_RGB2GRAY );
+    
+    cv::adaptiveThreshold( src, src, 255,
+            CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
+    cv::blur( src, src, cv::Size(100, 100) );
+    cv::medianBlur( src, src, 5 );
+    cv::threshold( src, src, 50, 255, CV_THRESH_BINARY_INV );
+    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
+    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
+
+    // Select the contour that is in the bottom left
+    findContours( src, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
+    for( std::vector<std::vector<cv::Point> >::iterator c=contours.begin();
+            c!=contours.end(); ++c )
+    {
+        if( cv::pointPolygonTest( *c, bottom_left, true )>=-10 )
+        {
+            water=*c;
+            break;
+        }
+    }
+
+    if( water.size()==0 ) 
+    {
+        std::cerr << "No water." <<std::endl;
+        dst = cv::Mat();
+    }
+    else
+    {
+        dst = maskImage( src, water, cv::Scalar(255,255,255) );
+    }
+    return;
+}		/* -----  end of function find_water  ----- */
+
+    cv::Mat
+maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
+{
+    cv::Mat mask, masked_contour ;
+    std::vector<std::vector<cv::Point> > contours;
+
+    contours.push_back( snake );
+    // mask the image with the contour.
+    mask= cv::Mat::zeros(image.size(), CV_8UC1 );
+    cv::drawContours(mask, contours, -1, cv::Scalar(255,255,255), CV_FILLED );
+    masked_contour = cv::Mat( image.size(), CV_8UC3 );
+    if( c!=cv::Scalar(-1,-1,-1,-1) )
+    {
+        masked_contour.setTo(c);
+    }
+    image.copyTo(masked_contour, mask);
+    return masked_contour;
+}		/* -----  end of function maskImage  ----- */
+

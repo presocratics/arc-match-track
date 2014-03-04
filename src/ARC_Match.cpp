@@ -167,7 +167,7 @@ ARC_Match::angle_test(
     }
     return;
 }
-
+/*
 //--------------------------------------------------------------------------------------
 //       Class:  ARC_Match
 //      Method:  ARC_Match :: ransac_test
@@ -230,8 +230,8 @@ ARC_Match::ransac_test (
                 CV_FM_8POINT);
     }
     return fundamental;
-}		/* -----  end of method ARC_Match::ransac_test  ----- */
-
+}		// -----  end of method ARC_Match::ransac_test  -----
+*/
 //--------------------------------------------------------------------------------------
 //       Class:  ARC_Match
 //      Method:  ARC_Match :: symmetry_test
@@ -390,7 +390,7 @@ ARC_Match::match ( Mat& scene_img, Mat& object_img,
     if( isRansac )
     {
         if( sym_matches.size()<min_points ) return false;
-        ransac_test( sym_matches, keypoints_scene, keypoints_object, matches );
+        //ransac_test( sym_matches, keypoints_scene, keypoints_object, matches );
     }
     else
     {
