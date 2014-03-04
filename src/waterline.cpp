@@ -25,7 +25,7 @@ cv::Mat maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
  * ===  FUNCTION  ======================================================================
  *         Name:  find_water
  *  Description:  Quick and dirty approach to finding water in a the src image.
- *  Returns a mask of the water in dst
+ *  Returns a mask of the water in dst. If no water found, dst=cv::Mat()
  *  =====================================================================================
  */
     void
@@ -209,7 +209,7 @@ main ( int argc, char *argv[] )
         cv::imshow("Vid", img2 );
         //cv::imshow("VidColor", imgColor );
         vidout << img2;
-        cv::waitKey(3);
+        cv::waitKey(1);
     }
     return EXIT_SUCCESS;
 }				/* ----------  end of function main  ---------- */
