@@ -16,11 +16,26 @@
 #include <string>
 
 
+void get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter );
 void find_water ( cv::Mat& src, cv::Mat& dst );
 void getImageList( std::string filename,  std::vector<std::string>* il );
 void maximum_rgb ( cv::Mat& src, cv::Mat& dst );
 cv::Mat maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c );
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_shorline_mask
+ *  Description:  finds the shorline edge from a water mask. Returns the edges with some
+ *  margin that increases with iter.
+ * =====================================================================================
+ */
+    void
+get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter )
+{
+    cv::Canny(src, dst, 100, 200, 3);
+    cv::dilate(dst, dst, cv::Mat(), cv::Point(-1,-1), iter );
+    return;
+}		/* -----  end of function get_shorline_mask  ----- */
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  find_water
@@ -200,8 +215,7 @@ main ( int argc, char *argv[] )
 
 
         cv::Mat edges;
-        cv::Canny(water_mask, edges, 100, 200, 3);
-        cv::dilate(edges, edges, cv::Mat(), cv::Point(-1,-1),64);
+        get_shorline_margin( water_mask, edges, 64 );
 
         cv::cvtColor( edges, img2, CV_GRAY2RGB );
         cv::addWeighted( img2, 0.3, imgColor, 0.7, 0, img2 );
