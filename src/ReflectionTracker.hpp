@@ -66,7 +66,8 @@ struct within_shore {
         cv::Mat water_mask;
         find_water(src,water_mask);
         cv::Mat edges;
-        get_shorline_margin(water_mask,edges,64);
+        if( water_mask.size()!=cv::Size(0,0) )
+            get_shorline_margin(water_mask,edges,64);
         shoreMask = edges.clone();
     }   
     bool operator() (const ARC_Pair& value)

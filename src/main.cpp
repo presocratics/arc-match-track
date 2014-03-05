@@ -554,10 +554,13 @@ int main(int argc, char** argv)
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
         find_water(drawn_matches.clone(), water_mask);
-        get_shorline_margin( water_mask, edges, 64 );
-        Mat img2;
-        cvtColor( edges, img2, CV_GRAY2RGB );
-        addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
+        if( water_mask.size()!=cv::Size(0,0) )
+        {
+            get_shorline_margin( water_mask, edges, 64 );
+            Mat img2;
+            cvtColor( edges, img2, CV_GRAY2RGB );
+            addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
+        }
 
         // Filter pairs.
         // Update regions.
