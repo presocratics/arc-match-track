@@ -125,16 +125,13 @@ void slope_endpoints ( double slope, Point2f* ol )
 void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta )
 {
-    //pairs->clear();
-    //cout << "Num regions: " << nregions << endl;
-    //cout << "Patch size: " << Point(patch_size) << endl;
-    // Get new regions.
-    //if( pairs->size()<nregions )
+    list<ARC_Pair> temp;
     if( 1 )
     {
-        getReflections( frame, patch_size, nregions, slope, *pairs );
-        //getReflectionsPYR( frame, patch_size, Size( 10, 10 ), slope, theta, *pairs );
+        getReflections( frame, patch_size, nregions, slope, temp );
+		temp.remove_if( within_shore( frame.clone() ) );//Remove pair if not within detected shoreline margin
     }
+    pairs->splice( pairs->begin(), temp);
         
     return ;
 }		// -----  end of function update_regions  ----- 
@@ -532,6 +529,7 @@ int main(int argc, char** argv)
     double theta = -1;
     while( i<image_list.size() )
     {
+        Mat water_mask, edges;
         setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
         if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
@@ -541,7 +539,7 @@ int main(int argc, char** argv)
             theta = (1-alpha)*theta+alpha*imu.get_rotation_angle( rotation_matrix );
         double slope = imu.theta_to_slope( theta );
 
-        cur_frame=imread( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
+        cur_frame=imread( image_list[i], CV_LOAD_IMAGE_UNCHANGED );           // open image 
         if ( !cur_frame.data ) {
             cerr << "\nERROR : failed to open input file " << image_list[i] << endl;
             exit (EXIT_FAILURE);
@@ -555,6 +553,11 @@ int main(int argc, char** argv)
         }
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
+        find_water(drawn_matches.clone(), water_mask);
+        get_shorline_margin( water_mask, edges, 64 );
+        Mat img2;
+        cvtColor( edges, img2, CV_GRAY2RGB );
+        addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
 
         // Filter pairs.
         // Update regions.
@@ -564,7 +567,7 @@ int main(int argc, char** argv)
         //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
-		pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
+		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
         track( gray, prev_gray, &pairs );
         //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,

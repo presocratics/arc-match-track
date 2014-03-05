@@ -403,7 +403,10 @@ Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask )
     void
 get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter )
 {
+    cv::Rect fr(0,0,640,480);
     cv::Canny(src, dst, 100, 200, 3);
+    cv::line(dst, fr.tl(), fr.tl() + cv::Point(0,fr.height), 0, 10 );
+    cv::line(dst, fr.tl() + cv::Point(0,fr.height), fr.br(), 0, 10 );
     cv::dilate(dst, dst, cv::Mat(), cv::Point(-1,-1), iter );
     return;
 }		/* -----  end of function get_shorline_mask  ----- */
