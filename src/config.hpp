@@ -37,6 +37,8 @@
 #define ARG_TXT_FILE "-o"                      // Set output text filename.
 
 // Match parameters
+#define ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK "-gft"
+#define ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK 25
 #define ARC_ARG_PATCH_SIZE "-ps"
 #define ARC_DEFAULT_PATCH_SIZE 50
 #define ARC_ARG_NUM_REGIONS "-nr"

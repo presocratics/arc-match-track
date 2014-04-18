@@ -85,6 +85,12 @@ void change_frame_number( int slider, void* fn )
     *fn_typed = ( unsigned int )slider;
 }
 
+void change_good_features_to_track( int slider, void* gft )
+{
+    int* gft_typed = (int *) gft;
+    *gft_typed = slider;
+}
+
 void change_patch_size( int slider, void* ps )
 {
     int* ps_typed = (int *) ps;
@@ -126,11 +132,9 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta )
 {
     list<ARC_Pair> temp;
-    if( 1 )
-    {
-        getReflections( frame, patch_size, nregions, slope, temp );
-		temp.remove_if( within_shore( frame.clone() ) );//Remove pair if not within detected shoreline margin
-    }
+    getReflections( frame, patch_size, nregions, slope, temp );
+    //Remove pair if not within detected shoreline margin
+    temp.remove_if( within_shore( frame.clone() ) );
     pairs->splice( pairs->begin(), temp);
         
     return ;
@@ -175,14 +179,21 @@ void help( string program_name )
          << "Usage: " << program_name << spc << "<list of image files> <frame gyro data> [options]"
          << endl
          << "OPTIONS" << endl
+
          << ARC_ARG_FEATURES_BEFORE_TRACK << tab 
          << "Run goodFeaturesToTrack in each frame before tracking." 
          << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << endl
+         
          << ARG_SHOW_MATCHES << tab << "Show matches." << endl
+
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
+         
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
+
          << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
+
          << ARG_BLUR << tab << "Median blur scene for tracking." << endl
+
          << ARG_NO_BLUR << tab << "No median blur scene for tracking." << endl
 
          << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
@@ -190,6 +201,10 @@ void help( string program_name )
 
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
+
+         << ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK << spc << "[0-50]" << tab 
+         << "Set number of good features to track." << spc << "Default: " 
+         << ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK << endl
 
          << ARC_ARG_NUM_REGIONS << spc << "[0-50]" << tab << "Set desired number of regions to track." << spc
          << "Actual number tracked may be less." << spc
@@ -199,8 +214,11 @@ void help( string program_name )
          << "Default: " << DEFAULT_REFRESH_COUNT << endl
 
          << ARG_VERBOSE << tab << "Verbose output." << endl
+
          << ARG_VERY_VERBOSE << tab << "Very verbose output." << endl
+
          << ARG_VERY_VERY_VERBOSE << tab << "Very very verbose output." << endl
+
          << ARG_DEBUG_MODE << tab << "Show debugging output." << endl
          ;
 
@@ -342,6 +360,7 @@ void arguments::arguments()
     show_track = SHOW_TRACKING;
     video_filename = DEFAULT_VID_FILENAME;
     text_filename = DEFAULT_TXT_FILENAME;
+    good_features_to_track = ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK;
     return;
 }
 
@@ -451,6 +470,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->refresh_count=atoi(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK) ) 
+        {
+            a->good_features_to_track=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -502,6 +526,9 @@ int main(int argc, char** argv)
             150, change_patch_size, &a.patch_size.width );
     createTrackbar( "patch_size_y", DEFAULT_WINDOW_NAME, &a.patch_size.height, 
             150, change_patch_size, &a.patch_size.height );
+    createTrackbar( "good_features_to_track", DEFAULT_WINDOW_NAME, 
+            (int*) &a.good_features_to_track, 50, change_good_features_to_track,
+            &a.good_features_to_track );
     createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
             image_list.size(), change_frame_number, &i );
 
@@ -565,7 +592,7 @@ int main(int argc, char** argv)
         // Filter pairs.
         // Update regions.
         if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
-            update_regions( cur_frame, &pairs, 36, a.patch_size, slope, theta );
+            update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta );
         pairs.remove_if( below_threshold( 3.5 ) ); // patch 50x50
         //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );

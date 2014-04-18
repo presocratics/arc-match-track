@@ -55,10 +55,12 @@ typedef struct arguments_t {
     string text_filename;
     bool blur;
     bool features_before_track;
+    int good_features_to_track;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
+void change_good_features_to_track( int slider, void* gft );
 void change_frame_number( int slider, void* fn );
 void change_patch_size( int slider, void* ps );
 void change_num_regions( int slider, void* nr );
