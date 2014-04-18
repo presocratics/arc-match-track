@@ -153,7 +153,7 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
-        list<ARC_Pair>& outlist )
+        double eig, list<ARC_Pair>& outlist )
 {
 	Mat sourceCopy;
     if( numOfFeatures>((frame.rows*frame.cols)/(4*patchSize.width*patchSize.height))-4 ) 
@@ -198,7 +198,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // each point to prevent clustering
     // TODO: We may be able to get rid of the anti-clustering code.
     //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.2, 20, mask, 3, 0, 0.04);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, mask, 3, 0, 0.04);
     /*
     for( int i=0; i<numOfFeatures; ++i )
     {

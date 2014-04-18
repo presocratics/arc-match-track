@@ -109,6 +109,11 @@ void change_theta_dev( int slider, void* sd )
     *sd_typed = slider/100.0;
 }
 
+void change_eig( int slider, void* eig )
+{
+    double* eig_typed = (double *) eig;
+    *eig_typed = slider/100.0;
+}
 
 // ===  FUNCTION  ======================================================================
 //         Name:  slope_endpoints
@@ -129,10 +134,10 @@ void slope_endpoints ( double slope, Point2f* ol )
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
 void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
-        unsigned int nregions, Size patch_size, double slope, double theta )
+        unsigned int nregions, Size patch_size, double slope, double theta, double eig )
 {
     list<ARC_Pair> temp;
-    getReflections( frame, patch_size, nregions, slope, temp );
+    getReflections( frame, patch_size, nregions, slope, eig, temp );
     //Remove pair if not within detected shoreline margin
     temp.remove_if( within_shore( frame.clone() ) );
     pairs->splice( pairs->begin(), temp);
@@ -361,6 +366,7 @@ void arguments::arguments()
     video_filename = DEFAULT_VID_FILENAME;
     text_filename = DEFAULT_TXT_FILENAME;
     good_features_to_track = ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK;
+    eig = ARC_DEFAULT_EIG;
     return;
 }
 
@@ -475,6 +481,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->good_features_to_track=atof(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_EIG) ) 
+        {
+            a->eig=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -518,8 +529,11 @@ int main(int argc, char** argv)
     // Create GUI objects
     unsigned int i = 0;                               // Image index
     int td = a.theta_dev * 100;
+    int eig = a.eig * 100;
     createTrackbar( "theta_dev", DEFAULT_WINDOW_NAME, &td, 
             100, change_theta_dev, &a.theta_dev );
+    createTrackbar( "eig", DEFAULT_WINDOW_NAME, &eig, 
+            100, change_eig, &a.eig );
     createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
             50, change_num_regions, &a.num_regions );
     createTrackbar( "patch_size_x", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
@@ -527,7 +541,7 @@ int main(int argc, char** argv)
     createTrackbar( "patch_size_y", DEFAULT_WINDOW_NAME, &a.patch_size.height, 
             150, change_patch_size, &a.patch_size.height );
     createTrackbar( "good_features_to_track", DEFAULT_WINDOW_NAME, 
-            (int*) &a.good_features_to_track, 50, change_good_features_to_track,
+            (int*) &a.good_features_to_track, 100, change_good_features_to_track,
             &a.good_features_to_track );
     createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
             image_list.size(), change_frame_number, &i );
@@ -592,7 +606,7 @@ int main(int argc, char** argv)
         // Filter pairs.
         // Update regions.
         if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
-            update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta );
+            update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta, a.eig );
         pairs.remove_if( below_threshold( 3.5 ) ); // patch 50x50
         //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );

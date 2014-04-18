@@ -15,7 +15,8 @@ void findReflections(Mat image, Size patchSize, double slope, list<ARC_Pair> *ou
 //The following functions are meant to be called on by a user, the previous ones are only used by getReflections()
 
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections(Mat frame, Size patchSize, int numOfFeatures, double slope, list<ARC_Pair> &outlist);
+int getReflections( Mat frame, Size patchSize, int numOfFeatures, 
+        double slope, double eig,list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
 void displayReflectionMatches(Mat image, Size patchSize, double slope, double theta, list<ARC_Pair> *outlist);
 //GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT OF THE REFLECTION

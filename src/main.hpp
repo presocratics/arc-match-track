@@ -56,6 +56,7 @@ typedef struct arguments_t {
     bool blur;
     bool features_before_track;
     int good_features_to_track;
+    double eig;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
@@ -69,7 +70,8 @@ void change_theta_dev( int slider, void* sd );
 void slope_endpoints ( double theta, Point2f* ol );
 
 void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
-        unsigned int nregions, Size patch_size, double slope, double theta );
+        unsigned int nregions, Size patch_size, double slope, 
+        double theta, double eig );
 
 void draw_match_by_hand( Mat out_img, Mat* scene, 
         Mat* object, Rect sroi, Rect rroi,

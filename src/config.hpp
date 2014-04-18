@@ -43,6 +43,8 @@
 #define ARC_DEFAULT_PATCH_SIZE 50
 #define ARC_ARG_NUM_REGIONS "-nr"
 #define ARC_DEFAULT_NUM_REGIONS 25
+#define ARC_ARG_EIG "-eig"
+#define ARC_DEFAULT_EIG 0.2
 #define ARC_ARG_THETA_DEV "-td"
 #define ARC_DEFAULT_THETA_DEV 0.10
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
