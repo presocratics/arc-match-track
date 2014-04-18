@@ -57,6 +57,7 @@ typedef struct arguments_t {
     bool features_before_track;
     int good_features_to_track;
     double eig;
+    double std;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;

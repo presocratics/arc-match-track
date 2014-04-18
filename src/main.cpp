@@ -204,6 +204,13 @@ void help( string program_name )
          << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
          << "Default: " << ARC_DEFAULT_THETA_DEV << endl
 
+         << ARC_ARG_EIG << spc << "[0.01-1]" << tab << "Set eigenvalue threshold." 
+         << spc << "Default: " << ARC_DEFAULT_EIG << endl
+
+         << ARC_ARG_STD << spc << "[double]" << tab 
+         << "Set number of standard deviations for acceptable matches." 
+         << spc << "Default: " << ARC_DEFAULT_EIG << endl
+
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
 
@@ -367,6 +374,7 @@ void arguments::arguments()
     text_filename = DEFAULT_TXT_FILENAME;
     good_features_to_track = ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK;
     eig = ARC_DEFAULT_EIG;
+    std = ARC_DEFAULT_STD;
     return;
 }
 
@@ -484,6 +492,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
         if( !strcmp(argv[i], ARC_ARG_EIG) ) 
         {
             a->eig=atof(argv[++i]);
+            continue;
+        }
+        if( !strcmp(argv[i], ARC_ARG_STD) ) 
+        {
+            a->std=atof(argv[++i]);
             continue;
         }
     }
@@ -607,7 +620,7 @@ int main(int argc, char** argv)
         // Update regions.
         if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
             update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta, a.eig );
-        pairs.remove_if( below_threshold( 3.5 ) ); // patch 50x50
+        pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
