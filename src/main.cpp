@@ -207,6 +207,9 @@ void help( string program_name )
          << ARC_ARG_EIG << spc << "[0.01-1]" << tab << "Set eigenvalue threshold." 
          << spc << "Default: " << ARC_DEFAULT_EIG << endl
 
+         << ARC_ARG_MAX_DIST << spc << "[N]" << tab << "Set max distance between source and reflection." 
+         << spc << "Default: " << ARC_DEFAULT_MAX_DIST << endl
+
          << ARC_ARG_STD << spc << "[double]" << tab 
          << "Set number of standard deviations for acceptable matches." 
          << spc << "Default: " << ARC_DEFAULT_EIG << endl
@@ -375,6 +378,7 @@ void arguments::arguments()
     good_features_to_track = ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK;
     eig = ARC_DEFAULT_EIG;
     std = ARC_DEFAULT_STD;
+    max_dist = ARC_DEFAULT_MAX_DIST;
     return;
 }
 
@@ -499,6 +503,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->std=atof(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_MAX_DIST) ) 
+        {
+            a->max_dist=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -621,9 +630,9 @@ int main(int argc, char** argv)
         if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
             update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta, a.eig );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
-        //pairs.remove_if( below_threshold( 2.5 ) ); // patch 70x70
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
-        pairs.remove_if( overlap( a.patch_size ) );
+        //pairs.remove_if( overlap( a.patch_size ) );
+        pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
         track( gray, prev_gray, &pairs );

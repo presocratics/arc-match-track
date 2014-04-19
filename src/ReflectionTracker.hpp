@@ -62,6 +62,17 @@ struct below_threshold {
     double threshold;
 };
 
+struct longer_than {
+    longer_than( double l): length(l){}
+    bool operator() (const ARC_Pair& value ) 
+    { 
+        Point del = value.roi.source-value.roi.reflection;
+        return (del.x*del.x+del.y*del.y)>length*length;
+    }
+    private:
+    double length;
+};
+
 struct within_shore {
     within_shore(Mat src) {
         cv::Mat water_mask;
@@ -87,6 +98,4 @@ struct within_shore {
     cv::Mat shoreMask;
 };
 
-
-		
 #endif /*REFLECTION_TRACKER_H*/

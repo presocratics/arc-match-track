@@ -58,6 +58,7 @@ typedef struct arguments_t {
     int good_features_to_track;
     double eig;
     double std;
+    double max_dist;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;

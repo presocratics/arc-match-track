@@ -47,6 +47,8 @@
 #define ARC_DEFAULT_STD 1.0
 #define ARC_ARG_EIG "-eig"
 #define ARC_DEFAULT_EIG 0.2
+#define ARC_ARG_MAX_DIST "-md"
+#define ARC_DEFAULT_MAX_DIST 20
 #define ARC_ARG_THETA_DEV "-td"
 #define ARC_DEFAULT_THETA_DEV 0.10
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
