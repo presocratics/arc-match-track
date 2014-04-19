@@ -619,7 +619,7 @@ int main(int argc, char** argv)
         find_water(drawn_matches.clone(), water_mask);
         if( water_mask.size()!=cv::Size(0,0) )
         {
-            get_shorline_margin( water_mask, edges, 64 );
+            get_shorline_margin( water_mask, edges, 32 );
             Mat img2;
             cvtColor( edges, img2, CV_GRAY2RGB );
             addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
