@@ -483,3 +483,33 @@ maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
     return masked_contour;
 }		/* -----  end of function maskImage  ----- */
 
+    void
+getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double eig,
+        std::list<ARC_Pair> &outlist )
+{
+    cv::Mat sourceCopy;
+    cv::Mat water_mask;
+    std::vector<cv::Point> points; 
+    cv::Rect frame_rect;
+    cv::Mat edges;
+    bool err;
+	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
+
+    cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
+    frame_rect = cv::Rect( Point(0, 0), frame.size() );
+
+    find_water(frame,water_mask);
+    if( water_mask.size()!=cv::Size(0,0) )
+        get_shorline_margin(water_mask,edges,32);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig,
+            5, edges, 3, 0, 0.04);
+    for( std::vector<cv::Point>::iterator it=points.begin();
+            it!=points.end(); ++it )
+    {
+        cv::Rect b;
+        b = cv::Rect( *it-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
+        ARC_Pair pair( *it, b, 1, frame, &err );
+        if( !err ) outlist.push_back( pair );
+    }
+    return;
+}

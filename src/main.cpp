@@ -137,7 +137,8 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta, double eig )
 {
     list<ARC_Pair> temp;
-    getReflections( frame, patch_size, nregions, slope, eig, temp );
+    //getReflections( frame, patch_size, nregions, slope, eig, temp );
+    getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
     temp.remove_if( within_shore( frame.clone() ) );
     pairs->splice( pairs->begin(), temp);

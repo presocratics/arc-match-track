@@ -17,6 +17,8 @@ void findReflections(Mat image, Size patchSize, double slope, list<ARC_Pair> *ou
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, 
         double slope, double eig,list<ARC_Pair> &outlist );
+void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
+        double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
 void displayReflectionMatches(Mat image, Size patchSize, double slope, double theta, list<ARC_Pair> *outlist);
 //GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT OF THE REFLECTION
@@ -79,7 +81,7 @@ struct within_shore {
         find_water(src,water_mask);
         cv::Mat edges;
         if( water_mask.size()!=cv::Size(0,0) )
-            get_shorline_margin(water_mask,edges,64);
+            get_shorline_margin(water_mask,edges,32);
         shoreMask = edges.clone();
     }   
     bool operator() (const ARC_Pair& value)
