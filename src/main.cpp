@@ -137,8 +137,8 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta, double eig )
 {
     list<ARC_Pair> temp;
-    //getReflections( frame, patch_size, nregions, slope, eig, temp );
-    getShorelinePairs( frame, patch_size, nregions, eig, temp );
+    getReflections( frame, patch_size, nregions, slope, eig, temp );
+    //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
     temp.remove_if( within_shore( frame.clone() ) );
     pairs->splice( pairs->begin(), temp);
@@ -620,7 +620,7 @@ int main(int argc, char** argv)
         find_water(drawn_matches.clone(), water_mask);
         if( water_mask.size()!=cv::Size(0,0) )
         {
-            get_shorline_margin( water_mask, edges, 32 );
+            get_shorline_margin( water_mask, edges, 64 );
             Mat img2;
             cvtColor( edges, img2, CV_GRAY2RGB );
             addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
