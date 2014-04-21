@@ -54,8 +54,7 @@
 #define ARC_ARG_THETA_DEV "-td"
 #define ARC_DEFAULT_THETA_DEV 0.10
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
-#define ARG_NO_BLUR "--no-blur"                       // Don't blur the source before matching.
-#define ARC_DEFAULT_BLUR true
+#define ARC_DEFAULT_BLUR 3
 
 // Track parameters
 #define ARC_ARG_FEATURES_BEFORE_TRACK "-fbt"         // Get goodFeaturesToTrack on point before tracking.

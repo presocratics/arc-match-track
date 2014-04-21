@@ -198,9 +198,7 @@ void help( string program_name )
 
          << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
 
-         << ARG_BLUR << tab << "Median blur scene for tracking." << endl
-
-         << ARG_NO_BLUR << tab << "No median blur scene for tracking." << endl
+         << ARG_BLUR << tab << "[odd number]" << tab << "Median blur kernel size." << endl
 
          << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
          << "Default: " << ARC_DEFAULT_THETA_DEV << endl
@@ -453,7 +451,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     for ( int i = 3; i < argc; i += 1 ) 
     {
         if( !strcmp(argv[i], ARC_ARG_FEATURES_BEFORE_TRACK ) ) a->features_before_track = true;
-        if( !strcmp(argv[i], ARG_BLUR) ) a->blur = true;
         if( !strcmp(argv[i], ARG_DEBUG_MODE) ) a->debug=DEBUG;
         if( !strcmp(argv[i], ARG_VERBOSE) ) a->verbosity=VERBOSE;
         if( !strcmp(argv[i], ARG_VERY_VERBOSE) ) a->verbosity=VERY_VERBOSE;
@@ -519,6 +516,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->start_frame=atof(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARG_BLUR) ) 
+        {
+            a->blur=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -543,7 +545,6 @@ int main(int argc, char** argv)
 
     if( a.debug==DEBUG )
     {
-        string blur_status = ( a.blur ) ? "true" : "false" ;
         cout
             << "ARGUMENTS" << endl
             << "Refresh Count:" << tab << a.refresh_count << endl
@@ -551,7 +552,7 @@ int main(int argc, char** argv)
             << "Verbosity:" << tab << a.verbosity << endl
             << "Show Match:" << tab<< a.show_match << endl
             << "Show Track:" << tab << a.show_track << endl
-            << "Blur: " << tab << blur_status << endl
+            << "Blur: " << tab << a.blur << endl
             << "Video Filename:" << tab << a.video_filename <<
             endl;
     }
@@ -621,9 +622,7 @@ int main(int argc, char** argv)
         cvtColor(cur_frame, gray, CV_BGR2GRAY);
         if( a.blur )
         {
-            //medianBlur( gray, gray, 7 );        // TODO: Should be parameter
-            //medianBlur( gray, gray, 5 );        // TODO: Should be parameter
-            medianBlur( gray, gray, 3 );        // TODO: Should be parameter
+            medianBlur( gray, gray, a.blur );        
         }
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);

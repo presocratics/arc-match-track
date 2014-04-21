@@ -195,46 +195,11 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 		rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
 	}
 
-    /*
-	list<ARC_Pair> tempoutlist;
-	tempoutlist = outlist;
-	outlist.clear();
-    */
-
-    // Adds points from goodFeaturesToTrack one by one, and creates a mask for
-    // each point to prevent clustering
-    // TODO: We may be able to get rid of the anti-clustering code.
-    //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
-    find_water(frame,water_mask);
+    Mat water_copy = frame.clone();
+    find_water(water_copy,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
     goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, edges, 3, 0, 0.04);
-    /*
-    for( int i=0; i<numOfFeatures; ++i )
-    {
-		vector<Point> tempPoint;
-		goodFeaturesToTrack( sourceCopy, tempPoint, 1, .01, patchSize.width+10, Mat(), 3, 0, 0.04 );
-		
-		points.push_back( tempPoint[0] );	
-		Rect blockedRegionSource( tempPoint[0]-Point(patchSize), 2*Point(patchSize) );
-		rectangle( sourceCopy, blockedRegionSource, 0, CV_FILLED );
-	}
-
-    verbosity=VERBOSE;
-    if( verbosity>=VERBOSE )
-    {
-        cout << "Ran goodFeaturesToTrack" << endl;
-        cout << "Features To Track" << endl;
-        if( verbosity>=VERY_VERBOSE )
-        {
-            for( size_t i=0; i<points.size(); ++i )
-            {
-                cout << "x: " << points[i].x-20 << " y: " << points[i].y-20 << endl;
-            }
-        }
-    }
-    verbosity=NOT_VERBOSE;
-    */
 
     Rect frame_rect( Point(0, 0), frame.size() );
     for( vector<Point>::iterator it=points.begin();

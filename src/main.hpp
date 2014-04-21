@@ -53,7 +53,7 @@ typedef struct arguments_t {
     Size patch_size;
     string video_filename;
     string text_filename;
-    bool blur;
+    int blur;
     bool features_before_track;
     int good_features_to_track;
     double eig;
