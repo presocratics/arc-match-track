@@ -704,9 +704,12 @@ int main(int argc, char** argv)
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
+        stringstream frame_number;
+        frame_number << i;
         Point2f ol[2];
         slope_endpoints( slope, ol );
         line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
+        putText( drawn_matches, (frame_number.str()).c_str(), Point(5,15) ,FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
         imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         waitKey(5);
