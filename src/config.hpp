@@ -36,6 +36,8 @@
 #define ARG_VID_FILE "-vf"                      // Set video filename.
 #define ARG_TXT_FILE "-o"                      // Set output text filename.
 
+#define ARC_ARG_START_FRAME "-sf"
+#define ARC_DEFAULT_START_FRAME 0
 // Match parameters
 #define ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK "-gft"
 #define ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK 25

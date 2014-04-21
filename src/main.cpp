@@ -215,6 +215,10 @@ void help( string program_name )
          << "Set number of standard deviations for acceptable matches." 
          << spc << "Default: " << ARC_DEFAULT_EIG << endl
 
+         << ARC_ARG_START_FRAME << spc << "[int]" << tab 
+         << "Set the frame number to start from."
+         << spc << "Default: " << ARC_DEFAULT_START_FRAME << endl
+
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
 
@@ -380,6 +384,7 @@ void arguments::arguments()
     eig = ARC_DEFAULT_EIG;
     std = ARC_DEFAULT_STD;
     max_dist = ARC_DEFAULT_MAX_DIST;
+    start_frame = ARC_DEFAULT_START_FRAME;
     return;
 }
 
@@ -509,6 +514,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->max_dist=atof(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_START_FRAME) ) 
+        {
+            a->start_frame=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -550,7 +560,7 @@ int main(int argc, char** argv)
     //get_regions( argv[2], &regions );           // Reads in the region list.
 
     // Create GUI objects
-    unsigned int i = 0;                               // Image index
+    unsigned int i = a.start_frame;                               // Image index
     int td = a.theta_dev * 100;
     int eig = a.eig * 100;
     createTrackbar( "theta_dev", DEFAULT_WINDOW_NAME, &td, 

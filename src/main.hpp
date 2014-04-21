@@ -59,6 +59,7 @@ typedef struct arguments_t {
     double eig;
     double std;
     double max_dist;
+    int start_frame;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
