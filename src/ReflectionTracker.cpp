@@ -24,10 +24,12 @@ bool displayWindows;
 Rect findBestMatchLocation( double slope, Mat image, Rect source_rect, 
         double* nsigma, Mat mask )
 {
-    Mat image_copy = image.clone();
+    Mat image_gray;
+    cvtColor( image, image_gray, CV_RGB2GRAY, 1 );
+    Mat image_copy = image_gray.clone();
     
     // Create template.
-    Mat image_template_copy = image.clone();
+    Mat image_template_copy = image_gray.clone();
     Mat sourceTemplate = image_template_copy( source_rect );
     flip( sourceTemplate, sourceTemplate, 0 );
 
@@ -56,16 +58,20 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     int match_method = CV_TM_CCOEFF_NORMED; // 4 seemed good for stddev thresholding.
 
 
+    Mat water_mask, edges;
     Mat search_image;
     search_image = image_copy;
 
     //matchTemplate( masked_scene, sourceTemplate, result, match_method );
-    matchTemplate( search_image, sourceTemplate, result, match_method );
+    matchTemplate( image_gray, sourceTemplate, result, match_method );
 
     if( verbosity>=VERY_VERBOSE ) 
         cout << "Ran matchTemplate and normalized\n";
     double minVal, maxVal; 
     Point minLoc, maxLoc, matchLoc;
+    find_water(image,water_mask);
+    if( water_mask.size()!=cv::Size(0,0) )
+        get_shorline_margin(water_mask,edges,64);
     minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
      
     if( match_method == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
@@ -173,6 +179,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 	vector<Point> points; 
 
     //vector<Rect> originalMatches;
+    Mat water_mask, edges;
 
 	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
 
@@ -198,7 +205,10 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // each point to prevent clustering
     // TODO: We may be able to get rid of the anti-clustering code.
     //goodFeaturesToTrack( sourceCopy, points, numOfFeatures, 0.01, patchSize.width+10, Mat(), 3, 0, 0.04);
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, mask, 3, 0, 0.04);
+    find_water(frame,water_mask);
+    if( water_mask.size()!=cv::Size(0,0) )
+        get_shorline_margin(water_mask,edges,64);
+    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, edges, 3, 0, 0.04);
     /*
     for( int i=0; i<numOfFeatures; ++i )
     {

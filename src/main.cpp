@@ -612,8 +612,8 @@ int main(int argc, char** argv)
         if( a.blur )
         {
             //medianBlur( gray, gray, 7 );        // TODO: Should be parameter
-            medianBlur( gray, gray, 5 );        // TODO: Should be parameter
-            //medianBlur( gray, gray, 3 );        // TODO: Should be parameter
+            //medianBlur( gray, gray, 5 );        // TODO: Should be parameter
+            medianBlur( gray, gray, 3 );        // TODO: Should be parameter
         }
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
