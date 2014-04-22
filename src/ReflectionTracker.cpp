@@ -172,6 +172,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 
 	frame.copyTo( sourceCopy );
 	cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
+    equalizeHist( sourceCopy, sourceCopy );
 
     if( verbosity>=VERBOSE ) 
         cout << "Image loaded and converted to grayscale\n";	
