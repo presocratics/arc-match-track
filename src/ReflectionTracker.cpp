@@ -143,16 +143,6 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
     b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, Mat() );
     // Create ARC_Pair
     pair.set_reflection( frame, b, patchSize );
-    /*
-    Scalar reflectionColor(0,0,0);
-    Scalar pointColor (0,255,0);
-    circle(sourceCopy,pair.roi.source,4,reflectionColor,-1,8,0);
-    circle(sourceCopy,pair.roi.reflection,4,pointColor,-1,8,0);
-    line(sourceCopy,pair.roi.source,pair.roi.reflection,reflectionColor,1,CV_AA,0);
-    namedWindow("M", CV_WINDOW_AUTOSIZE );
-    imshow( "M", sourceCopy );
-    waitKey( 0 );
-    */
     return true;
 }		/* -----  end of function rematch  ----- */
 
@@ -224,101 +214,8 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
         if( !err ) outlist.push_back( pair );
     }
 	
-    /*
-	if( verbosity>=VERY_VERBOSE ) 
-        cout << "Top left corners of templates\n";
-
-	if( verbosity>=VERBOSE )
-    {
-		cout << "Verified Points to Match:" << endl;
-		for( size_t i=0; i<points.size(); i++ )
-        {
-			cout << i <<" at " << points[i] << endl;
-		}
-	}
-    */
-
 	return outlist.size();
 }
-
-/*
-// GIVEN AN IMAGE, A PATCHSIZE FOR THE INITIAL TEMPLATES AND A SIZE FOR THE
-// SECONDARY, SMALLER, NESTED TEMPLATES, PUTS A SEQUENCE OF REAL OBJECTS AND
-// THEIR REFLECTIONS IN AN OUTVECTOR OF ARC_PAIR'S. 
-int getReflectionsPYR( Mat &image, Size outerPatchSize, Size innerPatchSize, 
-        double slope, double theta, list<ARC_Pair> &outlist )
-{
-	Size patchSize = innerPatchSize;
-    list<ARC_Pair> initial_list;
-	list<ARC_Pair> final_list;
-    // Gets an initial list of regions and reflections that can then be used
-    // to match much smaller templates.
-    getReflections( image, outerPatchSize, 15, slope, initial_list );
-	//cout << "Initial templates found\n";
-	//cout << "" << endl;
-	Mat imageClone = image.clone();
-    
-    // Filtering
-    //initial_list.remove_if( below_threshold( mean[0] + N*std[0] ) ) ;
-    initial_list.remove_if( outside_theta(theta) );
-    initial_list.remove_if( below_threshold( 3 ) ) ;
-    initial_list.remove_if( overlap() );
-
-    Scalar red (0,0,255);
-    Scalar black(0,0,0);
-	//Goes through every region found in the original image
-    list<ARC_Pair> sublist;
-    for( list<ARC_Pair>::iterator it=initial_list.begin();
-            it!=initial_list.end(); ++it )
-    {
-		vector<Point> features;
-
-        // Finds good points to track within one of the regions while
-        // checking for proximity to boundaries and converting to the
-        // original coordinate system.
-        Mat gft_mask, gft_masked_scene;
-        gft_mask = Mat::zeros( image.size(), CV_8UC1 );
-        rectangle( gft_mask, it->roi.source, 255, CV_FILLED );
-        imageClone.copyTo( gft_masked_scene, gft_mask );
-        //Mat original = imageClone( it->roi.source );
-        Mat original = imageClone;
-		cvtColor( original, original, CV_RGB2GRAY, 1 );
-		goodFeaturesToTrack( original, features, 3, .01, patchSize.width+3, gft_mask, 3, false, 0.04 );
-		//Creates a mask from the original larger reflected region, from which smaller reflection matches will be found
-		Mat mask, masked_scene;
-		mask = Mat::zeros( image.size(), CV_8UC1 );
-		rectangle( mask, it->roi.reflection, 255, CV_FILLED );
-        
-        Rect frame_rect( it->roi.source.tl(), it->roi.source.size() );
-        for( vector<Point>::iterator subit=features.begin();
-            subit!=features.end(); ++subit )
-        {
-            Rect a, b;
-            double nsigma;
-            // Get Rect A
-            a = Rect( *subit-( .5*Point( patchSize ) ), patchSize ) & frame_rect;
-            if( a.width==0 || a.height==0 ) continue;
-            // Get Rect B and nsigma
-            b = findBestMatchLocation( slope, imageClone, a, &nsigma, mask, false );
-            // Create ARC_Pair
-            ARC_Pair pair( a, b, nsigma );
-            // Add to list
-            sublist.push_back( pair );
-        }
-        //sublist.remove_if( below_threshold( 25.262 ) );
-        //sublist.remove_if( overlap() );
-        //sublist.remove_if( outside_theta(theta) );
-        sublist.remove_if( below_threshold(22) );
-	}
-    //namedWindow( "MARTIN", CV_WINDOW_AUTOSIZE );
-    //imshow( "MARTIN", image );
-    //waitKey( 15 );
-	//cout << "Reflections found\n";
-	//return outvector.size();
-    outlist = sublist;
-    return 1;
-}
-*/
 
 // === FUNCTION ======================================================================
 // Name: get_masked_frame
