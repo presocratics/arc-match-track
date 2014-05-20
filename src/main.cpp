@@ -140,7 +140,7 @@ void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
     getReflections( frame, patch_size, nregions, slope, eig, temp );
     //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
-    temp.remove_if( within_shore( frame.clone() ) );
+    //temp.remove_if( within_shore( frame.clone() ) );
     pairs->splice( pairs->begin(), temp);
         
     return ;
@@ -586,7 +586,7 @@ int main(int argc, char** argv)
     // Init Video
     Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
     VideoWriter vidout;
-    vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
+    vidout.open( a.video_filename, CV_FOURCC('X','2','6','4'), 
             20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
@@ -627,6 +627,7 @@ int main(int argc, char** argv)
         Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
         find_water(drawn_matches.clone(), water_mask);
+        /*
         if( water_mask.size()!=cv::Size(0,0) )
         {
             get_shorline_margin( water_mask, edges, 64 );
@@ -634,6 +635,7 @@ int main(int argc, char** argv)
             cvtColor( edges, img2, CV_GRAY2RGB );
             addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
         }
+        */
 
         // Filter pairs.
         // Update regions.

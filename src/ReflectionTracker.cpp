@@ -69,9 +69,11 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
         cout << "Ran matchTemplate and normalized\n";
     double minVal, maxVal; 
     Point minLoc, maxLoc, matchLoc;
+    /*
     find_water(image,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
+        */
     minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
      
     if( match_method == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
@@ -187,9 +189,11 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 	}
 
     Mat water_copy = frame.clone();
+    /*
     find_water(water_copy,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
+        */
     goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, edges, 3, 0, 0.04);
 
     Rect frame_rect( Point(0, 0), frame.size() );
