@@ -15,7 +15,6 @@
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "ARC_Point_Pair.hpp"
-#include "ARC_Match.hpp"
 #include "config.hpp"
 
 using namespace cv;
