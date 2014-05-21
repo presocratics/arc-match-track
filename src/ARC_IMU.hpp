@@ -3,8 +3,6 @@
 #include <cv.h>
 #include <iostream>
 #include "config.hpp"
-using namespace cv;
-using namespace std;
 
 // =====================================================================================
 //        Class:  ARC_IMU
@@ -17,13 +15,13 @@ class ARC_IMU
         ARC_IMU ( );                             // constructor 
 
         // ====================  ACCESSORS     ======================================= 
-        Matx33d get_A()
+        cv::Matx33d get_A()
         {
             return A;
         }
 
         // ====================  MUTATORS      ======================================= 
-        void set_A( Matx33d am )
+        void set_A( cv::Matx33d am )
         {
             A = am;
         }
@@ -31,10 +29,10 @@ class ARC_IMU
         // ====================  OPERATORS     ======================================= 
 
         // ====================  METHODS       ======================================= 
-        Point3f poToCr( Point2f obj2d, Matx33d rot_mat );
-        Point2f CrTopo( Point3f obj3d, Matx33d rot_mat );
-        double get_rotation_angle( Matx33d rot_mat ) ;
-        Matx33d calc_rotation_matrix( Point3f imu_data );
+        cv::Point3f poToCr( cv::Point2f obj2d, cv::Matx33d rot_mat );
+        cv::Point2f CrTopo( cv::Point3f obj3d, cv::Matx33d rot_mat );
+        double get_rotation_angle( cv::Matx33d rot_mat ) ;
+        cv::Matx33d calc_rotation_matrix( cv::Point3f imu_data );
         double theta_to_slope( double theta )
         {
             return tan( theta );
@@ -47,11 +45,11 @@ class ARC_IMU
 
     private:
         // ====================  METHODS       ======================================= 
-        Matx33d quaternion_to_rotation ( double* q );
+        cv::Matx33d quaternion_to_rotation ( double* q );
 
         // ====================  DATA MEMBERS  ======================================= 
-        Matx33d A;
-        Matx33d Rc2b;
+        cv::Matx33d A;
+        cv::Matx33d Rc2b;
 
 }; // -----  end of class ARC_IMU  ----- 
 
