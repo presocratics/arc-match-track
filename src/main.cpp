@@ -20,7 +20,6 @@
 #include "config.hpp"
 #include "ARC_IMU.hpp"
 //#define DEBUG_IMU
-using namespace std;
 
 
 /* 
@@ -528,7 +527,7 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 
 int main(int argc, char** argv)
 {
-    std::vector<string> image_list;                  // Video frames for tracking.
+    std::vector<std::string> image_list;                  // Video frames for tracking.
     std::vector<cv::Point3f> imu_list;                  // IMU data for slope.
     std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
 
@@ -590,7 +589,7 @@ int main(int argc, char** argv)
             20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
-        cerr << "Could not open video file: " << a.video_filename << std::endl;
+        std::cerr << "Could not open video file: " << a.video_filename << std::endl;
         exit( EXIT_FAILURE );
     }
 
@@ -606,7 +605,7 @@ int main(int argc, char** argv)
     {
         cv::Mat water_mask, edges;
         cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
-        if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << std::endl;
+        if( a.verbosity>=VERBOSE ) std::cout << "Frame: " << image_list[i] << std::endl;
         cv::Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         if( theta==-1 )
             theta = imu.get_rotation_angle( rotation_matrix );
@@ -696,7 +695,7 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                cout << image_list[i] << spc
+                std::cout << image_list[i] << spc
                      << *it
                      << std::endl;
             }
@@ -706,7 +705,7 @@ int main(int argc, char** argv)
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
-        stringstream frame_number;
+        std::stringstream frame_number;
         frame_number << i;
         cv::Point2f ol[2];
         slope_endpoints( slope, ol );
@@ -781,8 +780,8 @@ int main ( int argc, char *argv[] )
             line( img, s, r, black, 1, CV_AA, 0 );
         }
             
-        cout << "Slope: " << slope << std::endl;
-        cout << "Theta: " << theta << std::endl;
+        std::cout << "Slope: " << slope << std::endl;
+        std::cout << "Theta: " << theta << std::endl;
         //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, theta, outlist );
         //displayReflectionMatches( img, outerPatchSize, slope, theta, &outlist );
         vidout << img;

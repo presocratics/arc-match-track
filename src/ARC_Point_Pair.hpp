@@ -1,7 +1,6 @@
 #ifndef  ARC_POINT_PAIR_INC
 #define  ARC_POINT_PAIR_INC
 #include <cv.h>
-using namespace cv;
 /*
  * =====================================================================================
  *        Class:  ARC_Point_Pair
@@ -12,7 +11,7 @@ class ARC_Point_Pair
 {
     public:
         /* ====================  DATA MEMBERS  ======================================= */
-        Point source, reflection;
+        cv::Point source, reflection;
 
 }; /* -----  end of class ARC_Point_Pair  ----- */
 #endif   /* ----- #ifndef ARC_Point_Pair_INC  ----- */
