@@ -12,8 +12,6 @@
 #include "config.hpp"
 #include "ARC_Pair.hpp"
 #include "ReflectionTracker.hpp"
-using namespace cv;
-using namespace std;
 
 int verbosity;
 bool displayRegions;
@@ -21,29 +19,29 @@ bool displayWindows;
 
 
 //RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
-Rect findBestMatchLocation( double slope, Mat image, Rect source_rect, 
-        double* nsigma, Mat mask )
+cv::Rect findBestMatchLocation( double slope, cv::Mat image, cv::Rect source_rect, 
+        double* nsigma, cv::Mat mask )
 {
-    Mat image_gray;
+    cv::Mat image_gray;
     cvtColor( image, image_gray, CV_RGB2GRAY, 1 );
-    Mat image_copy = image_gray.clone();
+    cv::Mat image_copy = image_gray.clone();
     
     // Create template.
-    Mat image_template_copy = image_gray.clone();
-    Mat sourceTemplate = image_template_copy( source_rect );
+    cv::Mat image_template_copy = image_gray.clone();
+    cv::Mat sourceTemplate = image_template_copy( source_rect );
     flip( sourceTemplate, sourceTemplate, 0 );
 
     // Creates results matrix where the top left corner of the 
     // template is slid across each pixel of the source
     int result_cols = image.cols-sourceTemplate.cols+1;
     int result_rows = image.rows-sourceTemplate.rows+1;
-    Mat result;
+    cv::Mat result;
     result.create( result_cols,result_rows, CV_32FC1 );
 
     // Mask image to match only in selected ROI.
     if( !mask.empty() )
     {
-        Mat tmp;
+        cv::Mat tmp;
 		image_copy.copyTo( tmp, mask );
         image_copy = tmp;
     }
@@ -58,23 +56,23 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     int match_method = CV_TM_CCOEFF_NORMED; // 4 seemed good for stddev thresholding.
 
 
-    Mat water_mask, edges;
-    Mat search_image;
+    cv::Mat water_mask, edges;
+    cv::Mat search_image;
     search_image = image_copy;
 
     //matchTemplate( masked_scene, sourceTemplate, result, match_method );
     matchTemplate( image_gray, sourceTemplate, result, match_method );
 
     if( verbosity>=VERY_VERBOSE ) 
-        cout << "Ran matchTemplate and normalized\n";
+        std::cout << "Ran matchTemplate and normalized\n";
     double minVal, maxVal; 
-    Point minLoc, maxLoc, matchLoc;
+    cv::Point minLoc, maxLoc, matchLoc;
     /*
     find_water(image,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
         */
-    minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, Mat() );
+    minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
      
     if( match_method == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
     {
@@ -84,38 +82,38 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
     {
         matchLoc = maxLoc;
     }
-    Scalar mean, stddev;
-    meanStdDev( result, mean, stddev, Mat() );
+    cv::Scalar mean, stddev;
+    meanStdDev( result, mean, stddev, cv::Mat() );
     *nsigma = ( maxVal-mean[0] )/ stddev[0];
     // matchLoc is the location of the top left corner of the reflection
     // that matchTemplate found
 
 
     if( verbosity==VERY_VERBOSE ) 
-        cout << "Max value from results matrix: " << result.at<float>(matchLoc.x,matchLoc.y) << endl;
+        std::cout << "Max value from results matrix: " << result.at<float>(matchLoc.x,matchLoc.y) << std::endl;
 
     bool debugResults = false;
     if( debugResults ) 
     {
         int surroundingPixel = 5;
-        cout << "TL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y-surroundingPixel)
+        std::cout << "TL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y-surroundingPixel)
              << " T: " << result.at<float>(matchLoc.x,matchLoc.y-surroundingPixel)
              << " TR: " << result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y-surroundingPixel)
-             << endl;
+             << std::endl;
 
-        cout << "BL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y+surroundingPixel)
+        std::cout << "BL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y+surroundingPixel)
              << " B: " << result.at<float>(matchLoc.x,matchLoc.y+surroundingPixel) 
              << " BR: " <<result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y+surroundingPixel)
-             << endl;
-        Scalar reflectionColor (232,49,190);
-        rectangle( result, matchLoc, Point( matchLoc.x+sourceTemplate.cols, matchLoc.y+sourceTemplate.rows ), reflectionColor , 2, 8, 0 );
-        imshow( "Source", result);//not right	
-        namedWindow( "Results", CV_WINDOW_AUTOSIZE );
-        imshow( "Results", result );
-        moveWindow( "Results", 700, 0 );
-        waitKey( 0 );
+             << std::endl;
+        cv::Scalar reflectionColor (232,49,190);
+        rectangle( result, matchLoc, cv::Point( matchLoc.x+sourceTemplate.cols, matchLoc.y+sourceTemplate.rows ), reflectionColor , 2, 8, 0 );
+        cv::imshow( "Source", result);//not right	
+        cv::namedWindow( "Results", CV_WINDOW_AUTOSIZE );
+        cv::imshow( "Results", result );
+        cv::moveWindow( "Results", 700, 0 );
+        cv::waitKey( 0 );
     }
-    return Rect( matchLoc, source_rect.size() );
+    return cv::Rect( matchLoc, source_rect.size() );
 }
 
 
@@ -126,23 +124,23 @@ Rect findBestMatchLocation( double slope, Mat image, Rect source_rect,
  * =====================================================================================
  */
     bool
-rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
+rematch ( cv::Mat frame, cv::Size patchSize, ARC_Pair& pair, double slope )
 {
     if( !frame.data )
     {
-        cout << "Image couldn't be loaded." << endl;
+        std::cout << "Image couldn't be loaded." << std::endl;
         exit( EXIT_FAILURE );
     }
-    Mat sourceCopy;
+    cv::Mat sourceCopy;
     cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
-    Rect frame_rect( Point(0, 0), frame.size() );
-    Rect a, b;
+    cv::Rect frame_rect( cv::Point(0, 0), frame.size() );
+    cv::Rect a, b;
     double nsigma;
     // Get Rect A
-    a = Rect( pair.roi.source-( .5*Point( patchSize ) ), patchSize ) & frame_rect;
+    a = cv::Rect( pair.roi.source-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
     if( a.width==0 || a.height==0 ) return false;
     // Get Rect B and nsigma
-    b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, Mat() );
+    b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, cv::Mat() );
     // Create ARC_Pair
     pair.set_reflection( frame, b, patchSize );
     return true;
@@ -150,45 +148,45 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
+int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double slope,
         double eig, std::list<ARC_Pair>& outlist )
 {
-	Mat sourceCopy;
+    cv::Mat sourceCopy;
     if( numOfFeatures>((frame.rows*frame.cols)/(4*patchSize.width*patchSize.height))-4 ) 
-        cerr<<"Large number of features requested for given patchSize, goodFeaturesToTrack might crash\n";
+        std::cerr<<"Large number of features requested for given patchSize, goodFeaturesToTrack might crash\n";
 	if( !frame.data ) 
     {
-        cout << "Image couldn't be loaded\n";
+        std::cout << "Image couldn't be loaded\n";
         exit( EXIT_FAILURE );
     }
 
 	frame.copyTo( sourceCopy );
 	cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
-    equalizeHist( sourceCopy, sourceCopy );
+    cv::equalizeHist( sourceCopy, sourceCopy );
 
     if( verbosity>=VERBOSE ) 
-        cout << "Image loaded and converted to grayscale\n";	
+        std::cout << "Image loaded and converted to grayscale\n";	
 
-	vector<Point> points; 
+    std::vector<cv::Point> points; 
 
     //vector<Rect> originalMatches;
-    Mat water_mask, edges;
+    cv::Mat water_mask, edges;
 
-	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
+    cv::Mat mask = cv::Mat::ones(frame.size(),CV_8UC1)*255;
 
     // Goes through any ARC_Pairs already in the outvector and creates a mask to
     // prevent rematching those regions
-    Size shift( 20, 20 );
+    cv::Size shift( 20, 20 );
     for( std::list<ARC_Pair>::iterator it=outlist.begin();
             it!=outlist.end(); ++it )
     {
-		Rect blockedRegionSource( it->roi.source-0.5*Point(shift), shift );
-		Rect blockedRegionReflection( it->roi.reflection-0.5*Point(shift), shift );
+        cv::Rect blockedRegionSource( it->roi.source-0.5*cv::Point(shift), shift );
+        cv::Rect blockedRegionReflection( it->roi.reflection-0.5*cv::Point(shift), shift );
 		rectangle( mask, blockedRegionSource, 0, CV_FILLED );
 		rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
 	}
 
-    Mat water_copy = frame.clone();
+    cv::Mat water_copy = frame.clone();
     /*
     find_water(water_copy,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
@@ -196,18 +194,18 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
         */
     goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, edges, 3, 0, 0.04);
 
-    Rect frame_rect( Point(0, 0), frame.size() );
-    for( vector<Point>::iterator it=points.begin();
+    cv::Rect frame_rect( cv::Point(0, 0), frame.size() );
+    for( std::vector<cv::Point>::iterator it=points.begin();
             it!=points.end(); ++it )
     {
-        Mat sourceCopy2 = frame.clone();
-        Rect a, b;
+        cv::Mat sourceCopy2 = frame.clone();
+        cv::Rect a, b;
         double nsigma;
         // Get Rect A
-        a = Rect( *it-( .5*Point( patchSize ) ), patchSize ) & frame_rect;
+        a = cv::Rect( *it-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
-		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, Mat() );
+		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, cv::Mat() );
         //Mat mask;
         //get_masked_frame( a, slope, &sourceCopy2, &mask );
 		//b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, mask );
@@ -225,44 +223,44 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
 // Name: get_masked_frame
 // Description: Masks the frame based on slope and roi. Mask returned by pointer.
 // =====================================================================================
-Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask )
+cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* mask )
 {
-    Point corners[1][4];
+    cv::Point corners[1][4];
     //Set the frame
-    *mask=Mat::zeros( frame->size(), CV_8UC1 );
-    Mat masked_frame;
+    *mask=cv::Mat::zeros( frame->size(), CV_8UC1 );
+    cv::Mat masked_frame;
     if( slope==0 )
     {
         // TODO: Could use direction handling here.
         corners[0][0] = roi.br();
-        corners[0][1] = Point( frame->cols, roi.y+roi.height );
-        corners[0][2] = corners[0][1]-Point( 0, roi.height );
-        corners[0][3] = corners[0][0]-Point( 0, roi.height );
+        corners[0][1] = cv::Point( frame->cols, roi.y+roi.height );
+        corners[0][2] = corners[0][1]-cv::Point( 0, roi.height );
+        corners[0][3] = corners[0][0]-cv::Point( 0, roi.height );
     }
     else if( isinf( slope ) )
     {
         {
-            corners[0][0] = Point( roi.x, frame->rows );
-            corners[0][1] = Point( roi.x, roi.y+roi.height);
+            corners[0][0] = cv::Point( roi.x, frame->rows );
+            corners[0][1] = cv::Point( roi.x, roi.y+roi.height);
         }
         {
             corners[0][0] = roi.tl();
-            corners[0][1] = Point( roi.x, 0 );
+            corners[0][1] = cv::Point( roi.x, 0 );
         }
-        corners[0][2] = corners[0][1]+Point( roi.width, 0);
-        corners[0][3] = corners[0][0]+Point( roi.width, 0 );
+        corners[0][2] = corners[0][1]+cv::Point( roi.width, 0);
+        corners[0][3] = corners[0][0]+cv::Point( roi.width, 0 );
     }
     else
     {
         corners[0][0].x = ( int ) ( (frame->rows + slope*roi.x-roi.y)/slope );
         corners[0][0].y = frame->rows;
-        corners[0][1] = Point( ( int )( (-roi.y + slope * roi.x ) / slope ), 0 );
-        corners[0][2] = corners[0][1] + Point(roi.width, 0);
-        corners[0][3] = corners[0][0] + Point(roi.width, 0);
+        corners[0][1] = cv::Point( ( int )( (-roi.y + slope * roi.x ) / slope ), 0 );
+        corners[0][2] = corners[0][1] + cv::Point(roi.width, 0);
+        corners[0][3] = corners[0][0] + cv::Point(roi.width, 0);
     }
 
     // This is weird, but follows OpenCV docs.
-    const Point* ppt[1] = { corners[0] };
+    const cv::Point* ppt[1] = { corners[0] };
     const int npt[] = { 4 };
 
     fillPoly( *mask, ppt, npt, 1, 255 );
@@ -370,10 +368,10 @@ getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double 
     cv::Rect frame_rect;
     cv::Mat edges;
     bool err;
-	Mat mask = Mat::ones(frame.size(),CV_8UC1)*255;
+    cv::Mat mask = cv::Mat::ones(frame.size(),CV_8UC1)*255;
 
     cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
-    frame_rect = cv::Rect( Point(0, 0), frame.size() );
+    frame_rect = cv::Rect( cv::Point(0, 0), frame.size() );
 
     find_water(frame,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
