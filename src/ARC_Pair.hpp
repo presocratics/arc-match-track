@@ -39,7 +39,7 @@ class ARC_Pair
         // ====================  ACCESSORS     ======================================= 
 
         // ====================  MUTATORS      ======================================= 
-        bool set_reflection( cv::Mat img, cv::Rect r, Size s );
+        bool set_reflection( cv::Mat img, cv::Rect r, cv::Size s );
 
         // ====================  OPERATORS     ======================================= 
 
@@ -70,7 +70,7 @@ class ARC_Pair
 
     private:
         // ====================  METHODS       ======================================= 
-        cv::Point convert_to_point ( cv::Rect r, cv::Mat& img, Size s );
+        cv::Point convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s );
 
         // ====================  DATA MEMBERS  ======================================= 
 

@@ -6,13 +6,13 @@
 #include <opencv2/highgui/highgui_c.h>
 #include "ARC_Pair.hpp"
 
-Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask );
-bool rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope );
-void createTemplatesFromVector(Mat image, Size patchSize, vector<Point> *points,
+cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* mask );
+bool rematch ( cv::Mat frame, cv::Size patchSize, ARC_Pair& pair, double slope );
+void createTemplatesFromVector(cv::Mat image, cv::Size patchSize, std::vector<cv::Point> *points,
         std::list<ARC_Pair> *outlist);
-Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, 
-        double* nsigma, Mat mask );
-void findReflections(Mat image, Size patchSize, double slope, 
+cv::Rect findBestMatchLocation(double slope, cv::Mat image,  cv::Rect source_rect, 
+        double* nsigma, cv::Mat mask );
+void findReflections(cv::Mat image, cv::Size patchSize, double slope, 
         std::list<ARC_Pair> *outlist);
 
 //The following functions are meant to be called on by a user, the previous ones
@@ -20,21 +20,21 @@ void findReflections(Mat image, Size patchSize, double slope,
 
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL
 //OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( Mat frame, Size patchSize, int numOfFeatures, 
+int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, 
         double slope, double eig,std::list<ARC_Pair> &outlist );
 void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
         double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
-void displayReflectionMatches(Mat image, Size patchSize, double slope, 
+void displayReflectionMatches(cv::Mat image, cv::Size patchSize, double slope, 
         double theta, std::list<ARC_Pair> *outlist);
 //GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT OF 
 //THE REFLECTION
-Rect findOneReflection(double slope,Mat source, Rect tmplte);
+cv::Rect findOneReflection(double slope, cv::Mat source, cv::Rect tmplte);
 //GIVEN A source MAT, patchSize, slope INFORMATION, AND A BOOLEAN FLAG, IT 
 //TRIES TO RETURN A NEW GOOD FEATURE AND IT'S REFLECTION
-ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, 
+ARC_Pair getOneReflectionPair(cv::Mat image, int patchSize, double slope, 
         bool *regionFound);
-int getReflectionsPYR(Mat &image, Size outerPatchSize, Size innerPatchSize, 
+int getReflectionsPYR(cv::Mat &image, cv::Size outerPatchSize, cv::Size innerPatchSize, 
         double slope, double theta, std::list<ARC_Pair> &outlist);
 
 void get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter );
@@ -48,7 +48,7 @@ struct outside_theta {
     }
     bool operator() (const ARC_Pair& value ) 
     { 
-        Point del = value.roi.reflection-value.roi.source;
+        cv::Point del = value.roi.reflection-value.roi.source;
         double match_theta = atan2( del.y, del.x );
         return( abs(theta-match_theta)>dev );
     }
@@ -57,15 +57,15 @@ struct outside_theta {
     double dev;
 };
 struct overlap {
-    overlap( Size p ): patchSize(p){}
+    overlap( cv::Size p ): patchSize(p){}
     bool operator() (const ARC_Pair& value ) 
     { 
-        Rect a, b;
-        a = Rect( value.roi.source - 0.5*Point( patchSize ), patchSize );
-        b = Rect( value.roi.reflection - 0.5*Point( patchSize ), patchSize );
+        cv::Rect a, b;
+        a = cv::Rect( value.roi.source - 0.5*cv::Point( patchSize ), patchSize );
+        b = cv::Rect( value.roi.reflection - 0.5*cv::Point( patchSize ), patchSize );
         return ( (a&b).area()>0.3*patchSize.area() );
     }
-    Size patchSize;
+    cv::Size patchSize;
 };
 struct below_threshold {
     below_threshold( double t ): threshold(t){}
@@ -78,7 +78,7 @@ struct longer_than {
     longer_than( double l): length(l){}
     bool operator() (const ARC_Pair& value ) 
     { 
-        Point del = value.roi.source-value.roi.reflection;
+        cv::Point del = value.roi.source-value.roi.reflection;
         return (del.x*del.x+del.y*del.y)>length*length;
     }
     private:
@@ -86,7 +86,7 @@ struct longer_than {
 };
 
 struct within_shore {
-    within_shore(Mat src) {
+    within_shore(cv::Mat src) {
         cv::Mat water_mask;
         find_water(src,water_mask);
         cv::Mat edges;

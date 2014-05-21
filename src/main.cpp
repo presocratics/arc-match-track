@@ -30,25 +30,25 @@ using namespace std;
  * =====================================================================================
  */
     void
-get_imu_list ( string filename, vector<Point3f>* il )
+get_imu_list ( std::string filename, std::vector<cv::Point3f>* il )
 {
 
-    string    ifs_file_name = filename;                 /* input  file name */
-    ifstream  ifs;                                /* create ifstream object */
+    std::string    ifs_file_name = filename;                 /* input  file name */
+    std::ifstream  ifs;                                /* create ifstream object */
 
     ifs.open ( ifs_file_name.c_str() );           /* open ifstream */
     if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        std::cerr << "\nERROR : failed to open input  file " << ifs_file_name << std::endl;
         exit (EXIT_FAILURE);
     }
-    string line;
+    std::string line;
     while( getline( ifs, line, '\n' ) )
     {
         double x, y, z;
-        string fn;
-        stringstream l(line);
+        std::string fn;
+        std::stringstream l(line);
         l >> fn >> x >> y >> z;
-        il->push_back( Point3f( x, y, z ) );
+        il->push_back( cv::Point3f( x, y, z ) );
     }
     ifs.close ();                                 /* close ifstream */
     return ;
@@ -60,18 +60,18 @@ get_imu_list ( string filename, vector<Point3f>* il )
  *  Description:  Get a list of image files for the video stream.
  * =====================================================================================
  */
-void get_image_list(string filename, vector<string>* il)
+void get_image_list(std::string filename, std::vector<std::string>* il)
 {
  
-    string    ifs_file_name = filename;         /* input  file name */
-    ifstream  ifs;                              /* create ifstream object */
+    std::string    ifs_file_name = filename;         /* input  file name */
+    std::ifstream  ifs;                              /* create ifstream object */
 
     ifs.open ( ifs_file_name.c_str() );         /* open ifstream */
     if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        std::cerr << "\nERROR : failed to open input  file " << ifs_file_name << std::endl;
         exit (EXIT_FAILURE);
     }
-    string line;
+    std::string line;
     while( getline(ifs, line, '\n') )
     {
         il->push_back(line);
@@ -119,11 +119,11 @@ void change_eig( int slider, void* eig )
 //         Name:  slope_endpoints
 //  Description:  
 // =====================================================================================
-void slope_endpoints ( double slope, Point2f* ol )
+void slope_endpoints ( double slope, cv::Point2f* ol )
 {
     double x = 480/slope+320;
-    Point2f t(320, 0);
-    Point2f b(x, 480);
+    cv::Point2f t(320, 0);
+    cv::Point2f b(x, 480);
     ol[0] = t;
     ol[1] = b;
     return ;
@@ -133,8 +133,8 @@ void slope_endpoints ( double slope, Point2f* ol )
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( Mat& frame, std::list<ARC_Pair>* pairs,
-        unsigned int nregions, Size patch_size, double slope, double theta, double eig )
+void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
+        unsigned int nregions, cv::Size patch_size, double slope, double theta, double eig )
 {
     std::list<ARC_Pair> temp;
     getReflections( frame, patch_size, nregions, slope, eig, temp );
@@ -150,14 +150,14 @@ void update_regions ( Mat& frame, std::list<ARC_Pair>* pairs,
 //         Name:  draw_match_by_hand
 //  Description:  
 // =====================================================================================
-void draw_match_by_hand( Mat* out_img, Mat* scene, 
-        Mat* object, Rect sroi, Rect rroi, 
-        vector<Point2f>& source_points, 
-        vector<Point2f>& reflection_points)
+void draw_match_by_hand( cv::Mat* out_img, cv::Mat* scene, 
+        cv::Mat* object, cv::Rect sroi, cv::Rect rroi, 
+        std::vector<cv::Point2f>& source_points, 
+        std::vector<cv::Point2f>& reflection_points)
 {
     if( source_points.size()!=reflection_points.size() )
     {
-        cerr << "source_points.size()!=reflection_points.size()" << endl; 
+        std::cerr << "source_points.size()!=reflection_points.size()" << std::endl; 
         exit( EXIT_FAILURE );
     }
 
@@ -165,12 +165,12 @@ void draw_match_by_hand( Mat* out_img, Mat* scene,
     // TODO: Random colors. Should be stored at region level.
     for( size_t i=0; i<source_points.size() ; ++i )
     {
-        circle( *out_img, source_points[i], 3, Scalar(0, 255, 0) );
-        circle( *out_img, reflection_points[i], 3, Scalar(0, 255, 0) );
-        line( *out_img, source_points[i], reflection_points[i], Scalar(0, 255, 0), 1, CV_AA );
+        circle( *out_img, source_points[i], 3, cv::Scalar(0, 255, 0) );
+        circle( *out_img, reflection_points[i], 3, cv::Scalar(0, 255, 0) );
+        cv::line( *out_img, source_points[i], reflection_points[i], cv::Scalar(0, 255, 0), 1, CV_AA );
     }
-    rectangle( *out_img, sroi, Scalar( 50, 100, 150 ), 1 );
-    rectangle( *out_img, rroi, Scalar( 50, 100, 150 ), 1 );
+    rectangle( *out_img, sroi, cv::Scalar( 50, 100, 150 ), 1 );
+    rectangle( *out_img, rroi, cv::Scalar( 50, 100, 150 ), 1 );
     return ;
 }		// -----  end of function draw_match_by_hand  ----- 
 
@@ -179,65 +179,65 @@ void draw_match_by_hand( Mat* out_img, Mat* scene,
 //         Name:  help()
 //  Description:  Display options.
 // =====================================================================================
-void help( string program_name )
+void help( std::string program_name )
 {
-    cout 
+    std::cout 
          << "Usage: " << program_name << spc << "<list of image files> <frame gyro data> [options]"
-         << endl
-         << "OPTIONS" << endl
+         << std::endl
+         << "OPTIONS" << std::endl
 
          << ARC_ARG_FEATURES_BEFORE_TRACK << tab 
          << "Run goodFeaturesToTrack in each frame before tracking." 
-         << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << endl
+         << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << std::endl
          
-         << ARG_SHOW_MATCHES << tab << "Show matches." << endl
+         << ARG_SHOW_MATCHES << tab << "Show matches." << std::endl
 
-         << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << endl
+         << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << std::endl
          
-         << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << endl
+         << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << std::endl
 
-         << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << endl
+         << ARG_TXT_FILE << spc << "<filename>" << tab << "Set text output file." << std::endl
 
-         << ARG_BLUR << tab << "[odd number]" << tab << "Median blur kernel size." << endl
+         << ARG_BLUR << tab << "[odd number]" << tab << "Median blur kernel size." << std::endl
 
          << ARC_ARG_THETA_DEV << spc << "[0-90]" << tab << "Set Max deviation of match slope from IMU slope." << spc
-         << "Default: " << ARC_DEFAULT_THETA_DEV << endl
+         << "Default: " << ARC_DEFAULT_THETA_DEV << std::endl
 
          << ARC_ARG_EIG << spc << "[0.01-1]" << tab << "Set eigenvalue threshold." 
-         << spc << "Default: " << ARC_DEFAULT_EIG << endl
+         << spc << "Default: " << ARC_DEFAULT_EIG << std::endl
 
          << ARC_ARG_MAX_DIST << spc << "[N]" << tab << "Set max distance between source and reflection." 
-         << spc << "Default: " << ARC_DEFAULT_MAX_DIST << endl
+         << spc << "Default: " << ARC_DEFAULT_MAX_DIST << std::endl
 
          << ARC_ARG_STD << spc << "[double]" << tab 
          << "Set number of standard deviations for acceptable matches." 
-         << spc << "Default: " << ARC_DEFAULT_EIG << endl
+         << spc << "Default: " << ARC_DEFAULT_EIG << std::endl
 
          << ARC_ARG_START_FRAME << spc << "[int]" << tab 
          << "Set the frame number to start from."
-         << spc << "Default: " << ARC_DEFAULT_START_FRAME << endl
+         << spc << "Default: " << ARC_DEFAULT_START_FRAME << std::endl
 
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
-         << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << endl
+         << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << std::endl
 
          << ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK << spc << "[0-50]" << tab 
          << "Set number of good features to track." << spc << "Default: " 
-         << ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK << endl
+         << ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK << std::endl
 
          << ARC_ARG_NUM_REGIONS << spc << "[0-50]" << tab << "Set desired number of regions to track." << spc
          << "Actual number tracked may be less." << spc
-         << "Default: " << ARC_DEFAULT_NUM_REGIONS << endl
+         << "Default: " << ARC_DEFAULT_NUM_REGIONS << std::endl
 
          << ARG_REFRESH_COUNT << spc << "<N>" << tab << "Number of iterations before rematching. "
-         << "Default: " << DEFAULT_REFRESH_COUNT << endl
+         << "Default: " << DEFAULT_REFRESH_COUNT << std::endl
 
-         << ARG_VERBOSE << tab << "Verbose output." << endl
+         << ARG_VERBOSE << tab << "Verbose output." << std::endl
 
-         << ARG_VERY_VERBOSE << tab << "Very verbose output." << endl
+         << ARG_VERY_VERBOSE << tab << "Very verbose output." << std::endl
 
-         << ARG_VERY_VERY_VERBOSE << tab << "Very very verbose output." << endl
+         << ARG_VERY_VERY_VERBOSE << tab << "Very very verbose output." << std::endl
 
-         << ARG_DEBUG_MODE << tab << "Show debugging output." << endl
+         << ARG_DEBUG_MODE << tab << "Show debugging output." << std::endl
          ;
 
     return ;
@@ -247,29 +247,29 @@ void help( string program_name )
 //         Name:  pairs_to_points
 //  Description:  Writes centers of ARC_Pair ROIs to source and reflection point vectors.
 // =====================================================================================
-void pairs_to_points ( Mat gray, std::list<ARC_Pair>* pairs, 
-        vector<Point2f>* src, vector<Point2f>* ref,
+void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs, 
+        std::vector<cv::Point2f>* src, std::vector<cv::Point2f>* ref,
         bool fbt )
 {
     for( std::list<ARC_Pair>::iterator it=pairs->begin();
             it!=pairs->end(); ++it )
     {
-        Point2f s, r;
+        cv::Point2f s, r;
         s = it->roi.source;
         r = it->roi.reflection;
         if( fbt )
         {
-            Mat masks, maskr;
-            vector<Point2f> vs, vr;
-            Point2f shift( 5, 5 );
-            Size sz( 10, 10 );
-            Rect rs, rr;
+            cv::Mat masks, maskr;
+            std::vector<cv::Point2f> vs, vr;
+            cv::Point2f shift( 5, 5 );
+            cv::Size sz( 10, 10 );
+            cv::Rect rs, rr;
 
-            rs = Rect( s-shift, sz );
-            rr = Rect( r-shift, sz );
+            rs = cv::Rect( s-shift, sz );
+            rr = cv::Rect( r-shift, sz );
 
-            masks = Mat::zeros( gray.size(), CV_8UC1 );
-            maskr = Mat::zeros( gray.size(), CV_8UC1 );
+            masks = cv::Mat::zeros( gray.size(), CV_8UC1 );
+            maskr = cv::Mat::zeros( gray.size(), CV_8UC1 );
             rectangle( masks, rs, 255, CV_FILLED );
             rectangle( maskr, rr, 255, CV_FILLED );
 
@@ -288,11 +288,11 @@ void pairs_to_points ( Mat gray, std::list<ARC_Pair>* pairs,
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
+bool track( cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs )
 {
-    TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
-    Size sub_pix_win_size(10,10);
-    Size win_size(31,31);
+    cv::TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
+    cv::Size sub_pix_win_size(10,10);
+    cv::Size win_size(31,31);
     PPC points, new_points;
 
     if( prev_gray.empty() )
@@ -303,8 +303,8 @@ bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
     size_t i;
     if( points.source.size()!=0 )
     {
-        vector<uchar> source_status, reflection_status;
-        vector<float> source_error, reflection_error;
+        std::vector<uchar> source_status, reflection_status;
+        std::vector<float> source_error, reflection_error;
 
         calcOpticalFlowPyrLK( prev_gray, gray, points.source, new_points.source,
                 source_status, source_error, win_size, 3, termcrit, 0, 0.001 );
@@ -317,7 +317,7 @@ bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
         std::list<ARC_Pair>::iterator it=pairs->begin();
         for( i=0; i<(new_points.source.size()); i++ )
         {
-            Point sdel, rdel;
+            cv::Point sdel, rdel;
             //double smag, rmag;
             if( !source_status[i] || !reflection_status[i] ) 
             {
@@ -327,10 +327,10 @@ bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
             // Get difference between old and move.
             sdel = new_points.source[i] - points.source[i];
             rdel = new_points.reflection[i] - points.reflection[i];
-            //cout << it->id << spc << sdel.y-rdel.y << endl;
+            //cout << it->id << spc << sdel.y-rdel.y << std::endl;
             if( abs( sdel.y-rdel.y ) > 2 )
             {
-                //cout << "Large SDEL-RDEL diff" << endl;
+                //cout << "Large SDEL-RDEL diff" << std::endl;
                 it->nNoMatch=1;
                 //++it;
                 //continue;
@@ -350,10 +350,10 @@ bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
 //         Name:  mask_scene
 //  Description:  Masks the frame to the given roi.
 // =====================================================================================
-Mat mask_scene ( Rect roi, Mat& frame )
+cv::Mat mask_scene ( cv::Rect roi, cv::Mat& frame )
 {
-    Mat masked_frame;
-    Mat mask = Mat::zeros( frame.size(), CV_8UC1 );
+    cv::Mat masked_frame;
+    cv::Mat mask = cv::Mat::zeros( frame.size(), CV_8UC1 );
     rectangle( mask, roi, 255, CV_FILLED );
     frame.copyTo(masked_frame, mask);
 
@@ -371,7 +371,7 @@ void arguments::arguments()
     refresh_count = DEFAULT_REFRESH_COUNT;
     theta_dev = ARC_DEFAULT_THETA_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
-    patch_size = Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
+    patch_size = cv::Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
     debug = NO_DEBUG;
     verbosity = NOT_VERBOSE;
     show_match = NO_SHOW_MATCHES;
@@ -395,7 +395,7 @@ void arguments::arguments()
  * =====================================================================================
  */
 /*
-bool get_regions(string filename, vector<ARC_Pair>* regions)
+bool get_regions(string filename, std::vector<ARC_Pair>* regions)
 {
     bool status=true;
     string    ifs_file_name = filename;                 // input  file name
@@ -403,7 +403,7 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
 
     ifs.open ( ifs_file_name.c_str() );           // open ifstream 
     if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << endl;
+        cerr << "\nERROR : failed to open input  file " << ifs_file_name << std::endl;
         exit (EXIT_FAILURE);
     }
     string line;
@@ -412,7 +412,7 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
         double slope=INFINITY;
         unsigned int direction=UP;
         Point2i loc(-1,-1);
-        Size dim(-1,-1);
+        cv::Size dim(-1,-1);
 
         stringstream l(line);
 
@@ -429,7 +429,7 @@ bool get_regions(string filename, vector<ARC_Pair>* regions)
         }
         else
         {
-            cerr << "Invalid region at " << loc << " of size " << (Point) dim << endl;
+            cerr << "Invalid region at " << loc << " of size " << (Point) dim << std::endl;
             status=false;
         }
     }
@@ -473,7 +473,7 @@ bool get_arguments ( int argc, char** argv, arguments* a)
         if( !strcmp(argv[i], ARC_ARG_PATCH_SIZE) ) 
         {
             int dim = atoi( argv[++i] );
-            a->patch_size=Size( dim, dim );
+            a->patch_size=cv::Size( dim, dim );
             continue;
         }
         if( !strcmp(argv[i], ARG_VID_FILE) ) 
@@ -528,14 +528,14 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 
 int main(int argc, char** argv)
 {
-    vector<string> image_list;                  // Video frames for tracking.
-    vector<Point3f> imu_list;                  // IMU data for slope.
+    std::vector<string> image_list;                  // Video frames for tracking.
+    std::vector<cv::Point3f> imu_list;                  // IMU data for slope.
     std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
 
     // Parse Arguments
     arguments a;
     a.arguments();                              // TODO should init automatically.
-    namedWindow( DEFAULT_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
+    cv::namedWindow( DEFAULT_WINDOW_NAME, CV_WINDOW_AUTOSIZE );
 
     if( !get_arguments(argc, argv, &a) )        // Parse command line args.
     {
@@ -545,16 +545,16 @@ int main(int argc, char** argv)
 
     if( a.debug==DEBUG )
     {
-        cout
-            << "ARGUMENTS" << endl
-            << "Refresh Count:" << tab << a.refresh_count << endl
-            << "Debug:" << tab << a.debug << endl
-            << "Verbosity:" << tab << a.verbosity << endl
-            << "Show Match:" << tab<< a.show_match << endl
-            << "Show Track:" << tab << a.show_track << endl
-            << "Blur: " << tab << a.blur << endl
+        std::cout
+            << "ARGUMENTS" << std::endl
+            << "Refresh Count:" << tab << a.refresh_count << std::endl
+            << "Debug:" << tab << a.debug << std::endl
+            << "Verbosity:" << tab << a.verbosity << std::endl
+            << "Show Match:" << tab<< a.show_match << std::endl
+            << "Show Track:" << tab << a.show_track << std::endl
+            << "Blur: " << tab << a.blur << std::endl
             << "Video Filename:" << tab << a.video_filename <<
-            endl;
+            std::endl;
     }
     get_image_list( argv[1], &image_list );     // Reads in the image list.
     get_imu_list( argv[2], &imu_list );
@@ -564,33 +564,33 @@ int main(int argc, char** argv)
     unsigned int i = a.start_frame;                               // Image index
     int td = a.theta_dev * 100;
     int eig = a.eig * 100;
-    createTrackbar( "theta_dev", DEFAULT_WINDOW_NAME, &td, 
+    cv::createTrackbar( "theta_dev", DEFAULT_WINDOW_NAME, &td, 
             100, change_theta_dev, &a.theta_dev );
-    createTrackbar( "eig", DEFAULT_WINDOW_NAME, &eig, 
+    cv::createTrackbar( "eig", DEFAULT_WINDOW_NAME, &eig, 
             100, change_eig, &a.eig );
-    createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
+    cv::createTrackbar( "num_regions", DEFAULT_WINDOW_NAME, &a.num_regions, 
             50, change_num_regions, &a.num_regions );
-    createTrackbar( "patch_size_x", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
+    cv::createTrackbar( "patch_size_x", DEFAULT_WINDOW_NAME, &a.patch_size.width, 
             150, change_patch_size, &a.patch_size.width );
-    createTrackbar( "patch_size_y", DEFAULT_WINDOW_NAME, &a.patch_size.height, 
+    cv::createTrackbar( "patch_size_y", DEFAULT_WINDOW_NAME, &a.patch_size.height, 
             150, change_patch_size, &a.patch_size.height );
-    createTrackbar( "good_features_to_track", DEFAULT_WINDOW_NAME, 
+    cv::createTrackbar( "good_features_to_track", DEFAULT_WINDOW_NAME, 
             (int*) &a.good_features_to_track, 100, change_good_features_to_track,
             &a.good_features_to_track );
-    createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
+    cv::createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
             image_list.size(), change_frame_number, &i );
 
     // Init text file
     //ARC_Write writer( a.text_filename );
 
     // Init Video
-    Mat first_frame=imread( image_list[0], CV_LOAD_IMAGE_COLOR );
-    VideoWriter vidout;
+    cv::Mat first_frame=cv::imread( image_list[0], CV_LOAD_IMAGE_COLOR );
+    cv::VideoWriter vidout;
     vidout.open( a.video_filename, CV_FOURCC('X','2','6','4'), 
             20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
-        cerr << "Could not open video file: " << a.video_filename << endl;
+        cerr << "Could not open video file: " << a.video_filename << std::endl;
         exit( EXIT_FAILURE );
     }
 
@@ -598,25 +598,25 @@ int main(int argc, char** argv)
     ARC_IMU imu;
     imu.set_A( A );
     //Begin image loop.
-    Point2f mid_pt( 320, 240 );
-    Mat cur_frame, gray, prev_gray;
+    cv::Point2f mid_pt( 320, 240 );
+    cv::Mat cur_frame, gray, prev_gray;
     double alpha = .125;
     double theta = -1;
     while( i<image_list.size() )
     {
-        Mat water_mask, edges;
-        setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
-        if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << endl;
-        Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
+        cv::Mat water_mask, edges;
+        cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
+        if( a.verbosity>=VERBOSE ) cout << "Frame: " << image_list[i] << std::endl;
+        cv::Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         if( theta==-1 )
             theta = imu.get_rotation_angle( rotation_matrix );
         else
             theta = (1-alpha)*theta+alpha*imu.get_rotation_angle( rotation_matrix );
         double slope = imu.theta_to_slope( theta );
 
-        cur_frame=imread( image_list[i], CV_LOAD_IMAGE_UNCHANGED );           // open image 
+        cur_frame=cv::imread( image_list[i], CV_LOAD_IMAGE_UNCHANGED );           // open image 
         if ( !cur_frame.data ) {
-            cerr << "\nERROR : failed to open input file " << image_list[i] << endl;
+            std::cerr << "\nERROR : failed to open input file " << image_list[i] << std::endl;
             exit (EXIT_FAILURE);
         }
         cvtColor(cur_frame, gray, CV_BGR2GRAY);
@@ -624,7 +624,7 @@ int main(int argc, char** argv)
         {
             medianBlur( gray, gray, a.blur );        
         }
-        Mat drawn_matches;
+        cv::Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
         find_water(drawn_matches.clone(), water_mask);
         /*
@@ -653,8 +653,8 @@ int main(int argc, char** argv)
         //draw_match_by_hand( &drawn_matches, &cur_frame,
          //       &flipped, r->roi.source , r->roi.reflection,
          //       good_points.source, good_points.reflection );
-        Scalar red (0,0,255);
-        Scalar black(0,0,0);
+        cv::Scalar red (0,0,255);
+        cv::Scalar black(0,0,0);
         std::list<ARC_Pair>::iterator it=pairs.begin();
         while( it!=pairs.end() )
         {
@@ -675,46 +675,46 @@ int main(int argc, char** argv)
             */
             if( it->age>5 )
             {
-                Point s, r, t;
+                cv::Point s, r, t;
                 s = it->roi.source;
                 r = it->roi.reflection;
-                t = Point( 5, 5 );
+                t = cv::Point( 5, 5 );
                 circle( drawn_matches, s, 3, red );
-                rectangle( drawn_matches, Rect( s -0.5*Point( a.patch_size ), a.patch_size ), red, 1 );
-                stringstream sid;
+                rectangle( drawn_matches, cv::Rect( s -0.5*cv::Point( a.patch_size ), a.patch_size ), red, 1 );
+                std::stringstream sid;
                 sid << it->id;
 
-                putText( drawn_matches, ( sid.str() ).c_str(), s-t, FONT_HERSHEY_SIMPLEX, .3, 100 );
+                cv::putText( drawn_matches, ( sid.str() ).c_str(), s-t, cv::FONT_HERSHEY_SIMPLEX, .3, 100 );
                 circle( drawn_matches, r, 3, black );
-                rectangle( drawn_matches, Rect( r -0.5*Point( a.patch_size ), a.patch_size ), black, 1 );
+                rectangle( drawn_matches, cv::Rect( r -0.5*cv::Point( a.patch_size ), a.patch_size ), black, 1 );
                 if( it->nNoMatch>0 )
                 {
-                line( drawn_matches, s, r, black, 1, CV_AA, 0 );
-                it->nNoMatch=0;
+                    cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
+                    it->nNoMatch=0;
                 }
                 else
                 {
-                    line( drawn_matches, s, r, black, 1, CV_AA, 0 );
+                    cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
                 cout << image_list[i] << spc
                      << *it
-                     << endl;
+                     << std::endl;
             }
             ++it->age;
             ++it;
         }
         //Point2f src_pt( 320, 80 );
 
-        //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<endl;
+        //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
         stringstream frame_number;
         frame_number << i;
-        Point2f ol[2];
+        cv::Point2f ol[2];
         slope_endpoints( slope, ol );
         line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
-        putText( drawn_matches, (frame_number.str()).c_str(), Point(5,15) ,FONT_HERSHEY_SIMPLEX, .5, 200 );
+        cv::putText( drawn_matches, (frame_number.str()).c_str(), cv::Point(5,15) ,cv::FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
-        imshow( DEFAULT_WINDOW_NAME, drawn_matches );
-        waitKey(5);
+        cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
+        cv::waitKey(5);
         vidout << drawn_matches;
         ++i;
     }
@@ -729,8 +729,8 @@ int main(int argc, char** argv)
 // =====================================================================================
 int main ( int argc, char *argv[] )
 {
-    vector<string> image_list;
-    vector<Point3f> imu_list;
+    std::vector<string> image_list;
+    std::vector<Point3f> imu_list;
     //int num=atoi(argv[4]);
     //int num=240;
     get_image_list( argv[1], &image_list );     // Reads in the image list.
@@ -745,7 +745,7 @@ int main ( int argc, char *argv[] )
             20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
-        cerr << "Could not open video file: " << "mov.avi" << endl;
+        cerr << "Could not open video file: " << "mov.avi" << std::endl;
         exit( EXIT_FAILURE );
     }
     for( size_t i=0; i<image_list.size(); ++i )
@@ -758,8 +758,8 @@ int main ( int argc, char *argv[] )
 
         //Mat img = imread ( "../test/test.jpg", CV_LOAD_IMAGE_COLOR );           // open image 
         Mat img = imread ( image_list[i], CV_LOAD_IMAGE_COLOR );           // open image 
-        Size outerPatchSize( 50, 50 );
-        Size innerPatchSize( 10, 10 );
+        cv::Size outerPatchSize( 50, 50 );
+        cv::Size innerPatchSize( 10, 10 );
 
 
         getReflections( img, outerPatchSize, 10, slope, outlist);
@@ -767,8 +767,8 @@ int main ( int argc, char *argv[] )
         outlist.remove_if( outside_theta(theta) );
         outlist.remove_if( below_threshold( 3 ) ) ;
         outlist.remove_if( overlap() );
-        Scalar red (0,0,255);
-        Scalar black(0,0,0);
+        cv::Scalar red (0,0,255);
+        cv::Scalar black(0,0,0);
         for( std::list<ARC_Pair>::iterator it=outlist.begin();
                 it!=outlist.end(); ++it )
         {
@@ -781,8 +781,8 @@ int main ( int argc, char *argv[] )
             line( img, s, r, black, 1, CV_AA, 0 );
         }
             
-        cout << "Slope: " << slope << endl;
-        cout << "Theta: " << theta << endl;
+        cout << "Slope: " << slope << std::endl;
+        cout << "Theta: " << theta << std::endl;
         //getReflectionsPYR( img, outerPatchSize, innerPatchSize, slope, theta, outlist );
         //displayReflectionMatches( img, outerPatchSize, slope, theta, &outlist );
         vidout << img;

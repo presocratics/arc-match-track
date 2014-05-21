@@ -13,7 +13,6 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include "ARC_Pair.hpp"
-#include "ARC_Write.hpp"
 #include "config.hpp"
 #include "ReflectionTracker.hpp"
 #include "ARC_IMU.hpp"
@@ -33,13 +32,13 @@ const double fx = 492.42317;
 const double fy = 489.98014;
 const double cx = 313.71144;
 const double cy = 261.27213;
-const Matx33d A( fx, 0, cx,
+const cv::Matx33d A( fx, 0, cx,
                   0, fy, cy,
                   0,  0,  1 );
 
 typedef struct PPC_t {                          // Point Pair Conversion
-    vector<Point2f> source;
-    vector<Point2f> reflection;
+    std::vector<cv::Point2f> source;
+    std::vector<cv::Point2f> reflection;
 } PPC ;
 
 typedef struct arguments_t {
@@ -50,9 +49,9 @@ typedef struct arguments_t {
     int show_track;
     double theta_dev;
     int num_regions;
-    Size patch_size;
-    string video_filename;
-    string text_filename;
+    cv::Size patch_size;
+    std::string video_filename;
+    std::string text_filename;
     int blur;
     bool features_before_track;
     int good_features_to_track;
@@ -70,30 +69,30 @@ void change_patch_size( int slider, void* ps );
 void change_num_regions( int slider, void* nr );
 void change_theta_dev( int slider, void* sd );
 
-void slope_endpoints ( double theta, Point2f* ol );
+void slope_endpoints ( double theta, cv::Point2f* ol );
 
-void update_regions ( Mat& frame, std::list<ARC_Pair>* pairs,
-        unsigned int nregions, Size patch_size, double slope, 
+void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
+        unsigned int nregions, cv::Size patch_size, double slope, 
         double theta, double eig );
 
-void draw_match_by_hand( Mat out_img, Mat* scene, 
-        Mat* object, Rect sroi, Rect rroi,
-        vector<Point2f>& source_points, 
-        vector<Point2f>& reflection_points);
+void draw_match_by_hand( cv::Mat out_img, cv::Mat* scene, 
+        cv::Mat* object, cv::Rect sroi, cv::Rect rroi,
+        std::vector<cv::Point2f>& source_points, 
+        std::vector<cv::Point2f>& reflection_points);
 
-void help( string program_name );
+void help( std::string program_name );
 
-Mat mask_scene ( Rect roi, Mat& frame );
+cv::Mat mask_scene ( cv::Rect roi, cv::Mat& frame );
 
-void get_image_list(string filename, vector<string>* il);
+void get_image_list(std::string filename, std::vector<std::string>* il);
 
-bool get_regions(string filename, vector<ARC_Pair>* regions);
+bool get_regions(std::string filename, std::vector<ARC_Pair>* regions);
 
 bool get_arguments(int argc, char** argv, arguments* a);
 
-bool track (Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs );
-void pairs_to_points ( Mat gray, std::list<ARC_Pair>* pairs, 
-        vector<Point2f>* src, vector<Point2f>* ref,
+bool track (cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs );
+void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs, 
+        std::vector<cv::Point2f>* src, std::vector<cv::Point2f>* ref,
         bool fbt );
 
 #endif /* MAIN_H */

@@ -17,7 +17,7 @@
 #include "ARC_Pair.hpp"
 
     bool
-ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, Size s )
+ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, cv::Size s )
 {
     roi.reflection = convert_to_point( r, img, s );
     if( roi.reflection==cv::Point( -1, -1 ) )
@@ -32,7 +32,7 @@ ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, Size s )
 // the center by Size s.
 //--------------------------------------------------------------------------------------
     cv::Point
-ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, Size s )
+ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s )
 {
     std::vector<cv::Point> lv;
     cv::Rect little;
@@ -62,7 +62,7 @@ ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bo
     age=0;
     nNoMatch=0;
     cv::Point f, s;
-    Size inner_size( 10, 10 );
+    cv::Size inner_size( 10, 10 );
     f = convert_to_point( first, img, inner_size );
     s = convert_to_point( second, img, inner_size );
     if( f==cv::Point(-1, -1) || s==cv::Point(-1, -1) )
@@ -91,7 +91,7 @@ ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool*
     age=0;
     nNoMatch=0;
     cv::Point s;
-    Size inner_size( 10, 10 );
+    cv::Size inner_size( 10, 10 );
     s = convert_to_point( second, img, inner_size );
     if( s==cv::Point(-1, -1) )
     {
