@@ -12,8 +12,8 @@
 #include "config.hpp"
 #include "ARC_Pair.hpp"
 #include "ReflectionTracker.hpp"
-using namespace std;
 using namespace cv;
+using namespace std;
 
 int verbosity;
 bool displayRegions;
@@ -151,7 +151,7 @@ rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope )
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
-        double eig, list<ARC_Pair>& outlist )
+        double eig, std::list<ARC_Pair>& outlist )
 {
 	Mat sourceCopy;
     if( numOfFeatures>((frame.rows*frame.cols)/(4*patchSize.width*patchSize.height))-4 ) 
@@ -179,7 +179,7 @@ int getReflections( Mat frame, Size patchSize, int numOfFeatures, double slope,
     // Goes through any ARC_Pairs already in the outvector and creates a mask to
     // prevent rematching those regions
     Size shift( 20, 20 );
-    for( list<ARC_Pair>::iterator it=outlist.begin();
+    for( std::list<ARC_Pair>::iterator it=outlist.begin();
             it!=outlist.end(); ++it )
     {
 		Rect blockedRegionSource( it->roi.source-0.5*Point(shift), shift );

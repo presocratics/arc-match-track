@@ -133,10 +133,10 @@ void slope_endpoints ( double slope, Point2f* ol )
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
+void update_regions ( Mat& frame, std::list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, double theta, double eig )
 {
-    list<ARC_Pair> temp;
+    std::list<ARC_Pair> temp;
     getReflections( frame, patch_size, nregions, slope, eig, temp );
     //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
@@ -247,11 +247,11 @@ void help( string program_name )
 //         Name:  pairs_to_points
 //  Description:  Writes centers of ARC_Pair ROIs to source and reflection point vectors.
 // =====================================================================================
-void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, 
+void pairs_to_points ( Mat gray, std::list<ARC_Pair>* pairs, 
         vector<Point2f>* src, vector<Point2f>* ref,
         bool fbt )
 {
-    for( list<ARC_Pair>::iterator it=pairs->begin();
+    for( std::list<ARC_Pair>::iterator it=pairs->begin();
             it!=pairs->end(); ++it )
     {
         Point2f s, r;
@@ -288,7 +288,7 @@ void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs,
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
+bool track( Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs )
 {
     TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     Size sub_pix_win_size(10,10);
@@ -314,7 +314,7 @@ bool track( Mat gray, Mat prev_gray, list<ARC_Pair>* pairs )
                 reflection_error, win_size, 3, termcrit, 0, 0.001);
         
         // Set lost points to (-1, -1), so we know they are lost.
-        list<ARC_Pair>::iterator it=pairs->begin();
+        std::list<ARC_Pair>::iterator it=pairs->begin();
         for( i=0; i<(new_points.source.size()); i++ )
         {
             Point sdel, rdel;
@@ -530,7 +530,7 @@ int main(int argc, char** argv)
 {
     vector<string> image_list;                  // Video frames for tracking.
     vector<Point3f> imu_list;                  // IMU data for slope.
-    list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
+    std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
 
     // Parse Arguments
     arguments a;
@@ -655,7 +655,7 @@ int main(int argc, char** argv)
          //       good_points.source, good_points.reflection );
         Scalar red (0,0,255);
         Scalar black(0,0,0);
-        list<ARC_Pair>::iterator it=pairs.begin();
+        std::list<ARC_Pair>::iterator it=pairs.begin();
         while( it!=pairs.end() )
         {
             /*
@@ -750,7 +750,7 @@ int main ( int argc, char *argv[] )
     }
     for( size_t i=0; i<image_list.size(); ++i )
     {
-        list<ARC_Pair> outlist;
+        std::list<ARC_Pair> outlist;
         Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         double theta = imu.get_rotation_angle( rotation_matrix );
         double slope = imu.theta_to_slope( theta );
@@ -769,7 +769,7 @@ int main ( int argc, char *argv[] )
         outlist.remove_if( overlap() );
         Scalar red (0,0,255);
         Scalar black(0,0,0);
-        for( list<ARC_Pair>::iterator it=outlist.begin();
+        for( std::list<ARC_Pair>::iterator it=outlist.begin();
                 it!=outlist.end(); ++it )
         {
             Point s,r;

@@ -72,7 +72,7 @@ void change_theta_dev( int slider, void* sd );
 
 void slope_endpoints ( double theta, Point2f* ol );
 
-void update_regions ( Mat& frame, list<ARC_Pair>* pairs,
+void update_regions ( Mat& frame, std::list<ARC_Pair>* pairs,
         unsigned int nregions, Size patch_size, double slope, 
         double theta, double eig );
 
@@ -91,8 +91,8 @@ bool get_regions(string filename, vector<ARC_Pair>* regions);
 
 bool get_arguments(int argc, char** argv, arguments* a);
 
-bool track (Mat gray, Mat prev_gray, list<ARC_Pair>* pairs );
-void pairs_to_points ( Mat gray, list<ARC_Pair>* pairs, 
+bool track (Mat gray, Mat prev_gray, std::list<ARC_Pair>* pairs );
+void pairs_to_points ( Mat gray, std::list<ARC_Pair>* pairs, 
         vector<Point2f>* src, vector<Point2f>* ref,
         bool fbt );
 

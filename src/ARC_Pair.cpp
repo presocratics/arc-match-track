@@ -17,11 +17,11 @@
 #include "ARC_Pair.hpp"
 
     bool
-ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
+ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, Size s )
 {
     roi.reflection = convert_to_point( r, img, s );
-    if( roi.reflection==Point( -1, -1 ) )
-        roi.reflection=r.tl()-0.5*Point(s);
+    if( roi.reflection==cv::Point( -1, -1 ) )
+        roi.reflection=r.tl()-0.5*cv::Point(s);
     return true;
 }		/* -----  end of method ARC_Pair::set_reflection  ----- */
 
@@ -31,25 +31,25 @@ ARC_Pair::set_reflection ( Mat img, Rect r, Size s )
 // Description:  Returns the coordinate of a feature in the center of a rect bounded in
 // the center by Size s.
 //--------------------------------------------------------------------------------------
-    Point
-ARC_Pair::convert_to_point ( Rect r, Mat& img, Size s )
+    cv::Point
+ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, Size s )
 {
-    vector<Point> lv;
-    Rect little;
-    Mat gray;
-    Mat mask;
+    std::vector<cv::Point> lv;
+    cv::Rect little;
+    cv::Mat gray;
+    cv::Mat mask;
 
     little = r;
-    little += 0.5*Point( r.size()-s );
+    little += 0.5*cv::Point( r.size()-s );
     little -= r.size() - s;
 
     cvtColor( img, gray, CV_BGR2GRAY );
-    mask = Mat::zeros( img.size(), CV_8UC1 );
+    mask = cv::Mat::zeros( img.size(), CV_8UC1 );
     rectangle( mask, little, 255, CV_FILLED );
 
     goodFeaturesToTrack( gray, lv, 1, 0.01, 10, mask, 3, 0, 0.04);
 
-    return ( lv.size()>0 ) ? lv[0] : Point( -1, -1 ) ;
+    return ( lv.size()>0 ) ? lv[0] : cv::Point( -1, -1 ) ;
 }		// -----  end of method ARC_Pair::convert_to_point  ----- 
 
 //--------------------------------------------------------------------------------------
@@ -57,15 +57,15 @@ ARC_Pair::convert_to_point ( Rect r, Mat& img, Size s )
 //      Method:  ARC_Pair
 // Description:  constructor
 //--------------------------------------------------------------------------------------
-ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
+ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error )
 {
     age=0;
     nNoMatch=0;
-    Point f, s;
+    cv::Point f, s;
     Size inner_size( 10, 10 );
     f = convert_to_point( first, img, inner_size );
     s = convert_to_point( second, img, inner_size );
-    if( f==Point(-1, -1) || s==Point(-1, -1) )
+    if( f==cv::Point(-1, -1) || s==cv::Point(-1, -1) )
     {
         *error = true;
         return;
@@ -86,14 +86,14 @@ ARC_Pair::ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error )
     *error = false;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
-ARC_Pair::ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error )
+ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error )
 {
     age=0;
     nNoMatch=0;
-    Point s;
+    cv::Point s;
     Size inner_size( 10, 10 );
     s = convert_to_point( second, img, inner_size );
-    if( s==Point(-1, -1) )
+    if( s==cv::Point(-1, -1) )
     {
         *error = true;
         return;
@@ -114,8 +114,8 @@ ARC_Pair::ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error )
     *error = false;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
-    ostream &
-operator << ( ostream &os, const ARC_Pair &obj )
+    std::ostream &
+operator << ( std::ostream &os, const ARC_Pair &obj )
 {
     os << obj.id << spc
        << obj.roi.source << spc

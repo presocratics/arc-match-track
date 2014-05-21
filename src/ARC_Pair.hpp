@@ -17,9 +17,6 @@
 #include "ARC_Point_Pair.hpp"
 #include "config.hpp"
 
-using namespace cv;
-using namespace std;
-
 
 // =====================================================================================
 //        Class:  ARC_Pair
@@ -36,17 +33,17 @@ class ARC_Pair
             nNoMatch=0;
             age=0;
         }
-        ARC_Pair ( Rect first, Rect second, double ns, Mat img, bool* error );   // constructor 
-        ARC_Pair ( Point f, Rect second, double ns, Mat img, bool* error ); // constructor
+        ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error );   // constructor 
+        ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error ); // constructor
 
         // ====================  ACCESSORS     ======================================= 
 
         // ====================  MUTATORS      ======================================= 
-        bool set_reflection( Mat img, Rect r, Size s );
+        bool set_reflection( cv::Mat img, cv::Rect r, Size s );
 
         // ====================  OPERATORS     ======================================= 
 
-        friend ostream & operator << ( ostream &os, const ARC_Pair &obj );
+        friend std::ostream & operator << ( std::ostream &os, const ARC_Pair &obj );
 
         friend int operator <( const ARC_Pair& first, const ARC_Pair& second )
         {
@@ -60,16 +57,6 @@ class ARC_Pair
         // ====================  DATA MEMBERS  ======================================= 
         static int num;
         ARC_Point_Pair roi, last_good;
-        /*
-        struct {
-            Point source;
-            Point reflection;
-        } roi;
-        struct {
-            Point source;
-            Point reflection;
-        } last_good;
-        */
 
         double nsigma;                    // Number of std above mean.
         unsigned int nNoMatch;
@@ -83,7 +70,7 @@ class ARC_Pair
 
     private:
         // ====================  METHODS       ======================================= 
-        Point convert_to_point ( Rect r, Mat& img, Size s );
+        cv::Point convert_to_point ( cv::Rect r, cv::Mat& img, Size s );
 
         // ====================  DATA MEMBERS  ======================================= 
 

@@ -9,11 +9,11 @@
 Mat get_masked_frame ( Rect roi, double slope, Mat* frame, Mat* mask );
 bool rematch ( Mat frame, Size patchSize, ARC_Pair& pair, double slope );
 void createTemplatesFromVector(Mat image, Size patchSize, vector<Point> *points,
-        list<ARC_Pair> *outlist);
+        std::list<ARC_Pair> *outlist);
 Rect findBestMatchLocation(double slope, Mat image,  Rect source_rect, 
         double* nsigma, Mat mask );
 void findReflections(Mat image, Size patchSize, double slope, 
-        list<ARC_Pair> *outlist);
+        std::list<ARC_Pair> *outlist);
 
 //The following functions are meant to be called on by a user, the previous ones
 //are only used by getReflections()
@@ -21,12 +21,12 @@ void findReflections(Mat image, Size patchSize, double slope,
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL
 //OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( Mat frame, Size patchSize, int numOfFeatures, 
-        double slope, double eig,list<ARC_Pair> &outlist );
+        double slope, double eig,std::list<ARC_Pair> &outlist );
 void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
         double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
 void displayReflectionMatches(Mat image, Size patchSize, double slope, 
-        double theta, list<ARC_Pair> *outlist);
+        double theta, std::list<ARC_Pair> *outlist);
 //GIVEN slope INFORMATION,A source MAT AND A tmplte RECT, IT RETURNS A RECT OF 
 //THE REFLECTION
 Rect findOneReflection(double slope,Mat source, Rect tmplte);
@@ -35,7 +35,7 @@ Rect findOneReflection(double slope,Mat source, Rect tmplte);
 ARC_Pair getOneReflectionPair(Mat image, int patchSize, double slope, 
         bool *regionFound);
 int getReflectionsPYR(Mat &image, Size outerPatchSize, Size innerPatchSize, 
-        double slope, double theta, list<ARC_Pair> &outlist);
+        double slope, double theta, std::list<ARC_Pair> &outlist);
 
 void get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter );
 void find_water ( cv::Mat src, cv::Mat& dst );
