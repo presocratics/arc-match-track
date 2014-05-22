@@ -316,21 +316,6 @@ bool track( cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs )
     return ( new_points.source.size()>0 && new_points.reflection.size()>0 ) ? true : false;
 }		// -----  end of method ARC_Pair::track  ----- 
 
-// ===  FUNCTION  ======================================================================
-//         Name:  mask_scene
-//  Description:  Masks the frame to the given roi.
-// =====================================================================================
-cv::Mat mask_scene ( cv::Rect roi, cv::Mat& frame )
-{
-    cv::Mat masked_frame;
-    cv::Mat mask = cv::Mat::zeros( frame.size(), CV_8UC1 );
-    rectangle( mask, roi, 255, CV_FILLED );
-    frame.copyTo(masked_frame, mask);
-
-    return masked_frame;
-}		// -----  end of function mask_scene  ----- 
-
-
 /*
  * arguments constructor
  */

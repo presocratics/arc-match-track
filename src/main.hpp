@@ -77,8 +77,6 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
 
 void help( std::string program_name );
 
-cv::Mat mask_scene ( cv::Rect roi, cv::Mat& frame );
-
 void get_image_list(std::string filename, std::vector<std::string>* il);
 
 bool get_regions(std::string filename, std::vector<ARC_Pair>* regions);
