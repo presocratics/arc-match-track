@@ -59,6 +59,7 @@ typedef struct arguments_t {
     double std;
     double max_dist;
     int start_frame;
+    unsigned int gft_min;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
@@ -72,8 +73,8 @@ void change_theta_dev( int slider, void* sd );
 void slope_endpoints ( double theta, cv::Point2f* ol );
 
 void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        unsigned int nregions, cv::Size patch_size, double slope, 
-        double theta, double eig );
+        cv::Size patch_size, double slope, 
+        double theta, std::vector<cv::Point2f>& GFT, int N );
 
 void help( std::string program_name );
 
@@ -85,5 +86,7 @@ bool track (cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs );
 void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs, 
         std::vector<cv::Point2f>* src, std::vector<cv::Point2f>* ref,
         bool fbt );
+void flow_gft ( cv::Mat gray, cv::Mat prev_gray, std::vector<cv::Point2f>& pts, 
+        std::vector<cv::Point2f>& npts );
 
 #endif /* MAIN_H */

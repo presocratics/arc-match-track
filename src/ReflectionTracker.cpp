@@ -118,12 +118,10 @@ cv::Rect findBestMatchLocation( double slope, cv::Mat image, cv::Rect source_rec
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double slope,
-        double eig, std::list<ARC_Pair>& outlist )
+int getReflections( cv::Mat frame, cv::Size patchSize, double slope,
+        std::list<ARC_Pair>& outlist, std::vector<cv::Point2f>& gft )
 {
     cv::Mat sourceCopy;
-    if( numOfFeatures>((frame.rows*frame.cols)/(4*patchSize.width*patchSize.height))-4 ) 
-        std::cerr<<"Large number of features requested for given patchSize, goodFeaturesToTrack might crash\n";
 	if( !frame.data ) 
     {
         std::cout << "Image couldn't be loaded\n";
@@ -142,19 +140,9 @@ int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double
     //vector<Rect> originalMatches;
     cv::Mat water_mask, edges;
 
-    cv::Mat mask = cv::Mat::ones(frame.size(),CV_8UC1)*255;
 
     // Goes through any ARC_Pairs already in the outvector and creates a mask to
     // prevent rematching those regions
-    cv::Size shift( 20, 20 );
-    for( std::list<ARC_Pair>::iterator it=outlist.begin();
-            it!=outlist.end(); ++it )
-    {
-        cv::Rect blockedRegionSource( it->roi.source-0.5*cv::Point(shift), shift );
-        cv::Rect blockedRegionReflection( it->roi.reflection-0.5*cv::Point(shift), shift );
-		rectangle( mask, blockedRegionSource, 0, CV_FILLED );
-		rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
-	}
 
     cv::Mat water_copy = frame.clone();
     /*
@@ -162,17 +150,16 @@ int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
         */
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig, 5, edges, 3, 0, 0.04);
 
     cv::Rect frame_rect( cv::Point(0, 0), frame.size() );
-    for( std::vector<cv::Point>::iterator it=points.begin();
-            it!=points.end(); ++it )
+    for( std::vector<cv::Point2f>::iterator it=gft.begin();
+            it!=gft.end(); ++it )
     {
         cv::Mat sourceCopy2 = frame.clone();
         cv::Rect a, b;
         double nsigma;
         // Get Rect A
-        a = cv::Rect( *it-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
+        a = cv::Rect( *it-( .5*cv::Point2f( patchSize ) ), patchSize ) & frame_rect;
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
 		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, cv::Mat() );

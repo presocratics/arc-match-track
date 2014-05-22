@@ -60,6 +60,9 @@
 #define ARC_ARG_FEATURES_BEFORE_TRACK "-fbt"         // Get goodFeaturesToTrack on point before tracking.
 #define ARC_DEFAULT_FEATURES_BEFORE_TRACK false
 
+// GFT parameters
+#define ARC_ARG_GFT_MIN "-gm"            /*  */
+#define ARC_DEFAULT_GFT_MIN 5            /*  */
 // Main parameters
 #define ARG_REFRESH_COUNT "-rc"
 #define DEFAULT_REFRESH_COUNT 200                 // # Iterations before rematching.

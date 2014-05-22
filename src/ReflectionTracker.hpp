@@ -19,8 +19,8 @@ void findReflections(cv::Mat image, cv::Size patchSize, double slope,
 
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL
 //OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, 
-        double slope, double eig,std::list<ARC_Pair> &outlist );
+int getReflections( cv::Mat frame, cv::Size patchSize,
+        double slope, std::list<ARC_Pair> &outlist, std::vector<cv::Point2f>& gft );
 void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
         double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
@@ -47,9 +47,9 @@ struct outside_theta {
     }
     bool operator() (const ARC_Pair& value ) 
     { 
-        cv::Point del = value.roi.reflection-value.roi.source;
+        cv::Point2f del = value.roi.reflection-value.roi.source;
         double match_theta = atan2( del.y, del.x );
-        return( abs(theta-match_theta)>dev );
+        return( fabs(theta-match_theta)>dev );
     }
     private:
     double theta;

@@ -19,6 +19,8 @@
 #include "main.hpp"
 #include "config.hpp"
 #include "ARC_IMU.hpp"
+using std::cout;
+using std::endl;
 
 
 /* 
@@ -131,10 +133,16 @@ void slope_endpoints ( double slope, cv::Point2f* ol )
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
 void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        unsigned int nregions, cv::Size patch_size, double slope, double theta, double eig )
+        cv::Size patch_size, double slope, double theta, std::vector<cv::Point2f>& GFT, int N )
 {
     std::list<ARC_Pair> temp;
-    getReflections( frame, patch_size, nregions, slope, eig, temp );
+    std::vector<cv::Point2f> features_to_match;
+    for( int i=0; i<N; ++i )
+    {
+        features_to_match.push_back( GFT.back() );
+        GFT.pop_back();
+    }
+    getReflections( frame, patch_size, slope, temp, features_to_match );
     //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
     //temp.remove_if( within_shore( frame.clone() ) );
@@ -149,7 +157,7 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
 // =====================================================================================
 void help( std::string program_name )
 {
-    std::cout 
+    cout 
          << "Usage: " << program_name << spc << "<list of image files> <frame gyro data> [options]"
          << std::endl
          << "OPTIONS" << std::endl
@@ -187,6 +195,9 @@ void help( std::string program_name )
 
          << ARC_ARG_PATCH_SIZE << spc << "[0-150]" << tab << "Set region patch size." << spc
          << "Default: " << ARC_DEFAULT_PATCH_SIZE<<"x"<<ARC_DEFAULT_PATCH_SIZE << std::endl
+
+         << ARC_ARG_GFT_MIN << spc << "[N]" << tab << "Set minimum number of good features to track"
+         << spc << "Default: " << ARC_DEFAULT_GFT_MIN << std::endl
 
          << ARC_ARG_NUM_GOOD_FEATURES_TO_TRACK << spc << "[0-50]" << tab 
          << "Set number of good features to track." << spc << "Default: " 
@@ -251,6 +262,37 @@ void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs,
     }
     return ;
 }		// -----  end of function pairs_to_points  ----- 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  flow_gft
+ *  Description:  Performs flow on a set of good features to track. In place
+ *  wrote of points->new points is allowed.
+ * =====================================================================================
+ */
+    void
+flow_gft ( cv::Mat gray, cv::Mat prev_gray, std::vector<cv::Point2f>& pts, 
+        std::vector<cv::Point2f>& npts )
+{
+    if( pts.size()==0 || prev_gray.empty() ) return;
+
+    std::vector<cv::Point2f> tmp,tmp2;
+    cv::TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
+    cv::Size sub_pix_win_size(10,10);
+    cv::Size win_size(31,31);
+    std::vector<uchar> status;
+    std::vector<float> error;
+
+    calcOpticalFlowPyrLK( prev_gray, gray, pts, tmp,
+            status, error, win_size, 3, termcrit, 0, 0.001 );
+    for( size_t i=0; i<tmp.size(); ++i )
+    {
+        if( !status[i] ) continue;
+        tmp2.push_back( tmp[i] );
+    }
+    npts = tmp2;
+    return;
+}		/* -----  end of function flow_gft  ----- */
 
 // ===  FUNCTION  ======================================================================
 //         Name:  track
@@ -336,6 +378,7 @@ void arguments::arguments()
     std = ARC_DEFAULT_STD;
     max_dist = ARC_DEFAULT_MAX_DIST;
     start_frame = ARC_DEFAULT_START_FRAME;
+    gft_min = ARC_DEFAULT_GFT_MIN;
     return;
 }
 
@@ -421,6 +464,11 @@ bool get_arguments ( int argc, char** argv, arguments* a)
             a->blur=atof(argv[++i]);
             continue;
         }
+        if( !strcmp(argv[i], ARC_ARG_GFT_MIN) ) 
+        {
+            a->gft_min=atof(argv[++i]);
+            continue;
+        }
     }
     return true;
 }		/* -----  end of function get_arguments  ----- */
@@ -431,6 +479,7 @@ int main(int argc, char** argv)
     std::vector<std::string> image_list;                  // Video frames for tracking.
     std::vector<cv::Point3f> imu_list;                  // IMU data for slope.
     std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
+    std::vector<cv::Point2f> GFT;
 
     // Parse Arguments
     arguments a;
@@ -538,9 +587,25 @@ int main(int argc, char** argv)
         */
 
         // Filter pairs.
+        // Flow GFT
+        flow_gft( gray, prev_gray, GFT, GFT );
+        if( GFT.size()<a.gft_min )
+        {
+            // Add more GFTs
+            cv::Size shift( 20, 20 );
+            cv::Mat mask = cv::Mat::ones(gray.size(),CV_8UC1)*255;
+            for( std::list<ARC_Pair>::iterator it=pairs.begin();
+                    it!=pairs.end(); ++it )
+            {
+                cv::Rect blockedRegionSource( it->roi.source-0.5*cv::Point(shift), shift );
+                cv::Rect blockedRegionReflection( it->roi.reflection-0.5*cv::Point(shift), shift );
+                rectangle( mask, blockedRegionSource, 0, CV_FILLED );
+                rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
+            }
+            goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
+        }
         // Update regions.
-        if( i%5==0 && pairs.size()<(unsigned int)a.num_regions )
-            update_regions( cur_frame, &pairs, a.good_features_to_track, a.patch_size, slope, theta, a.eig );
+        update_regions( cur_frame, &pairs, a.patch_size, slope, theta, GFT, 2 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         //pairs.remove_if( overlap( a.patch_size ) );
@@ -594,7 +659,7 @@ int main(int argc, char** argv)
         cv::putText( drawn_matches, (frame_number.str()).c_str(), cv::Point(5,15) ,cv::FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
         cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
-        cv::waitKey(5);
+        cv::waitKey(1);
         vidout << drawn_matches;
         ++i;
     }
