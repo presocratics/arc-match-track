@@ -146,35 +146,6 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
 }		// -----  end of function update_regions  ----- 
 
 // ===  FUNCTION  ======================================================================
-//         Name:  draw_match_by_hand
-//  Description:  
-// =====================================================================================
-void draw_match_by_hand( cv::Mat* out_img, cv::Mat* scene, 
-        cv::Mat* object, cv::Rect sroi, cv::Rect rroi, 
-        std::vector<cv::Point2f>& source_points, 
-        std::vector<cv::Point2f>& reflection_points)
-{
-    if( source_points.size()!=reflection_points.size() )
-    {
-        std::cerr << "source_points.size()!=reflection_points.size()" << std::endl; 
-        exit( EXIT_FAILURE );
-    }
-
-    // draw lines
-    // TODO: Random colors. Should be stored at region level.
-    for( size_t i=0; i<source_points.size() ; ++i )
-    {
-        circle( *out_img, source_points[i], 3, cv::Scalar(0, 255, 0) );
-        circle( *out_img, reflection_points[i], 3, cv::Scalar(0, 255, 0) );
-        cv::line( *out_img, source_points[i], reflection_points[i], cv::Scalar(0, 255, 0), 1, CV_AA );
-    }
-    rectangle( *out_img, sroi, cv::Scalar( 50, 100, 150 ), 1 );
-    rectangle( *out_img, rroi, cv::Scalar( 50, 100, 150 ), 1 );
-    return ;
-}		// -----  end of function draw_match_by_hand  ----- 
-
-
-// ===  FUNCTION  ======================================================================
 //         Name:  help()
 //  Description:  Display options.
 // =====================================================================================
@@ -647,11 +618,6 @@ int main(int argc, char** argv)
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
         track( gray, prev_gray, &pairs );
-        //writer.write_matches( image_list[i], r->keypoints.source, r->keypoints.reflection,
-         //       r->matches, r->roi.source );
-        //draw_match_by_hand( &drawn_matches, &cur_frame,
-         //       &flipped, r->roi.source , r->roi.reflection,
-         //       good_points.source, good_points.reflection );
         cv::Scalar red (0,0,255);
         cv::Scalar black(0,0,0);
         std::list<ARC_Pair>::iterator it=pairs.begin();

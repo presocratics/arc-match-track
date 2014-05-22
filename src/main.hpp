@@ -75,11 +75,6 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         unsigned int nregions, cv::Size patch_size, double slope, 
         double theta, double eig );
 
-void draw_match_by_hand( cv::Mat out_img, cv::Mat* scene, 
-        cv::Mat* object, cv::Rect sroi, cv::Rect rroi,
-        std::vector<cv::Point2f>& source_points, 
-        std::vector<cv::Point2f>& reflection_points);
-
 void help( std::string program_name );
 
 cv::Mat mask_scene ( cv::Rect roi, cv::Mat& frame );
