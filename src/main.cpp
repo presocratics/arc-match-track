@@ -341,58 +341,6 @@ void arguments::arguments()
     return;
 }
 
-
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  get_regions
- *  Description:  Read in a list of regions and check for errors in format.
- *  File Format:  <x> <y> <width> <height> [direction] [slope]
- * =====================================================================================
- */
-/*
-bool get_regions(string filename, std::vector<ARC_Pair>* regions)
-{
-    bool status=true;
-    string    ifs_file_name = filename;                 // input  file name
-    ifstream  ifs;                                // create ifstream object 
-
-    ifs.open ( ifs_file_name.c_str() );           // open ifstream 
-    if (!ifs) {
-        cerr << "\nERROR : failed to open input  file " << ifs_file_name << std::endl;
-        exit (EXIT_FAILURE);
-    }
-    string line;
-    while( getline(ifs, line, '\n') )
-    {
-        double slope=INFINITY;
-        unsigned int direction=UP;
-        Point2i loc(-1,-1);
-        cv::Size dim(-1,-1);
-
-        stringstream l(line);
-
-        l >> loc.x >> loc.y >> dim.width >> dim.height >> direction >> slope;
-        if( loc.x>-1 && loc.y>-1 && dim.width>0 && dim.height>0 )
-        {
-            Rect roi(loc,dim);
-            ARC_Pair region;
-            if( direction==DOWN )
-                region.roi.source = roi;
-            else
-                region.roi.reflection = roi;
-            regions->push_back(region);
-        }
-        else
-        {
-            cerr << "Invalid region at " << loc << " of size " << (Point) dim << std::endl;
-            status=false;
-        }
-    }
-    ifs.close ();                                 // close ifstream 
-    return status;
-}
-*/
-
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  get_arguments

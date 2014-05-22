@@ -79,8 +79,6 @@ void help( std::string program_name );
 
 void get_image_list(std::string filename, std::vector<std::string>* il);
 
-bool get_regions(std::string filename, std::vector<ARC_Pair>* regions);
-
 bool get_arguments(int argc, char** argv, arguments* a);
 
 bool track (cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs );
