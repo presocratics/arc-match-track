@@ -116,36 +116,6 @@ cv::Rect findBestMatchLocation( double slope, cv::Mat image, cv::Rect source_rec
     return cv::Rect( matchLoc, source_rect.size() );
 }
 
-
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  rematch
- *  Description:  
- * =====================================================================================
- */
-    bool
-rematch ( cv::Mat frame, cv::Size patchSize, ARC_Pair& pair, double slope )
-{
-    if( !frame.data )
-    {
-        std::cout << "Image couldn't be loaded." << std::endl;
-        exit( EXIT_FAILURE );
-    }
-    cv::Mat sourceCopy;
-    cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
-    cv::Rect frame_rect( cv::Point(0, 0), frame.size() );
-    cv::Rect a, b;
-    double nsigma;
-    // Get Rect A
-    a = cv::Rect( pair.roi.source-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
-    if( a.width==0 || a.height==0 ) return false;
-    // Get Rect B and nsigma
-    b = findBestMatchLocation( slope, sourceCopy, a, &nsigma, cv::Mat() );
-    // Create ARC_Pair
-    pair.set_reflection( frame, b, patchSize );
-    return true;
-}		/* -----  end of function rematch  ----- */
-
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double slope,

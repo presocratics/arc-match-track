@@ -347,7 +347,6 @@ void arguments::arguments()
  *  Description:  Parses command line arguments.
  * =====================================================================================
  */
-
 bool get_arguments ( int argc, char** argv, arguments* a)
 {
     if( argc==1 ) return false;
@@ -556,21 +555,6 @@ int main(int argc, char** argv)
         std::list<ARC_Pair>::iterator it=pairs.begin();
         while( it!=pairs.end() )
         {
-            /*
-            if( it->nNoMatch>0 )
-            {
-                if( !rematch( cur_frame, a.patch_size, *it, slope ) )
-                {
-                    if( it->nNoMatch++>10 )
-                        it=pairs.erase( it );
-                    continue;
-                }
-                it->nNoMatch=0;
-                ++it->age;
-                ++it;
-                continue;
-            }
-            */
             if( it->age>5 )
             {
                 cv::Point s, r, t;

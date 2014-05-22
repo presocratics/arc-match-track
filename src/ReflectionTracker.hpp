@@ -7,7 +7,6 @@
 #include "ARC_Pair.hpp"
 
 cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* mask );
-bool rematch ( cv::Mat frame, cv::Size patchSize, ARC_Pair& pair, double slope );
 void createTemplatesFromVector(cv::Mat image, cv::Size patchSize, std::vector<cv::Point> *points,
         std::list<ARC_Pair> *outlist);
 cv::Rect findBestMatchLocation(double slope, cv::Mat image,  cv::Rect source_rect, 
