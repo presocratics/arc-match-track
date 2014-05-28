@@ -19,8 +19,10 @@
 #include "main.hpp"
 #include "config.hpp"
 #include "ARC_IMU.hpp"
+#define ARC_FORK
 using std::cout;
 using std::endl;
+using std::cerr;
 
 
 /* 
@@ -142,7 +144,7 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         features_to_match.push_back( GFT.back() );
         GFT.pop_back();
     }
-    getReflections( frame, patch_size, slope, temp, features_to_match );
+    getReflections( frame, patch_size, temp, features_to_match );
     //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
     //temp.remove_if( within_shore( frame.clone() ) );
@@ -474,6 +476,8 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 }		/* -----  end of function get_arguments  ----- */
 
 
+#ifndef  ARC_FORK
+
 int main(int argc, char** argv)
 {
     std::vector<std::string> image_list;                  // Video frames for tracking.
@@ -665,4 +669,71 @@ int main(int argc, char** argv)
     }
 	return 0;
 }
+#else      /* -----  not ARC_FORK  ----- */
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+int main(int argc, char** argv)
+{
+    cv::Mat img, gray;
+    int nPoints, nForks;
+    std::vector<cv::Point2f> gft;
+    cv::Size patch_size;
+    std::list<ARC_Pair> temp;
+    pid_t pids[4];
+
+    if( argc!=4 )
+    {
+        cout << "Usage: " << argv[0] << " npoints nforks image" << endl;
+        exit( EXIT_FAILURE );
+    }
+    nPoints = atoi(argv[1]);
+    nForks = atoi(argv[2]);
+    if( nPoints%nForks!=0 )
+    {
+        cerr << "nForks must be a factor of nPoints" << endl;
+        exit( EXIT_FAILURE );
+    }
+    img = cv::imread( argv[3], CV_LOAD_IMAGE_UNCHANGED );
+    if( img.empty() )
+    {
+        cerr << "Cannot read image: " << argv[3] << endl;
+        exit( EXIT_FAILURE );
+    }
+    patch_size = cv::Size(50,50);
+    cvtColor(img, gray, CV_BGR2GRAY);
+    goodFeaturesToTrack( gray, gft, nPoints, 0.02, 5 ); 
+
+    for( int i=0; i<nForks; ++i )
+    {
+        std::vector<cv::Point2f> features_to_match;
+        for( int j=0; j<nPoints/nForks; ++j )
+        {
+            features_to_match.push_back( gft.back() );
+            gft.pop_back();
+        }
+        if( (pids[i]=fork())==-1 )
+        {
+            perror("fork");
+            exit(1);
+        }
+        else if( pids[i]==0 )
+        {
+            getReflections( img, patch_size, temp, features_to_match );
+            exit( 0 );
+        }
+    }
+    for( int i=0; i<nForks; ++i )
+    {
+        int status;
+        pids[i]=wait( &status );
+        if( status!=0 )
+        {
+            perror("status");
+            exit(1);
+        }
+    }
+}
+#endif     /* -----  not ARC_FORK  ----- */
 
