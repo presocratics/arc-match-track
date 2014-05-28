@@ -19,7 +19,7 @@ bool displayWindows;
 
 
 //RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
-cv::Rect findBestMatchLocation( double slope, cv::Mat image, cv::Rect source_rect, 
+cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect, 
         double* nsigma, cv::Mat mask )
 {
     cv::Mat image_gray;
@@ -118,7 +118,7 @@ cv::Rect findBestMatchLocation( double slope, cv::Mat image, cv::Rect source_rec
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( cv::Mat frame, cv::Size patchSize, double slope,
+int getReflections( cv::Mat frame, cv::Size patchSize, 
         std::list<ARC_Pair>& outlist, std::vector<cv::Point2f>& gft )
 {
     cv::Mat sourceCopy;
@@ -162,7 +162,7 @@ int getReflections( cv::Mat frame, cv::Size patchSize, double slope,
         a = cv::Rect( *it-( .5*cv::Point2f( patchSize ) ), patchSize ) & frame_rect;
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
-		b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, cv::Mat() );
+		b = findBestMatchLocation( sourceCopy2, a, &nsigma, cv::Mat() );
         //Mat mask;
         //get_masked_frame( a, slope, &sourceCopy2, &mask );
 		//b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, mask );

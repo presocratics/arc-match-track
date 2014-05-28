@@ -9,7 +9,7 @@
 cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* mask );
 void createTemplatesFromVector(cv::Mat image, cv::Size patchSize, std::vector<cv::Point> *points,
         std::list<ARC_Pair> *outlist);
-cv::Rect findBestMatchLocation(double slope, cv::Mat image,  cv::Rect source_rect, 
+cv::Rect findBestMatchLocation( cv::Mat image,  cv::Rect source_rect, 
         double* nsigma, cv::Mat mask );
 void findReflections(cv::Mat image, cv::Size patchSize, double slope, 
         std::list<ARC_Pair> *outlist);
@@ -20,7 +20,7 @@ void findReflections(cv::Mat image, cv::Size patchSize, double slope,
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL
 //OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( cv::Mat frame, cv::Size patchSize,
-        double slope, std::list<ARC_Pair> &outlist, std::vector<cv::Point2f>& gft );
+        std::list<ARC_Pair> &outlist, std::vector<cv::Point2f>& gft );
 void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
         double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()
