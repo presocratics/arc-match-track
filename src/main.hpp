@@ -64,6 +64,8 @@ typedef struct arguments_t {
     void arguments();                           // Function to initialize defaults;
 } arguments;
 
+int Pipe ( int pipefd[2] );
+pid_t Fork ( );
 void change_good_features_to_track( int slider, void* gft );
 void change_frame_number( int slider, void* fn );
 void change_patch_size( int slider, void* ps );

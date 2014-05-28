@@ -119,7 +119,7 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( cv::Mat frame, cv::Size patchSize, 
-        std::list<ARC_Pair>& outlist, std::vector<cv::Point2f>& gft )
+        std::list<ARC_Pair>* outlist, std::vector<cv::Point2f>& gft )
 {
     cv::Mat sourceCopy;
 	if( !frame.data ) 
@@ -170,10 +170,10 @@ int getReflections( cv::Mat frame, cv::Size patchSize,
         bool err;
         ARC_Pair pair( *it, b, nsigma, sourceCopy2, &err );
         // Add to list
-        if( !err ) outlist.push_back( pair );
+        if( !err ) outlist->push_back( pair );
     }
 	
-	return outlist.size();
+	return outlist->size();
 }
 
 // === FUNCTION ======================================================================

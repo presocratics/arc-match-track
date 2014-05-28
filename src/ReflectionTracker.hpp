@@ -20,7 +20,7 @@ void findReflections(cv::Mat image, cv::Size patchSize, double slope,
 //GIVEN AN IMAGE AND A PATCHSIZE, AND SLOPE INFORMATION, PUTS A SEQUENCE OF REAL
 //OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
 int getReflections( cv::Mat frame, cv::Size patchSize,
-        std::list<ARC_Pair> &outlist, std::vector<cv::Point2f>& gft );
+        std::list<ARC_Pair> *outlist, std::vector<cv::Point2f>& gft );
 void getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures,
         double eig, std::list<ARC_Pair> &outlist );
 //DISPLAYS THE RESULTS OF getReflections()

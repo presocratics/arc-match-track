@@ -19,7 +19,11 @@
 #include "main.hpp"
 #include "config.hpp"
 #include "ARC_IMU.hpp"
-#define ARC_FORK
+#include <unistd.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+//#define ARC_FORK
 using std::cout;
 using std::endl;
 using std::cerr;
@@ -130,6 +134,43 @@ void slope_endpoints ( double slope, cv::Point2f* ol )
     return ;
 }		// -----  end of function slope_endpoints  ----- 
 
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  Fork
+ *  Description:  Wrapper for fork() function.
+ * =====================================================================================
+ */
+    pid_t
+Fork ( )
+{
+    pid_t p;
+    if( (p=fork())==-1 )
+    {
+        perror("fork");
+        exit(1);
+    }
+    return p;
+}		/* -----  end of function Fork  ----- */
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  Pipe
+ *  Description:  Wrapper for pipe() function.
+ * =====================================================================================
+ */
+    int
+Pipe ( int pipefd[2] )
+{
+    int p;
+    if( (p=pipe(pipefd))==-1 )
+    {
+        perror("pipe");
+        exit(1);
+    }
+    return p;
+}		/* -----  end of function Pipe  ----- */
+
 // ===  FUNCTION  ======================================================================
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
@@ -137,18 +178,59 @@ void slope_endpoints ( double slope, cv::Point2f* ol )
 void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         cv::Size patch_size, double slope, double theta, std::vector<cv::Point2f>& GFT, int N )
 {
-    std::list<ARC_Pair> temp;
-    std::vector<cv::Point2f> features_to_match;
+    std::list<ARC_Pair> temp[N];
+    std::vector<cv::Point2f> features_to_match[N];
+    pid_t pids[N];
+    int pfds[N][2];
     for( int i=0; i<N; ++i )
     {
-        features_to_match.push_back( GFT.back() );
+        Pipe( pfds[i] );
+        features_to_match[i].push_back( GFT.back() );
         GFT.pop_back();
+        if( (pids[i]=Fork())==0 )
+        {
+            close( pfds[i][0] );
+            getReflections( frame, patch_size, temp+i, features_to_match[i] );
+            ARC_Pair p = (temp+i)->front();
+            write( pfds[i][1], &(p.roi.source), sizeof(cv::Point) );
+            write( pfds[i][1], &(p.roi.reflection), sizeof(cv::Point) );
+            write( pfds[i][1], &(p.nsigma), sizeof(double) );
+            close( pfds[i][1] );
+            _exit( 0 );
+        }
     }
-    getReflections( frame, patch_size, temp, features_to_match );
+    for( int i=0; i<N; ++i )
+    {
+        int status;
+        double ns;
+        cv::Point src, ref;
+        ARC_Pair *tmp=new ARC_Pair;
+        close( pfds[i][1] );
+        read( pfds[i][0], &src, sizeof(cv::Point) );
+        read( pfds[i][0], &ref, sizeof(cv::Point) );
+        read( pfds[i][0], &ns, sizeof(double) );
+        tmp->nsigma=ns;
+        tmp->roi.source=src;
+        tmp->roi.reflection=ref;
+        temp[i].push_back( *tmp );
+        cout << tmp->nsigma << endl;
+        cout << temp[i].size() << endl;
+        pairs->splice( pairs->begin(), temp[i] );
+        cout << "P: " << pairs->size() << endl;
+        close( pfds[i][0] );
+        waitpid( pids[i], &status, 0 );
+        if( status!=0 )
+        {
+            perror("status");
+            exit(1);
+        }
+    }
+    
+    //getReflections( frame, patch_size, temp, features_to_match );
     //getShorelinePairs( frame, patch_size, nregions, eig, temp );
     //Remove pair if not within detected shoreline margin
     //temp.remove_if( within_shore( frame.clone() ) );
-    pairs->splice( pairs->begin(), temp);
+    //pairs->splice( pairs->begin(), temp);
         
     return ;
 }		// -----  end of function update_regions  ----- 
@@ -539,7 +621,7 @@ int main(int argc, char** argv)
     // Init Video
     cv::Mat first_frame=cv::imread( image_list[0], CV_LOAD_IMAGE_COLOR );
     cv::VideoWriter vidout;
-    vidout.open( a.video_filename, CV_FOURCC('X','2','6','4'), 
+    vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
             20.0, first_frame.size(), true );
     if( !vidout.isOpened() )
     {
@@ -609,7 +691,7 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, slope, theta, GFT, 2 );
+        update_regions( cur_frame, &pairs, a.patch_size, slope, theta, GFT, 4 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( theta, a.theta_dev ) );
         //pairs.remove_if( overlap( a.patch_size ) );
@@ -670,10 +752,6 @@ int main(int argc, char** argv)
 	return 0;
 }
 #else      /* -----  not ARC_FORK  ----- */
-#include <unistd.h>
-#include <errno.h>
-#include <sys/types.h>
-#include <sys/wait.h>
 int main(int argc, char** argv)
 {
     cv::Mat img, gray;
