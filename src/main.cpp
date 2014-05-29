@@ -213,10 +213,7 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         tmp->roi.source=src;
         tmp->roi.reflection=ref;
         temp[i].push_back( *tmp );
-        cout << tmp->nsigma << endl;
-        cout << temp[i].size() << endl;
         pairs->splice( pairs->begin(), temp[i] );
-        cout << "P: " << pairs->size() << endl;
         close( pfds[i][0] );
         waitpid( pids[i], &status, 0 );
         if( status!=0 )
