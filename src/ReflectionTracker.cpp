@@ -13,7 +13,6 @@
 #include "ARC_Pair.hpp"
 #include "ReflectionTracker.hpp"
 
-int verbosity;
 bool displayRegions;
 bool displayWindows;
 
@@ -63,8 +62,6 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
     //matchTemplate( masked_scene, sourceTemplate, result, match_method );
     matchTemplate( image_gray, sourceTemplate, result, match_method );
 
-    if( verbosity>=VERY_VERBOSE ) 
-        std::cout << "Ran matchTemplate and normalized\n";
     double minVal, maxVal; 
     cv::Point minLoc, maxLoc, matchLoc;
     /*
@@ -88,31 +85,6 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
     // matchLoc is the location of the top left corner of the reflection
     // that matchTemplate found
 
-
-    if( verbosity==VERY_VERBOSE ) 
-        std::cout << "Max value from results matrix: " << result.at<float>(matchLoc.x,matchLoc.y) << std::endl;
-
-    bool debugResults = false;
-    if( debugResults ) 
-    {
-        int surroundingPixel = 5;
-        std::cout << "TL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y-surroundingPixel)
-             << " T: " << result.at<float>(matchLoc.x,matchLoc.y-surroundingPixel)
-             << " TR: " << result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y-surroundingPixel)
-             << std::endl;
-
-        std::cout << "BL: " << result.at<float>(matchLoc.x-surroundingPixel,matchLoc.y+surroundingPixel)
-             << " B: " << result.at<float>(matchLoc.x,matchLoc.y+surroundingPixel) 
-             << " BR: " <<result.at<float>(matchLoc.x+surroundingPixel,matchLoc.y+surroundingPixel)
-             << std::endl;
-        cv::Scalar reflectionColor (232,49,190);
-        rectangle( result, matchLoc, cv::Point( matchLoc.x+sourceTemplate.cols, matchLoc.y+sourceTemplate.rows ), reflectionColor , 2, 8, 0 );
-        cv::imshow( "Source", result);//not right	
-        cv::namedWindow( "Results", CV_WINDOW_AUTOSIZE );
-        cv::imshow( "Results", result );
-        cv::moveWindow( "Results", 700, 0 );
-        cv::waitKey( 0 );
-    }
     return cv::Rect( matchLoc, source_rect.size() );
 }
 
@@ -131,9 +103,6 @@ int getReflections( cv::Mat frame, cv::Size patchSize,
 	frame.copyTo( sourceCopy );
 	cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
     cv::equalizeHist( sourceCopy, sourceCopy );
-
-    if( verbosity>=VERBOSE ) 
-        std::cout << "Image loaded and converted to grayscale\n";	
 
     std::vector<cv::Point> points; 
 

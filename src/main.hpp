@@ -43,8 +43,6 @@ typedef struct PPC_t {                          // Point Pair Conversion
 
 typedef struct arguments_t {
     unsigned int refresh_count;                 // Number of iterations before rematching.
-    int debug;
-    int verbosity;
     int show_match;
     int show_track;
     double theta_dev;

@@ -23,7 +23,6 @@
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-//#define ARC_FORK
 using std::cout;
 using std::endl;
 using std::cerr;
@@ -290,14 +289,6 @@ void help( std::string program_name )
 
          << ARG_REFRESH_COUNT << spc << "<N>" << tab << "Number of iterations before rematching. "
          << "Default: " << DEFAULT_REFRESH_COUNT << std::endl
-
-         << ARG_VERBOSE << tab << "Verbose output." << std::endl
-
-         << ARG_VERY_VERBOSE << tab << "Very verbose output." << std::endl
-
-         << ARG_VERY_VERY_VERBOSE << tab << "Very very verbose output." << std::endl
-
-         << ARG_DEBUG_MODE << tab << "Show debugging output." << std::endl
          ;
 
     return ;
@@ -448,8 +439,6 @@ void arguments::arguments()
     theta_dev = ARC_DEFAULT_THETA_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
     patch_size = cv::Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
-    debug = NO_DEBUG;
-    verbosity = NOT_VERBOSE;
     show_match = NO_SHOW_MATCHES;
     show_track = SHOW_TRACKING;
     video_filename = DEFAULT_VID_FILENAME;
@@ -475,11 +464,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     for ( int i = 3; i < argc; i += 1 ) 
     {
         if( !strcmp(argv[i], ARC_ARG_FEATURES_BEFORE_TRACK ) ) a->features_before_track = true;
-        if( !strcmp(argv[i], ARG_DEBUG_MODE) ) a->debug=DEBUG;
-        if( !strcmp(argv[i], ARG_VERBOSE) ) a->verbosity=VERBOSE;
-        if( !strcmp(argv[i], ARG_VERY_VERBOSE) ) a->verbosity=VERY_VERBOSE;
-        if( !strcmp(argv[i], ARG_VERY_VERY_VERBOSE) ) a->verbosity=VERY_VERY_VERBOSE;
-        if( !strcmp(argv[i], ARG_VERY_VERY_VERBOSE) ) a->verbosity=VERY_VERY_VERBOSE;
 
         if( !strcmp(argv[i], ARG_SHOW_MATCHES) ) a->show_match=SHOW_MATCHES;
 
@@ -555,7 +539,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 }		/* -----  end of function get_arguments  ----- */
 
 
-#ifndef  ARC_FORK
 
 int main(int argc, char** argv)
 {
@@ -575,19 +558,6 @@ int main(int argc, char** argv)
         exit( EXIT_FAILURE );
     }
 
-    if( a.debug==DEBUG )
-    {
-        std::cout
-            << "ARGUMENTS" << std::endl
-            << "Refresh Count:" << tab << a.refresh_count << std::endl
-            << "Debug:" << tab << a.debug << std::endl
-            << "Verbosity:" << tab << a.verbosity << std::endl
-            << "Show Match:" << tab<< a.show_match << std::endl
-            << "Show Track:" << tab << a.show_track << std::endl
-            << "Blur: " << tab << a.blur << std::endl
-            << "Video Filename:" << tab << a.video_filename <<
-            std::endl;
-    }
     get_image_list( argv[1], &image_list );     // Reads in the image list.
     get_imu_list( argv[2], &imu_list );
     //get_regions( argv[2], &regions );           // Reads in the region list.
@@ -638,7 +608,6 @@ int main(int argc, char** argv)
     {
         cv::Mat water_mask, edges;
         cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
-        if( a.verbosity>=VERBOSE ) std::cout << "Frame: " << image_list[i] << std::endl;
         cv::Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
         if( theta==-1 )
             theta = imu.get_rotation_angle( rotation_matrix );
@@ -748,67 +717,4 @@ int main(int argc, char** argv)
     }
 	return 0;
 }
-#else      /* -----  not ARC_FORK  ----- */
-int main(int argc, char** argv)
-{
-    cv::Mat img, gray;
-    int nPoints, nForks;
-    std::vector<cv::Point2f> gft;
-    cv::Size patch_size;
-    std::list<ARC_Pair> temp;
-    pid_t pids[4];
-
-    if( argc!=4 )
-    {
-        cout << "Usage: " << argv[0] << " npoints nforks image" << endl;
-        exit( EXIT_FAILURE );
-    }
-    nPoints = atoi(argv[1]);
-    nForks = atoi(argv[2]);
-    if( nPoints%nForks!=0 )
-    {
-        cerr << "nForks must be a factor of nPoints" << endl;
-        exit( EXIT_FAILURE );
-    }
-    img = cv::imread( argv[3], CV_LOAD_IMAGE_UNCHANGED );
-    if( img.empty() )
-    {
-        cerr << "Cannot read image: " << argv[3] << endl;
-        exit( EXIT_FAILURE );
-    }
-    patch_size = cv::Size(50,50);
-    cvtColor(img, gray, CV_BGR2GRAY);
-    goodFeaturesToTrack( gray, gft, nPoints, 0.02, 5 ); 
-
-    for( int i=0; i<nForks; ++i )
-    {
-        std::vector<cv::Point2f> features_to_match;
-        for( int j=0; j<nPoints/nForks; ++j )
-        {
-            features_to_match.push_back( gft.back() );
-            gft.pop_back();
-        }
-        if( (pids[i]=fork())==-1 )
-        {
-            perror("fork");
-            exit(1);
-        }
-        else if( pids[i]==0 )
-        {
-            getReflections( img, patch_size, temp, features_to_match );
-            exit( 0 );
-        }
-    }
-    for( int i=0; i<nForks; ++i )
-    {
-        int status;
-        pids[i]=wait( &status );
-        if( status!=0 )
-        {
-            perror("status");
-            exit(1);
-        }
-    }
-}
-#endif     /* -----  not ARC_FORK  ----- */
 
