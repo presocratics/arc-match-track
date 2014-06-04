@@ -246,8 +246,6 @@ void help( std::string program_name )
          << "Run goodFeaturesToTrack in each frame before tracking." 
          << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << std::endl
          
-         << ARG_SHOW_MATCHES << tab << "Show matches." << std::endl
-
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << std::endl
          
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << std::endl
@@ -439,8 +437,6 @@ void arguments::arguments()
     theta_dev = ARC_DEFAULT_THETA_DEV;
     num_regions = ARC_DEFAULT_NUM_REGIONS;
     patch_size = cv::Size( ARC_DEFAULT_PATCH_SIZE, ARC_DEFAULT_PATCH_SIZE );
-    show_match = NO_SHOW_MATCHES;
-    show_track = SHOW_TRACKING;
     video_filename = DEFAULT_VID_FILENAME;
     text_filename = DEFAULT_TXT_FILENAME;
     good_features_to_track = ARC_DEFAULT_NUM_GOOD_FEATURES_TO_TRACK;
@@ -465,9 +461,6 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     {
         if( !strcmp(argv[i], ARC_ARG_FEATURES_BEFORE_TRACK ) ) a->features_before_track = true;
 
-        if( !strcmp(argv[i], ARG_SHOW_MATCHES) ) a->show_match=SHOW_MATCHES;
-
-        if( !strcmp(argv[i], ARG_SHOW_TRACKING) ) a->show_track=SHOW_TRACKING;
         if( !strcmp(argv[i], ARC_ARG_THETA_DEV) ) 
         {
             a->theta_dev=atof(argv[++i]);

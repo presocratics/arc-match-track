@@ -43,8 +43,6 @@ typedef struct PPC_t {                          // Point Pair Conversion
 
 typedef struct arguments_t {
     unsigned int refresh_count;                 // Number of iterations before rematching.
-    int show_match;
-    int show_track;
     double theta_dev;
     int num_regions;
     cv::Size patch_size;

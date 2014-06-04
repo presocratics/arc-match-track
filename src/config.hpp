@@ -4,24 +4,6 @@
 #define spc " "            // Nice way to make spaces.
 #define tab "\t"            // Nice way to make spaces.
 
-//Debug
-#define ARG_DEBUG_MODE "--debug"                // Show program debugging info.
-#define ARG_VERBOSE "-v"                        // Show non-looping text info about matching.
-#define ARG_VERY_VERBOSE "-vv"                  // Adds some looping info.
-#define ARG_VERY_VERY_VERBOSE "-vvv"            // Everything else.
-
-#define NO_DEBUG 0                              // Do not show debug info.
-#define DEBUG 1                                 // Show debug info.
-#define NOT_VERBOSE 0                           // Quiet.
-#define VERBOSE 1
-#define VERY_VERBOSE 2
-#define VERY_VERY_VERBOSE 3
-
-// show match level
-#define NO_SHOW_MATCHES 0                       // Do not show match results.
-#define ARG_SHOW_MATCHES "-sm"                  // Show results of matching.
-#define SHOW_MATCHES 1
-
 // tracking level
 #define ARG_SHOW_TRACKING "-st"                 // Display tracking live.
 #define SHOW_TRACKING 1
