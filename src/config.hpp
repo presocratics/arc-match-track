@@ -3,7 +3,7 @@
 //Misc
 #define spc " "            // Nice way to make spaces.
 #define tab "\t"            // Nice way to make spaces.
-
+#define MAXLINE 1024            /*  */
 // tracking level
 #define ARG_SHOW_TRACKING "-st"                 // Display tracking live.
 #define SHOW_TRACKING 1

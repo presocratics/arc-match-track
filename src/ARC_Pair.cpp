@@ -117,12 +117,11 @@ ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool*
     std::ostream &
 operator << ( std::ostream &os, const ARC_Pair &obj )
 {
-    os << obj.id << spc
-       << obj.roi.source << spc
-       << obj.roi.reflection << spc
-       << obj.nsigma << spc
-       << obj.nNoMatch << spc
-       << obj.age ;
+    os << obj.id << ","
+       << obj.roi.source.x << ","
+       << obj.roi.source.y << ","
+       << obj.roi.reflection.x << ","
+       << obj.roi.reflection.y;
     return os;
 }		// -----  end of function operator <<  ----- 
 

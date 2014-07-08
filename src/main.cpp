@@ -686,13 +686,13 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                std::cout << image_list[i] << spc
-                     << *it
+                std::cout << *it
                      << std::endl;
             }
             ++it->age;
             ++it;
         }
+        printf("\n");
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
