@@ -65,7 +65,7 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
     double minVal, maxVal; 
     cv::Point minLoc, maxLoc, matchLoc;
     /*
-    find_water(image,water_mask);
+    //find_water(image,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
         */
@@ -115,7 +115,7 @@ int getReflections( cv::Mat frame, cv::Size patchSize,
 
     cv::Mat water_copy = frame.clone();
     /*
-    find_water(water_copy,water_mask);
+    //find_water(water_copy,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,64);
         */
@@ -299,7 +299,7 @@ getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double 
     cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
     frame_rect = cv::Rect( cv::Point(0, 0), frame.size() );
 
-    find_water(frame,water_mask);
+    //find_water(frame,water_mask);
     if( water_mask.size()!=cv::Size(0,0) )
         get_shorline_margin(water_mask,edges,32);
     goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig,

@@ -87,7 +87,7 @@ struct longer_than {
 struct within_shore {
     within_shore(cv::Mat src) {
         cv::Mat water_mask;
-        find_water(src,water_mask);
+        //find_water(src,water_mask);
         cv::Mat edges;
         if( water_mask.size()!=cv::Size(0,0) )
             get_shorline_margin(water_mask,edges,64);

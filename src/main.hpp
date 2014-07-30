@@ -1,5 +1,7 @@
 #ifndef MAIN_H
 #define MAIN_H
+#include <ourerr.hpp>
+#include <Quaternion.hpp>
 #include <iostream>
 #include <ostream>
 #include <string>
@@ -36,6 +38,12 @@ const cv::Matx33d A( fx, 0, cx,
                   0, fy, cy,
                   0,  0,  1 );
 
+struct configuration {
+    cv::Matx33d k;
+    Quaternion camIMU;
+};
+typedef struct configuration Configuration;
+
 typedef struct PPC_t {                          // Point Pair Conversion
     std::vector<cv::Point2f> source;
     std::vector<cv::Point2f> reflection;
@@ -68,11 +76,10 @@ void change_patch_size( int slider, void* ps );
 void change_num_regions( int slider, void* nr );
 void change_theta_dev( int slider, void* sd );
 
-void slope_endpoints ( double theta, cv::Point2f* ol );
+void slope_endpoints ( double angle, cv::Point2f* ol );
 
 void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        cv::Size patch_size, double slope, 
-        double theta, std::vector<cv::Point2f>& GFT, int N );
+        cv::Size patch_size, std::vector<cv::Point2f>& GFT, int N );
 
 void help( std::string program_name );
 

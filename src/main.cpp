@@ -27,6 +27,89 @@ using std::cout;
 using std::endl;
 using std::cerr;
 
+configuration conf;
+
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  read_config
+ *  Description:  
+ * =====================================================================================
+ */
+    void
+read_config ( FILE *fh, configuration *cfg )
+{
+    char *val, *line;
+
+    val = line = (char *) calloc ( (size_t)(MAXLINE), sizeof(char) );
+    
+    if ( val==NULL ) { 
+        fprintf ( stderr, "\ndynamic memory allocation failed\n" );
+        exit (EXIT_FAILURE);
+    }   
+
+    while( fgets( val, MAXLINE, fh )!=NULL )
+    {   
+        char *key;
+        key=strsep( &val, "=" );
+        if( !strncmp(key, "cam", MAXLINE) )
+        {   
+            double fx, fy, cx, cy; 
+            sscanf(val, "%lf,%lf,%lf,%lf", &fx, &fy, &cx, &cy);
+            cfg->k(0,0)=fx;
+            cfg->k(1,1)=fy;
+            cfg->k(0,2)=cx;
+            cfg->k(1,2)=cy;
+            cfg->k(2,2)=1;
+        }   
+        else if( !strncmp(key, "camimu", MAXLINE) )
+        {   
+            cv::Vec4d qbw;
+            sscanf( val, "%lf,%lf,%lf,%lf", &qbw[0], &qbw[1], &qbw[2], &qbw[3] );
+            cfg->camIMU=Quaternion(qbw);
+        }   
+        else
+        {   
+            printf("Unknown option: %s\n", key);
+            exit(EXIT_FAILURE);
+        }   
+    }   
+    free (line);
+    line    = NULL;
+    return;
+}		/* -----  end of function read_config  ----- */
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_angle
+ *  Description:  Returns angle of rotation in camera plane in radians.
+ * =====================================================================================
+ */
+    double
+get_angle ( const Quaternion& qbw )
+{
+    const cv::Matx33d S(1,0,0,
+                        0,1,0,
+                        0,0,0);
+    double angle;
+    const cv::Vec3d x(320,240,1);
+    cv::Vec3d h, xs, xsr;  // Point, normalized, unit sphere, u.s. reflection
+    cv::Matx33d Rcb, Rbw;
+    cv::Vec3d diff;
+
+    solve( conf.k, x, h );
+    normalize( h, xs ); // Normalize h
+
+    Rcb=conf.camIMU.rotation();
+    Rbw=qbw.rotation();
+
+    xsr = Rcb.t()*Rbw.t()*S*Rbw*Rcb*xs;
+
+    diff=xsr-xs;
+    angle = atan2(diff[1], diff[0]);
+
+    return M_PI_2-angle;
+}		/* -----  end of function get_angle  ----- */
 
 /* 
  * ===  FUNCTION  ======================================================================
@@ -123,13 +206,13 @@ void change_eig( int slider, void* eig )
 //         Name:  slope_endpoints
 //  Description:  
 // =====================================================================================
-void slope_endpoints ( double slope, cv::Point2f* ol )
+void slope_endpoints ( double angle, cv::Point2f* ol )
 {
-    double x = 480/slope+320;
-    cv::Point2f t(320, 0);
-    cv::Point2f b(x, 480);
-    ol[0] = t;
-    ol[1] = b;
+    double slope = tan(angle);
+
+    ol[0] = cv::Point2d(320-240/slope,0);
+    ol[1] = cv::Point2d(320+240/slope,480);
+
     return ;
 }		// -----  end of function slope_endpoints  ----- 
 
@@ -175,7 +258,7 @@ Pipe ( int pipefd[2] )
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
 void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        cv::Size patch_size, double slope, double theta, std::vector<cv::Point2f>& GFT, int N )
+        cv::Size patch_size, std::vector<cv::Point2f>& GFT, int N )
 {
     std::list<ARC_Pair> temp[N];
     std::vector<cv::Point2f> features_to_match[N];
@@ -535,10 +618,13 @@ bool get_arguments ( int argc, char** argv, arguments* a)
 
 int main(int argc, char** argv)
 {
-    std::vector<std::string> image_list;                  // Video frames for tracking.
-    std::vector<cv::Point3f> imu_list;                  // IMU data for slope.
+    FILE	*img_fp;										/* input-file pointer */
+    FILE	*qbw_fp;										/* input-file pointer */
+    FILE    *conf_fp;
     std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
     std::vector<cv::Point2f> GFT;
+    char *image;
+    double qbw[4];
 
     // Parse Arguments
     arguments a;
@@ -551,8 +637,33 @@ int main(int argc, char** argv)
         exit( EXIT_FAILURE );
     }
 
-    get_image_list( argv[1], &image_list );     // Reads in the image list.
-    get_imu_list( argv[2], &imu_list );
+    if( (conf_fp=fopen(argv[3], "r"))==NULL )
+        err_sys("fopen: config");
+    read_config( conf_fp, &conf );
+    
+    char	*qbw_fp_file_name = argv[2];		/* input-file name    */
+
+    qbw_fp	= fopen( qbw_fp_file_name, "r" );
+    if ( qbw_fp == NULL ) {
+        fprintf ( stderr, "couldn't open file '%s'; %s\n",
+                qbw_fp_file_name, strerror(errno) );
+        exit (EXIT_FAILURE);
+    }
+    
+    char	*img_fp_file_name = argv[1];		/* input-file name    */
+    img_fp	= fopen( img_fp_file_name, "r" );
+    if ( img_fp == NULL ) {
+        fprintf ( stderr, "couldn't open file '%s'; %s\n",
+                img_fp_file_name, strerror(errno) );
+        exit (EXIT_FAILURE);
+    }
+    
+    image	= (char *) calloc ( (size_t)(1024), sizeof(char) );
+    if ( image==NULL ) {
+        fprintf ( stderr, "\ndynamic memory allocation failed\n" );
+        exit (EXIT_FAILURE);
+    }
+    
     //get_regions( argv[2], &regions );           // Reads in the region list.
 
     // Create GUI objects
@@ -572,22 +683,24 @@ int main(int argc, char** argv)
     cv::createTrackbar( "good_features_to_track", DEFAULT_WINDOW_NAME, 
             (int*) &a.good_features_to_track, 100, change_good_features_to_track,
             &a.good_features_to_track );
-    cv::createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
-            image_list.size(), change_frame_number, &i );
+    //cv::createTrackbar( "frame_number", DEFAULT_WINDOW_NAME, (int*) &i, 
+     //       image_list.size(), change_frame_number, &i );
 
     // Init text file
     //ARC_Write writer( a.text_filename );
 
     // Init Video
-    cv::Mat first_frame=cv::imread( image_list[0], CV_LOAD_IMAGE_COLOR );
-    cv::VideoWriter vidout;
-    vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
-            20.0, first_frame.size(), true );
-    if( !vidout.isOpened() )
-    {
-        std::cerr << "Could not open video file: " << a.video_filename << std::endl;
-        exit( EXIT_FAILURE );
-    }
+    fscanf( img_fp, "%s", image );
+    fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
+    cv::Mat first_frame=cv::imread( image, CV_LOAD_IMAGE_COLOR );
+    //cv::VideoWriter vidout;
+    //vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
+     //       20.0, first_frame.size(), true );
+    //if( !vidout.isOpened() )
+    //{
+     //   std::cerr << "Could not open video file: " << a.video_filename << std::endl;
+      //  exit( EXIT_FAILURE );
+    //}
 
     // Init ARC_IMU for rotation matrix.
     ARC_IMU imu;
@@ -595,22 +708,20 @@ int main(int argc, char** argv)
     //Begin image loop.
     cv::Point2f mid_pt( 320, 240 );
     cv::Mat cur_frame, gray, prev_gray;
-    double alpha = .125;
-    double theta = -1;
-    while( i<image_list.size() )
+    while( fscanf( img_fp, "%s", image )!=EOF )
     {
-        cv::Mat water_mask, edges;
-        cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
-        cv::Matx33d rotation_matrix = imu.calc_rotation_matrix( imu_list[i] );
-        if( theta==-1 )
-            theta = imu.get_rotation_angle( rotation_matrix );
-        else
-            theta = (1-alpha)*theta+alpha*imu.get_rotation_angle( rotation_matrix );
-        double slope = imu.theta_to_slope( theta );
+        double angle;
+        fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
+        Quaternion quat( cv::Vec4d(qbw[0], qbw[1], qbw[2], qbw[3]) );
+        angle = get_angle(quat);
+        std::cout << angle << std::endl;
 
-        cur_frame=cv::imread( image_list[i], CV_LOAD_IMAGE_UNCHANGED );           // open image 
+        cv::Mat water_mask, edges;
+        //cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
+
+        cur_frame=cv::imread( image, CV_LOAD_IMAGE_UNCHANGED );           // open image 
         if ( !cur_frame.data ) {
-            std::cerr << "\nERROR : failed to open input file " << image_list[i] << std::endl;
+            std::cerr << "\nERROR : failed to open input file " << image << std::endl;
             exit (EXIT_FAILURE);
         }
         cvtColor(cur_frame, gray, CV_BGR2GRAY);
@@ -620,16 +731,7 @@ int main(int argc, char** argv)
         }
         cv::Mat drawn_matches;
         cur_frame.copyTo(drawn_matches);
-        find_water(drawn_matches.clone(), water_mask);
-        /*
-        if( water_mask.size()!=cv::Size(0,0) )
-        {
-            get_shorline_margin( water_mask, edges, 64 );
-            Mat img2;
-            cvtColor( edges, img2, CV_GRAY2RGB );
-            addWeighted( img2, 0.3, drawn_matches, 0.7, 0, drawn_matches );
-        }
-        */
+        //find_water(drawn_matches.clone(), water_mask);
 
         // Filter pairs.
         // Flow GFT
@@ -650,9 +752,9 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, slope, theta, GFT, 4 );
+        update_regions( cur_frame, &pairs, a.patch_size, GFT, 4 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
-        pairs.remove_if( outside_theta( theta, a.theta_dev ) );
+        pairs.remove_if( outside_theta( angle, a.theta_dev ) );
         //pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
@@ -686,28 +788,40 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                std::cout << *it
-                     << std::endl;
+                //std::cout << *it
+                 //    << std::endl;
             }
             ++it->age;
             ++it;
         }
-        printf("\n");
+        //printf("\n");
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
         std::stringstream frame_number;
         frame_number << i;
         cv::Point2f ol[2];
-        slope_endpoints( slope, ol );
+        slope_endpoints( angle, ol );
         line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
         cv::putText( drawn_matches, (frame_number.str()).c_str(), cv::Point(5,15) ,cv::FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
         cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         cv::waitKey(1);
-        vidout << drawn_matches;
+        //vidout << drawn_matches;
         ++i;
     }
+    if( fclose(qbw_fp) == EOF ) {			/* close input file   */
+        fprintf ( stderr, "couldn't close file '%s'; %s\n",
+                qbw_fp_file_name, strerror(errno) );
+        exit (EXIT_FAILURE);
+    }
+    if( fclose(img_fp) == EOF ) {			/* close input file   */
+        fprintf ( stderr, "couldn't close file '%s'; %s\n",
+                img_fp_file_name, strerror(errno) );
+        exit (EXIT_FAILURE);
+    }
+    free (image);
+    image	= NULL;
 	return 0;
 }
 
