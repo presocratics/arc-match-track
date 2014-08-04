@@ -88,16 +88,17 @@ read_config ( FILE *fh, configuration *cfg )
     double
 get_angle ( const Quaternion& qbw )
 {
-    const cv::Matx33d S(1,0,0,
-                        0,1,0,
-                        0,0,0);
+    const cv::Matx33d S (1,0,0,  // I-2*n*n.t
+                         0,1,0,
+                         0,0,-2);
+    const cv::Vec3d x(320,240,1); // Use center of image.
+
     double angle;
-    const cv::Vec3d x(320,240,1);
     cv::Vec3d h, xs, xsr;  // Point, normalized, unit sphere, u.s. reflection
-    cv::Matx33d Rcb, Rbw;
+    cv::Matx33d Rcb, Rbw;  // Rotation matrices: camera-body, body-world
     cv::Vec3d diff;
 
-    solve( conf.k, x, h );
+    solve( conf.k, x, h );  // h=K.inv * x
     normalize( h, xs ); // Normalize h
 
     Rcb=conf.camIMU.rotation();
@@ -105,10 +106,10 @@ get_angle ( const Quaternion& qbw )
 
     xsr = Rcb.t()*Rbw.t()*S*Rbw*Rcb*xs;
 
-    diff=xsr-xs;
+    diff=xs-xsr;
     angle = atan2(diff[1], diff[0]);
 
-    return M_PI_2-angle;
+    return M_PI_2+angle;
 }		/* -----  end of function get_angle  ----- */
 
 /* 
@@ -267,8 +268,15 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
     for( int i=0; i<N; ++i )
     {
         Pipe( pfds[i] );
-        features_to_match[i].push_back( GFT.back() );
-        GFT.pop_back();
+        if( GFT.size()>0 )
+        {
+            features_to_match[i].push_back( GFT.back() );
+            GFT.pop_back();
+        }
+        else
+        {
+            cerr << "Minimum GFT too low." << endl;
+        }
         if( (pids[i]=Fork())==0 )
         {
             close( pfds[i][0] );
@@ -295,7 +303,7 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         tmp->roi.source=src;
         tmp->roi.reflection=ref;
         temp[i].push_back( *tmp );
-        pairs->splice( pairs->begin(), temp[i] );
+        pairs->splice( pairs->end(), temp[i] );
         close( pfds[i][0] );
         waitpid( pids[i], &status, 0 );
         if( status!=0 )
@@ -714,7 +722,6 @@ int main(int argc, char** argv)
         fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
         Quaternion quat( cv::Vec4d(qbw[0], qbw[1], qbw[2], qbw[3]) );
         angle = get_angle(quat);
-        std::cout << angle << std::endl;
 
         cv::Mat water_mask, edges;
         //cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
@@ -752,9 +759,9 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, GFT, 4 );
+        update_regions( cur_frame, &pairs, a.patch_size, GFT, 8 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
-        pairs.remove_if( outside_theta( angle, a.theta_dev ) );
+        pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
         //pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
@@ -763,9 +770,10 @@ int main(int argc, char** argv)
         cv::Scalar red (0,0,255);
         cv::Scalar black(0,0,0);
         std::list<ARC_Pair>::iterator it=pairs.begin();
-        while( it!=pairs.end() )
+        int num=0;
+        while( it!=pairs.end() && num++<5 )
         {
-            if( it->age>5 )
+            //if( it->age>5 )
             {
                 cv::Point s, r, t;
                 s = it->roi.source;
@@ -788,13 +796,13 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                //std::cout << *it
-                 //    << std::endl;
+                std::cout << *it
+                     << std::endl;
             }
             ++it->age;
             ++it;
         }
-        //printf("\n");
+        printf("\n");
         //Point2f src_pt( 320, 80 );
 
         //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;

@@ -32,7 +32,7 @@
 #define ARC_ARG_EIG "-eig"
 #define ARC_DEFAULT_EIG 0.2
 #define ARC_ARG_MAX_DIST "-md"
-#define ARC_DEFAULT_MAX_DIST 20
+#define ARC_DEFAULT_MAX_DIST 480
 #define ARC_ARG_THETA_DEV "-td"
 #define ARC_DEFAULT_THETA_DEV 0.10
 #define ARG_BLUR "--blur"                       // Blur the source before matching.
@@ -44,7 +44,7 @@
 
 // GFT parameters
 #define ARC_ARG_GFT_MIN "-gm"            /*  */
-#define ARC_DEFAULT_GFT_MIN 5            /*  */
+#define ARC_DEFAULT_GFT_MIN 8            /*  */
 // Main parameters
 #define ARG_REFRESH_COUNT "-rc"
 #define DEFAULT_REFRESH_COUNT 200                 // # Iterations before rematching.
