@@ -91,7 +91,7 @@ get_angle ( const Quaternion& qbw )
     const cv::Matx33d S (1,0,0,  // I-2*n*n.t
                          0,1,0,
                          0,0,-2);
-    const cv::Vec3d x(320,240,1); // Use center of image.
+    const cv::Vec3d x(220,140,1); // Use center of image.
 
     double angle;
     cv::Vec3d h, xs, xsr;  // Point, normalized, unit sphere, u.s. reflection
@@ -104,12 +104,12 @@ get_angle ( const Quaternion& qbw )
     Rcb=conf.camIMU.rotation();
     Rbw=qbw.rotation();
 
-    xsr = Rcb.t()*Rbw.t()*S*Rbw*Rcb*xs;
+    xsr = Rcb*Rbw.t()*S*Rbw*Rcb.t()*xs;
 
     diff=xs-xsr;
     angle = atan2(diff[1], diff[0]);
 
-    return M_PI_2+angle;
+    return angle;
 }		/* -----  end of function get_angle  ----- */
 
 /* 
