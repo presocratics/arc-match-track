@@ -294,14 +294,20 @@ void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
         int status;
         double ns;
         cv::Point src, ref;
-        ARC_Pair *tmp=new ARC_Pair;
+        ARC_Pair *tmp;
+        
+        tmp	= (ARC_Pair *) malloc ( sizeof(ARC_Pair) );
+        if ( tmp==NULL ) {
+            fprintf ( stderr, "\ndynamic memory allocation failed\n" );
+            exit (EXIT_FAILURE);
+        }
+
         close( pfds[i][1] );
         read( pfds[i][0], &src, sizeof(cv::Point) );
         read( pfds[i][0], &ref, sizeof(cv::Point) );
         read( pfds[i][0], &ns, sizeof(double) );
-        tmp->nsigma=ns;
-        tmp->roi.source=src;
-        tmp->roi.reflection=ref;
+        ARC_Pair ap( src, ref, ns);
+        *tmp=ap;
         temp[i].push_back( *tmp );
         pairs->splice( pairs->end(), temp[i] );
         close( pfds[i][0] );
@@ -762,20 +768,23 @@ int main(int argc, char** argv)
         update_regions( cur_frame, &pairs, a.patch_size, GFT, 8 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
-        //pairs.remove_if( overlap( a.patch_size ) );
+        pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
         track( gray, prev_gray, &pairs );
         cv::Scalar red (0,0,255);
         cv::Scalar black(0,0,0);
+        cv::Scalar green(0,255,0);
         std::list<ARC_Pair>::iterator it=pairs.begin();
-        int num=0;
-        while( it!=pairs.end() && num++<5 )
+        unsigned num=0;
+        while( it!=pairs.end() )
         {
             //if( it->age>5 )
             {
+                ++num;
                 cv::Point s, r, t;
+                if( it->slot==0 ) it->slot=num;
                 s = it->roi.source;
                 r = it->roi.reflection;
                 t = cv::Point( 5, 5 );
@@ -786,7 +795,7 @@ int main(int argc, char** argv)
 
                 cv::putText( drawn_matches, ( sid.str() ).c_str(), s-t, cv::FONT_HERSHEY_SIMPLEX, .3, 100 );
                 circle( drawn_matches, r, 3, black );
-                rectangle( drawn_matches, cv::Rect( r -0.5*cv::Point( a.patch_size ), a.patch_size ), black, 1 );
+                rectangle( drawn_matches, cv::Rect( r -0.5*cv::Point( a.patch_size ), a.patch_size ), green, 1 );
                 if( it->nNoMatch>0 )
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
@@ -796,8 +805,10 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                std::cout << *it
-                     << std::endl;
+                std::cout << image << "," 
+                          << it->slot << ","
+                          << *it
+                          << std::endl;
             }
             ++it->age;
             ++it;
@@ -805,7 +816,6 @@ int main(int argc, char** argv)
         printf("\n");
         //Point2f src_pt( 320, 80 );
 
-        //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
         std::stringstream frame_number;
         frame_number << i;
         cv::Point2f ol[2];
@@ -817,6 +827,11 @@ int main(int argc, char** argv)
         cv::waitKey(1);
         //vidout << drawn_matches;
         ++i;
+    }
+    for( std::list<ARC_Pair>::iterator it=pairs.begin();
+            it!=pairs.end(); ++it )
+    {
+        free(&(*it));
     }
     if( fclose(qbw_fp) == EOF ) {			/* close input file   */
         fprintf ( stderr, "couldn't close file '%s'; %s\n",

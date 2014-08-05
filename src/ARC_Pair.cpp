@@ -32,7 +32,7 @@ ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, cv::Size s )
 // the center by Size s.
 //--------------------------------------------------------------------------------------
     cv::Point
-ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s )
+ARC_Pair::convert_to_point ( const cv::Rect& r, const cv::Mat& img, const cv::Size& s )
 {
     std::vector<cv::Point> lv;
     cv::Rect little;
@@ -57,8 +57,20 @@ ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s )
 //      Method:  ARC_Pair
 // Description:  constructor
 //--------------------------------------------------------------------------------------
-ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error )
+ARC_Pair::ARC_Pair ( const cv::Point& first, const cv::Point& second, const double ns )
 {
+    roi.source = first;
+    roi.reflection = second;
+    nsigma=ns;
+    last_good=roi;
+    id = ++num;
+    slot=0;
+}
+
+ARC_Pair::ARC_Pair ( const cv::Rect& first, const cv::Rect& second, const double ns,
+        const cv::Mat& img, bool* error )
+{
+    slot=0;
     age=0;
     nNoMatch=0;
     cv::Point f, s;
@@ -86,8 +98,10 @@ ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bo
     *error = false;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
-ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error )
+ARC_Pair::ARC_Pair ( const cv::Point& f, const cv::Rect& second, const double ns,
+        const cv::Mat& img, bool* error )
 {
+    slot=0;
     age=0;
     nNoMatch=0;
     cv::Point s;

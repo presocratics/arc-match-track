@@ -33,8 +33,11 @@ class ARC_Pair
             nNoMatch=0;
             age=0;
         }
-        ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error );   // constructor 
-        ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error ); // constructor
+        ARC_Pair ( const cv::Rect& first, const cv::Rect& second, const double ns, 
+                const cv::Mat& img, bool* error );   // constructor 
+        ARC_Pair ( const cv::Point& first, const cv::Point& second, const double ns );
+        ARC_Pair ( const cv::Point& f, const cv::Rect& second, const double ns,
+                const cv::Mat& img, bool* error ); // constructor
 
         // ====================  ACCESSORS     ======================================= 
 
@@ -62,6 +65,7 @@ class ARC_Pair
         unsigned int nNoMatch;
         unsigned int id;
         unsigned int age;
+        unsigned int slot;
 
     protected:
         // ====================  METHODS       ======================================= 
@@ -70,7 +74,7 @@ class ARC_Pair
 
     private:
         // ====================  METHODS       ======================================= 
-        cv::Point convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s );
+        cv::Point convert_to_point ( const cv::Rect& r, const cv::Mat& img, const cv::Size& s );
 
         // ====================  DATA MEMBERS  ======================================= 
 
