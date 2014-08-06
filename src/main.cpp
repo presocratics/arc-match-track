@@ -707,14 +707,14 @@ int main(int argc, char** argv)
     fscanf( img_fp, "%s", image );
     fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
     cv::Mat first_frame=cv::imread( image, CV_LOAD_IMAGE_COLOR );
-    //cv::VideoWriter vidout;
-    //vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
-     //       20.0, first_frame.size(), true );
-    //if( !vidout.isOpened() )
-    //{
-     //   std::cerr << "Could not open video file: " << a.video_filename << std::endl;
-      //  exit( EXIT_FAILURE );
-    //}
+    cv::VideoWriter vidout;
+    vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
+           20.0, first_frame.size(), true );
+    if( !vidout.isOpened() )
+    {
+       std::cerr << "Could not open video file: " << a.video_filename << std::endl;
+       exit( EXIT_FAILURE );
+    }
 
     // Init ARC_IMU for rotation matrix.
     ARC_IMU imu;
@@ -825,7 +825,7 @@ int main(int argc, char** argv)
         swap(prev_gray, gray);
         cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         cv::waitKey(1);
-        //vidout << drawn_matches;
+        vidout << drawn_matches;
         ++i;
     }
     for( std::list<ARC_Pair>::iterator it=pairs.begin();
