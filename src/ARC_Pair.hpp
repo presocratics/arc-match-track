@@ -14,10 +14,16 @@
 #include <opencv2/features2d/features2d.hpp>
 #include <opencv2/nonfree/features2d.hpp>
 #include <opencv2/highgui/highgui.hpp>
-#include "ARC_Point_Pair.hpp"
 #include "config.hpp"
 
 
+struct ARC_Point_Pair {
+    ARC_Point_Pair() : source(-2,-2), reflection(-2,-2) {};
+    ARC_Point_Pair(cv::Point s, cv::Point r) : source(s), reflection(r) {};
+    cv::Point source, reflection;
+};				/* ----------  end of struct ARC_Point_Pair  ---------- */
+
+typedef struct ARC_Point_Pair ARC_Point_Pair;
 // =====================================================================================
 //        Class:  ARC_Pair
 //  Description:  Stores match information.
@@ -26,15 +32,11 @@ class ARC_Pair
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        ARC_Pair ()
-        {
-            nsigma=0;
-            id=++num;
-            nNoMatch=0;
-            age=0;
-        }
-        ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error );   // constructor 
-        ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error ); // constructor
+        ARC_Pair () : nsigma(0), nNoMatch(0), id(++num), age(0) {};
+        ARC_Pair ( cv::Rect first, cv::Rect second, double ns, const cv::Mat& img, bool* error );   // constructor 
+        ARC_Pair ( cv::Point f, cv::Rect second, double ns, const cv::Mat& img, bool* error ); // constructor
+        ARC_Pair ( cv::Point f, cv::Point s, double ns ) : 
+            roi(f,s), last_good(f,s), nsigma(ns), nNoMatch(0), id(++num), age(0) {};
 
         // ====================  ACCESSORS     ======================================= 
 
@@ -55,7 +57,6 @@ class ARC_Pair
             return ( first.nsigma < second.nsigma );
         }		
         // ====================  DATA MEMBERS  ======================================= 
-        static int num;
         ARC_Point_Pair roi, last_good;
 
         double nsigma;                    // Number of std above mean.
@@ -69,8 +70,9 @@ class ARC_Pair
         // ====================  DATA MEMBERS  ======================================= 
 
     private:
+        static int num;
         // ====================  METHODS       ======================================= 
-        cv::Point convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s );
+        cv::Point convert_to_point ( cv::Rect r, const cv::Mat& img, cv::Size s );
 
         // ====================  DATA MEMBERS  ======================================= 
 

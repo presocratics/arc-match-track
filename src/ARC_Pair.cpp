@@ -32,7 +32,7 @@ ARC_Pair::set_reflection ( cv::Mat img, cv::Rect r, cv::Size s )
 // the center by Size s.
 //--------------------------------------------------------------------------------------
     cv::Point
-ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s )
+ARC_Pair::convert_to_point ( cv::Rect r, const cv::Mat& img, cv::Size s )
 {
     std::vector<cv::Point> lv;
     cv::Rect little;
@@ -57,10 +57,9 @@ ARC_Pair::convert_to_point ( cv::Rect r, cv::Mat& img, cv::Size s )
 //      Method:  ARC_Pair
 // Description:  constructor
 //--------------------------------------------------------------------------------------
-ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bool* error )
+ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, const cv::Mat& img, bool* error ) :
+    nsigma(ns), nNoMatch(0), id(++num), age(0)
 {
-    age=0;
-    nNoMatch=0;
     cv::Point f, s;
     cv::Size inner_size( 10, 10 );
     f = convert_to_point( first, img, inner_size );
@@ -72,24 +71,19 @@ ARC_Pair::ARC_Pair ( cv::Rect first, cv::Rect second, double ns, cv::Mat img, bo
     }
     if( f.y<s.y )
     {
-        roi.source = f;
-        roi.reflection = s;
+        roi = ARC_Point_Pair(f,s);
     }
     else
     {
-        roi.source = s;
-        roi.reflection = f;
+        roi = ARC_Point_Pair(s,f);
     }
     last_good=roi;
-    nsigma = ns;
-    id = ++num;
     *error = false;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
-ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool* error )
+ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, const cv::Mat& img, bool* error ) :
+    nsigma(ns), nNoMatch(0), id(++num), age(0)
 {
-    age=0;
-    nNoMatch=0;
     cv::Point s;
     cv::Size inner_size( 10, 10 );
     s = convert_to_point( second, img, inner_size );
@@ -100,17 +94,13 @@ ARC_Pair::ARC_Pair ( cv::Point f, cv::Rect second, double ns, cv::Mat img, bool*
     }
     if( f.y<s.y )
     {
-        roi.source = f;
-        roi.reflection = s;
+        roi = ARC_Point_Pair(f,s);
     }
     else
     {
-        roi.source = s;
-        roi.reflection = f;
+        roi = ARC_Point_Pair(s,f);
     }
     last_good=roi;
-    nsigma = ns;
-    id = ++num;
     *error = false;
 }  // -----  end of method ARC_Pair::ARC_Pair  (constructor)  ----- 
 
