@@ -279,7 +279,7 @@ void update_regions ( const cv::Mat& frame, std::list<ARC_Pair>* pairs,
         if( (pids[i]=Fork())==0 )
         {
             close( pfds[i][0] );
-            getReflections( frame, patch_size, temp+i, features_to_match[i] );
+            getReflections( frame, patch_size, temp[i], features_to_match[i] );
             ARC_Pair p = (temp+i)->front();
             write( pfds[i][1], &(p.roi.source), sizeof(cv::Point) );
             write( pfds[i][1], &(p.roi.reflection), sizeof(cv::Point) );

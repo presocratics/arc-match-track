@@ -2,8 +2,9 @@
 //Author: Simon Peter 
 //speter3@illinois.edu
 
-//To modify the the vertical strip around the template used as a mask, change 'searchMargin' in findBestMatchLocation()
-//To modify the number of features goodFeaturesToTrack should find, change 'numOfFeatures' in getReflections()
+//To modify the the vertical strip around the template used as a mask, change 
+//'searchMargin' in findBestMatchLocation() To modify the number of features 
+//goodFeaturesToTrack should find, change 'numOfFeatures' in getReflections()
 
 #include <cv.h>
 #include <opencv2/highgui/highgui.hpp>
@@ -18,8 +19,8 @@ bool displayWindows;
 
 
 //RETURNS THE TOP-LEFT CORNER OF THE REFLECTION OF sourceTemplate ON image
-cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect, 
-        double* nsigma, cv::Mat mask )
+cv::Rect findBestMatchLocation( const cv::Mat& image, const cv::Rect& source_rect, 
+        double* nsigma, const cv::Mat& mask )
 {
     cv::Mat image_gray;
     cvtColor( image, image_gray, CV_RGB2GRAY, 1 );
@@ -54,21 +55,11 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
     
     int match_method = CV_TM_CCOEFF_NORMED; // 4 seemed good for stddev thresholding.
 
-
-    cv::Mat water_mask, edges;
-    cv::Mat search_image;
-    search_image = image_copy;
-
     //matchTemplate( masked_scene, sourceTemplate, result, match_method );
     matchTemplate( image_gray, sourceTemplate, result, match_method );
 
     double minVal, maxVal; 
     cv::Point minLoc, maxLoc, matchLoc;
-    /*
-    //find_water(image,water_mask);
-    if( water_mask.size()!=cv::Size(0,0) )
-        get_shorline_margin(water_mask,edges,64);
-        */
     minMaxLoc( result, &minVal, &maxVal, &minLoc, &maxLoc, cv::Mat() );
      
     if( match_method == CV_TM_SQDIFF || match_method == CV_TM_SQDIFF_NORMED )
@@ -90,8 +81,8 @@ cv::Rect findBestMatchLocation( cv::Mat image, cv::Rect source_rect,
 
 // GIVEN AN IMAGE, SLOPE INFORMATION, AND A PATCHSIZE, PUTS A SEQUENCE OF
 // REAL OBJECTS AND THEIR REFLECTED REGIONS IN outvector AS ARC_Pair's
-int getReflections( cv::Mat frame, cv::Size patchSize, 
-        std::list<ARC_Pair>* outlist, std::vector<cv::Point2f>& gft )
+int getReflections( const cv::Mat& frame, const cv::Size& patchSize, 
+        std::list<ARC_Pair>& outlist, const std::vector<cv::Point2f>& gft )
 {
     cv::Mat sourceCopy;
 	if( !frame.data ) 
@@ -106,22 +97,8 @@ int getReflections( cv::Mat frame, cv::Size patchSize,
 
     std::vector<cv::Point> points; 
 
-    //vector<Rect> originalMatches;
-    cv::Mat water_mask, edges;
-
-
-    // Goes through any ARC_Pairs already in the outvector and creates a mask to
-    // prevent rematching those regions
-
-    cv::Mat water_copy = frame.clone();
-    /*
-    //find_water(water_copy,water_mask);
-    if( water_mask.size()!=cv::Size(0,0) )
-        get_shorline_margin(water_mask,edges,64);
-        */
-
     cv::Rect frame_rect( cv::Point(0, 0), frame.size() );
-    for( std::vector<cv::Point2f>::iterator it=gft.begin();
+    for( std::vector<cv::Point2f>::const_iterator it=gft.begin();
             it!=gft.end(); ++it )
     {
         cv::Mat sourceCopy2 = frame.clone();
@@ -132,17 +109,14 @@ int getReflections( cv::Mat frame, cv::Size patchSize,
         if( a.width==0 || a.height==0 ) continue;
         // Get Rect B and nsigma
 		b = findBestMatchLocation( sourceCopy2, a, &nsigma, cv::Mat() );
-        //Mat mask;
-        //get_masked_frame( a, slope, &sourceCopy2, &mask );
-		//b = findBestMatchLocation( slope, sourceCopy2, a, &nsigma, mask );
         // Create ARC_Pair
         bool err;
         ARC_Pair pair( *it, b, nsigma, sourceCopy2, &err );
         // Add to list
-        if( !err ) outlist->push_back( pair );
+        if( !err ) outlist.push_back( pair );
     }
 	
-	return outlist->size();
+	return outlist.size();
 }
 
 // === FUNCTION ======================================================================
@@ -194,77 +168,6 @@ cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* 
     return masked_frame;
 }	// ----- end of function get_masked_frame ----- 
 
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  get_shorline_mask
- *  Description:  finds the shorline edge from a water mask. Returns the edges with some
- *  margin that increases with iter.
- * =====================================================================================
- */
-    void
-get_shorline_margin ( cv::Mat src, cv::Mat& dst, int iter )
-{
-    cv::Rect fr(0,0,640,480);
-    cv::Canny(src, dst, 100, 200, 3);
-    cv::line(dst, fr.tl(), fr.tl() + cv::Point(0,fr.height), 0, 10 );
-    cv::line(dst, fr.tl() + cv::Point(0,fr.height), fr.br(), 0, 10 );
-    cv::dilate(dst, dst, cv::Mat(), cv::Point(-1,-1), iter );
-    return;
-}		/* -----  end of function get_shorline_mask  ----- */
-/* 
- * ===  FUNCTION  ======================================================================
- *         Name:  find_water
- *  Description:  Quick and dirty approach to finding water in a the src image.
- *  Returns a mask of the water in dst. If no water found, dst=cv::Mat()
- *  =====================================================================================
- */
-    void
-find_water ( cv::Mat src, cv::Mat& dst )
-{
-    cv::Point bottom_left;
-    std::vector<std::vector<cv::Point> > contours;
-    std::vector<cv::Vec4i> hierarchy;
-    std::vector<cv::Point> water;
-
-    bottom_left = cv::Point( 0, src.size().height );
-
-    // Find water areas
-    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 2 );
-    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 4 );
-    cv::cvtColor( src, src, CV_RGB2GRAY );
-    
-    cv::adaptiveThreshold( src, src, 255,
-            CV_ADAPTIVE_THRESH_GAUSSIAN_C, CV_THRESH_BINARY, 3, 0 );
-    cv::blur( src, src, cv::Size(100, 100) );
-    cv::medianBlur( src, src, 5 );
-    cv::threshold( src, src, 50, 255, CV_THRESH_BINARY_INV );
-    cv::dilate( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
-    cv::erode( src, src, cv::Mat(), cv::Point(-1,-1), 1 );
-
-    // Select the contour that is in the bottom left
-    findContours( src, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE );
-    for( std::vector<std::vector<cv::Point> >::iterator c=contours.begin();
-            c!=contours.end(); ++c )
-    {
-        if( cv::pointPolygonTest( *c, bottom_left, true )>=-10 )
-        {
-            water=*c;
-            break;
-        }
-    }
-
-    if( water.size()==0 ) 
-    {
-        std::cerr << "No water." <<std::endl;
-        dst = cv::Mat();
-    }
-    else
-    {
-        dst = maskImage( src, water, cv::Scalar(255,255,255) );
-    }
-    return;
-}		/* -----  end of function find_water  ----- */
-
     cv::Mat
 maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
 {
@@ -283,34 +186,3 @@ maskImage ( cv::Mat image, std::vector<cv::Point>& snake, cv::Scalar c )
     image.copyTo(masked_contour, mask);
     return masked_contour;
 }		/* -----  end of function maskImage  ----- */
-
-    void
-getShorelinePairs( cv::Mat frame, cv::Size patchSize, int numOfFeatures, double eig,
-        std::list<ARC_Pair> &outlist )
-{
-    cv::Mat sourceCopy;
-    cv::Mat water_mask;
-    std::vector<cv::Point> points; 
-    cv::Rect frame_rect;
-    cv::Mat edges;
-    bool err;
-    cv::Mat mask = cv::Mat::ones(frame.size(),CV_8UC1)*255;
-
-    cvtColor( frame, sourceCopy, CV_RGB2GRAY, 1 );
-    frame_rect = cv::Rect( cv::Point(0, 0), frame.size() );
-
-    //find_water(frame,water_mask);
-    if( water_mask.size()!=cv::Size(0,0) )
-        get_shorline_margin(water_mask,edges,32);
-    goodFeaturesToTrack( sourceCopy, points, numOfFeatures, eig,
-            5, edges, 3, 0, 0.04);
-    for( std::vector<cv::Point>::iterator it=points.begin();
-            it!=points.end(); ++it )
-    {
-        cv::Rect b;
-        b = cv::Rect( *it-( .5*cv::Point( patchSize ) ), patchSize ) & frame_rect;
-        ARC_Pair pair( *it, b, 1, frame, &err );
-        if( !err ) outlist.push_back( pair );
-    }
-    return;
-}
