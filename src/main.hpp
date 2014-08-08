@@ -17,7 +17,6 @@
 #include "ARC_Pair.hpp"
 #include "config.hpp"
 #include "ReflectionTracker.hpp"
-#include "ARC_IMU.hpp"
 #include "ARC_Point_Pair.hpp"
 
 #define _USE_MATH_DEFINES

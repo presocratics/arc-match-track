@@ -18,7 +18,6 @@
  */
 #include "main.hpp"
 #include "config.hpp"
-#include "ARC_IMU.hpp"
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>

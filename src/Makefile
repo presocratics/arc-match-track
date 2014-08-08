@@ -1,4 +1,4 @@
-SRC = ARC_IMU.cpp ARC_Pair.cpp ARC_Sensors.cpp ReflectionTracker.cpp
+SRC = ARC_Pair.cpp ARC_Sensors.cpp ReflectionTracker.cpp
 OBJ = $(SRC:.cpp=.o)
 IDIR = ../../../slam/include
 
