@@ -21,22 +21,6 @@
 #include "ARC_Point_Pair.hpp"
 
 #define _USE_MATH_DEFINES
-// A Matrix
-/* June Data */
-/*
-const double fx = 492.42317;
-const double fy = 489.98014;
-const double cx = 313.71144;
-const double cy = 261.27213;
-*/
-/* Fall Data */
-const double fx = 492.42317;
-const double fy = 489.98014;
-const double cx = 313.71144;
-const double cy = 261.27213;
-const cv::Matx33d A( fx, 0, cx,
-                  0, fy, cy,
-                  0,  0,  1 );
 
 struct configuration {
     cv::Matx33d k;
@@ -78,8 +62,8 @@ void change_theta_dev( int slider, void* sd );
 
 void slope_endpoints ( double angle, cv::Point2f* ol );
 
-void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        cv::Size patch_size, std::vector<cv::Point2f>& GFT, int N );
+void update_regions ( const cv::Mat& frame, std::list<ARC_Pair>& pairs,
+        const cv::Size& patch_size, std::vector<cv::Point2f>& GFT, int N );
 
 void help( std::string program_name );
 
@@ -87,11 +71,11 @@ void get_image_list(std::string filename, std::vector<std::string>* il);
 
 bool get_arguments(int argc, char** argv, arguments* a);
 
-bool track (cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs );
-void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs, 
+bool track ( const cv::Mat& gray, cv::Mat& prev_gray, std::list<ARC_Pair>& pairs );
+void pairs_to_points ( const cv::Mat& gray, const std::list<ARC_Pair>& pairs, 
         std::vector<cv::Point2f>* src, std::vector<cv::Point2f>* ref,
         bool fbt );
-void flow_gft ( cv::Mat gray, cv::Mat prev_gray, std::vector<cv::Point2f>& pts, 
+void flow_gft ( const cv::Mat& gray, const cv::Mat& prev_gray, const std::vector<cv::Point2f>& pts, 
         std::vector<cv::Point2f>& npts );
 
 #endif /* MAIN_H */

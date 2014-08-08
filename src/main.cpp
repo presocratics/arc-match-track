@@ -258,8 +258,8 @@ Pipe ( int pipefd[2] )
 //         Name:  update_regions
 //  Description:  Removes low quality regions and add new regions.
 // =====================================================================================
-void update_regions ( cv::Mat& frame, std::list<ARC_Pair>* pairs,
-        cv::Size patch_size, std::vector<cv::Point2f>& GFT, int N )
+void update_regions ( const cv::Mat& frame, std::list<ARC_Pair>* pairs,
+        const cv::Size& patch_size, std::vector<cv::Point2f>& GFT, int N )
 {
     std::list<ARC_Pair> temp[N];
     std::vector<cv::Point2f> features_to_match[N];
@@ -387,12 +387,12 @@ void help( std::string program_name )
 //         Name:  pairs_to_points
 //  Description:  Writes centers of ARC_Pair ROIs to source and reflection point vectors.
 // =====================================================================================
-void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs, 
+void pairs_to_points ( const cv::Mat& gray, const std::list<ARC_Pair>& pairs, 
         std::vector<cv::Point2f>* src, std::vector<cv::Point2f>* ref,
         bool fbt )
 {
-    for( std::list<ARC_Pair>::iterator it=pairs->begin();
-            it!=pairs->end(); ++it )
+    for( std::list<ARC_Pair>::const_iterator it=pairs.begin();
+            it!=pairs.end(); ++it )
     {
         cv::Point2f s, r;
         s = it->roi.source;
@@ -432,7 +432,7 @@ void pairs_to_points ( cv::Mat gray, std::list<ARC_Pair>* pairs,
  * =====================================================================================
  */
     void
-flow_gft ( cv::Mat gray, cv::Mat prev_gray, std::vector<cv::Point2f>& pts, 
+flow_gft ( const cv::Mat& gray, const cv::Mat& prev_gray, const std::vector<cv::Point2f>& pts, 
         std::vector<cv::Point2f>& npts )
 {
     if( pts.size()==0 || prev_gray.empty() ) return;
@@ -459,7 +459,7 @@ flow_gft ( cv::Mat gray, cv::Mat prev_gray, std::vector<cv::Point2f>& pts,
 //         Name:  track
 //  Description:  Track matched points.
 // =====================================================================================
-bool track( cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs )
+bool track( const cv::Mat& gray, cv::Mat& prev_gray, std::list<ARC_Pair>& pairs )
 {
     cv::TermCriteria termcrit(CV_TERMCRIT_ITER|CV_TERMCRIT_EPS, 20, 0.03);
     cv::Size sub_pix_win_size(10,10);
@@ -485,14 +485,14 @@ bool track( cv::Mat gray, cv::Mat prev_gray, std::list<ARC_Pair>* pairs )
                 reflection_error, win_size, 3, termcrit, 0, 0.001);
         
         // Set lost points to (-1, -1), so we know they are lost.
-        std::list<ARC_Pair>::iterator it=pairs->begin();
+        std::list<ARC_Pair>::iterator it=pairs.begin();
         for( i=0; i<(new_points.source.size()); i++ )
         {
             cv::Point sdel, rdel;
             //double smag, rmag;
             if( !source_status[i] || !reflection_status[i] ) 
             {
-                it = pairs->erase( it );
+                it = pairs.erase( it );
                 continue;
             }
             // Get difference between old and move.
@@ -710,9 +710,6 @@ int main(int argc, char** argv)
       //  exit( EXIT_FAILURE );
     //}
 
-    // Init ARC_IMU for rotation matrix.
-    ARC_IMU imu;
-    imu.set_A( A );
     //Begin image loop.
     cv::Point2f mid_pt( 320, 240 );
     cv::Mat cur_frame, gray, prev_gray;
@@ -759,19 +756,19 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, GFT, 8 );
+        update_regions( cur_frame, &pairs, a.patch_size, GFT, 16 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
         //pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
-        track( gray, prev_gray, &pairs );
+        track( gray, prev_gray, pairs );
         cv::Scalar red (0,0,255);
         cv::Scalar black(0,0,0);
         std::list<ARC_Pair>::iterator it=pairs.begin();
         int num=0;
-        while( it!=pairs.end() && num++<5 )
+        while( it!=pairs.end() && num++<50 )
         {
             //if( it->age>5 )
             {
@@ -805,7 +802,6 @@ int main(int argc, char** argv)
         printf("\n");
         //Point2f src_pt( 320, 80 );
 
-        //cout << imu.get_rotation_angle( src_pt, rotation_matrix ) <<std::endl;
         std::stringstream frame_number;
         frame_number << i;
         cv::Point2f ol[2];
