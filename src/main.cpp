@@ -727,7 +727,8 @@ int main(int argc, char** argv)
             std::cerr << "\nERROR : failed to open input file " << image << std::endl;
             exit (EXIT_FAILURE);
         }
-        cvtColor(cur_frame, gray, CV_BGR2GRAY);
+        undistort( cur_frame, gray, conf.k, cv::Mat() );
+        cvtColor(gray, gray, CV_BGR2GRAY);
         if( a.blur )
         {
             medianBlur( gray, gray, a.blur );        
@@ -758,7 +759,7 @@ int main(int argc, char** argv)
         update_regions( cur_frame, &pairs, a.patch_size, GFT, 16 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
-        //pairs.remove_if( overlap( a.patch_size ) );
+        pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
         // track.
