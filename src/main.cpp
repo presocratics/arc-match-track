@@ -806,7 +806,6 @@ int main(int argc, char** argv)
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
                 std::cout << image << "," 
-                          << it->slot << ","
                           << *it
                           << std::endl;
             }
