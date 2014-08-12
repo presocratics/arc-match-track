@@ -32,11 +32,11 @@ class ARC_Pair
 {
     public:
         // ====================  LIFECYCLE     ======================================= 
-        ARC_Pair () : nsigma(0), nNoMatch(0), id(++num), age(0) {};
-        ARC_Pair ( cv::Rect first, cv::Rect second, double ns, const cv::Mat& img, bool* error );   // constructor 
-        ARC_Pair ( cv::Point f, cv::Rect second, double ns, const cv::Mat& img, bool* error ); // constructor
-        ARC_Pair ( cv::Point f, cv::Point s, double ns ) : 
-            roi(f,s), last_good(f,s), nsigma(ns), nNoMatch(0), id(++num), age(0) {};
+        ARC_Pair () : nsigma(0), nNoMatch(0), id(++num), age(0), slot(0) {};
+        ARC_Pair ( const cv::Rect& first, const cv::Rect& second, double ns, const cv::Mat& img, bool* error );   // constructor 
+        ARC_Pair ( const cv::Point& f, const cv::Rect& second, double ns, const cv::Mat& img, bool* error ); // constructor
+        ARC_Pair ( const cv::Point& f, const cv::Point& s, double ns ) : 
+            roi(f,s), last_good(f,s), nsigma(ns), nNoMatch(0), id(++num), age(0), slot(0) {};
 
         // ====================  ACCESSORS     ======================================= 
 
@@ -63,6 +63,7 @@ class ARC_Pair
         unsigned int nNoMatch;
         unsigned int id;
         unsigned int age;
+        unsigned int slot;
 
     protected:
         // ====================  METHODS       ======================================= 
@@ -72,7 +73,7 @@ class ARC_Pair
     private:
         static int num;
         // ====================  METHODS       ======================================= 
-        cv::Point convert_to_point ( cv::Rect r, const cv::Mat& img, cv::Size s );
+        cv::Point convert_to_point ( const cv::Rect& r, const cv::Mat& img, const cv::Size& s );
 
         // ====================  DATA MEMBERS  ======================================= 
 
