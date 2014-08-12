@@ -22,6 +22,7 @@
 
 struct configuration {
     cv::Matx33d k;
+    double kc[5];
     Quaternion camIMU;
 };
 typedef struct configuration Configuration;

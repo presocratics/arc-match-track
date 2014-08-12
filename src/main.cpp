@@ -67,6 +67,11 @@ read_config ( FILE *fh, configuration *cfg )
             sscanf( val, "%lf,%lf,%lf,%lf", &qbw[0], &qbw[1], &qbw[2], &qbw[3] );
             cfg->camIMU=Quaternion(qbw);
         }   
+        else if( !strncmp(key, "camcoeffs", MAXLINE) )
+        {
+            sscanf(val, "%lf,%lf,%lf,%lf,%lf", cfg->kc, cfg->kc+1,
+                    cfg->kc+2, cfg->kc+3, cfg->kc+4 );
+        }
         else
         {   
             printf("Unknown option: %s\n", key);
@@ -727,7 +732,7 @@ int main(int argc, char** argv)
             std::cerr << "\nERROR : failed to open input file " << image << std::endl;
             exit (EXIT_FAILURE);
         }
-        undistort( cur_frame, gray, conf.k, cv::Mat() );
+        undistort( cur_frame, gray, conf.k, std::vector<double>(conf.kc, conf.kc+4) );
         cvtColor(gray, gray, CV_BGR2GRAY);
         if( a.blur )
         {
