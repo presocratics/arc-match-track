@@ -110,7 +110,7 @@ get_angle ( const Quaternion& qbw )
 
     xsr = Rcb*Rbw.t()*S*Rbw*Rcb.t()*xs;
 
-    diff=xs-xsr;
+    diff=xsr-xs;
     angle = atan2(diff[1], diff[0]);
 
     return angle;
@@ -765,9 +765,9 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, GFT, 4 );
+        update_regions( cur_frame, &pairs, a.patch_size, GFT, 16 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
-        pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
+        pairs.remove_if( outside_theta( angle, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
         pairs.remove_if( longer_than( a.max_dist ) );
 		//pairs.remove_if( within_shore( cur_frame.clone() ) );//Remove pair if not within detected shoreline margin
