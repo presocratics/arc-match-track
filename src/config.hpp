@@ -15,6 +15,12 @@
 #define DEFAULT_TXT_FILENAME "matches.txt"
 
 // Options
+#define ARC_ARG_MATLAB_OUT "-mo"
+#define ARC_ARG_SLAM_OUT "-so"
+#define ARC_MATLAB_OUT 1                        /* Outputs for Junho's matlab code */
+#define ARC_SLAM_OUT 2                        /* Outputs for the slam code */
+#define ARC_DEFAULT_OUTPUT ARC_MATLAB_OUT            /*  */
+
 #define ARG_VID_FILE "-vf"                      // Set video filename.
 #define ARG_TXT_FILE "-o"                      // Set output text filename.
 

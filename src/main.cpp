@@ -341,6 +341,8 @@ void help( std::string program_name )
          << " Default: " << ARC_DEFAULT_FEATURES_BEFORE_TRACK << std::endl
          
          << ARG_SHOW_TRACKING << tab << "Show tracking (default)." << std::endl
+         << ARC_ARG_MATLAB_OUT << tab << "Use outputs for Matlab SLAM code." << std::endl
+         << ARC_ARG_SLAM_OUT << tab << "Use outputs for C++ SLAM code." << std::endl
          
          << ARG_VID_FILE << spc << "<filename>" << tab << "Set video output file." << std::endl
 
@@ -539,6 +541,7 @@ void arguments::arguments()
     max_dist = ARC_DEFAULT_MAX_DIST;
     start_frame = ARC_DEFAULT_START_FRAME;
     gft_min = ARC_DEFAULT_GFT_MIN;
+    output=ARC_DEFAULT_OUTPUT;
     return;
 }
 
@@ -554,6 +557,8 @@ bool get_arguments ( int argc, char** argv, arguments* a)
     for ( int i = 3; i < argc; i += 1 ) 
     {
         if( !strcmp(argv[i], ARC_ARG_FEATURES_BEFORE_TRACK ) ) a->features_before_track = true;
+        if( !strcmp(argv[i], ARC_ARG_MATLAB_OUT ) ) a->output = ARC_MATLAB_OUT;
+        if( !strcmp(argv[i], ARC_ARG_SLAM_OUT ) ) a->output = ARC_SLAM_OUT;
 
         if( !strcmp(argv[i], ARC_ARG_THETA_DEV) ) 
         {
@@ -760,7 +765,7 @@ int main(int argc, char** argv)
             goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, GFT, 16 );
+        update_regions( cur_frame, &pairs, a.patch_size, GFT, 4 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( M_PI_2, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
@@ -800,10 +805,17 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
-                std::cout << image << "," 
-                          << it->slot << ","
-                          << *it
-                          << std::endl;
+                if( a.output==ARC_MATLAB_OUT )
+                {
+                    std::cout << image << "," 
+                              << it->slot << ","
+                              << *it
+                              << std::endl;
+                }
+                else
+                {
+                    cout << *it << endl;
+                }
             }
             ++it->age;
             ++it;

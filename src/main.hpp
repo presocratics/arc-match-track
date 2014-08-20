@@ -47,6 +47,7 @@ typedef struct arguments_t {
     double max_dist;
     int start_frame;
     unsigned int gft_min;
+    unsigned int output;
 
     void arguments();                           // Function to initialize defaults;
 } arguments;
