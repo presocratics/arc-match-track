@@ -116,6 +116,48 @@ get_angle ( const Quaternion& qbw )
     return angle;
 }		/* -----  end of function get_angle  ----- */
 
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  rotation_to_euler
+ *  Description:  Returns the euler angles corresponding to the input rotation
+ *  matrix.
+ * =====================================================================================
+ */
+    cv::Vec3d
+rotation_to_euler ( cv::Matx33d r )
+{
+    using std::signbit;
+    cv::Vec3d euler;
+    euler[1] = asin( r(0,2));
+    euler[2] = acos( r(0,0)/cos(euler[1]) );
+    euler[0] = acos( r(2,2)/cos(euler[1]) );
+
+    euler[0] = ( signbit(r(2,1)) ) ? -1*fabs(euler[0]) : fabs(euler[0]);
+    euler[1] = ( signbit(r(0,2)) ) ? -1*fabs(euler[1]) : fabs(euler[1]);
+    euler[2] = ( signbit(r(1,0)) ) ? -1*fabs(euler[2]) : fabs(euler[2]);
+    return euler;
+}		/* -----  end of function rotation_to_euler  ----- */
+
+/* 
+ * ===  FUNCTION  ======================================================================
+ *         Name:  get_beta
+ *  Description:  Returns the pitch of the camera w.r.t. world in radians.
+ * =====================================================================================
+ */
+    double
+get_beta ( const Quaternion& qbw )
+{
+    cv::Vec3d euler;
+    cv::Matx33d Rcb, Rbw, R;  // Rotation matrices: camera-body, body-world
+    Rcb=conf.camIMU.rotation();
+    Rbw=qbw.rotation();
+    R = Rcb*Rbw.t();
+
+    euler = rotation_to_euler(R);
+    return euler[1];
+}		/* -----  end of function get_beta  ----- */
+
 /* 
  * ===  FUNCTION  ======================================================================
  *         Name:  get_imu_list
@@ -724,9 +766,14 @@ int main(int argc, char** argv)
     while( fscanf( img_fp, "%s", image )!=EOF )
     {
         double angle;
+        double beta;
+        double m;
         fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
         Quaternion quat( cv::Vec4d(qbw[0], qbw[1], qbw[2], qbw[3]) );
         angle = get_angle(quat);
+        beta=get_beta(quat);
+        m=conf.k(1,1)*tan(beta);
+        cout << m << endl;
 
         cv::Mat water_mask, edges;
         //cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
@@ -805,6 +852,7 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
+                /*
                 if( a.output==ARC_MATLAB_OUT )
                 {
                     std::cout << image << "," 
@@ -816,6 +864,7 @@ int main(int argc, char** argv)
                 {
                     cout << *it << endl;
                 }
+                */
             }
             ++it->age;
             ++it;
@@ -828,6 +877,11 @@ int main(int argc, char** argv)
         cv::Point2f ol[2];
         slope_endpoints( angle, ol );
         line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
+        cv::Point2f hz[2];
+        cout << "angle: " << (M_PI-angle)*180/M_PI << endl;
+        cv::Point2f shift(m*cos(M_PI-angle),-m*sin(M_PI-angle));
+        slope_endpoints( angle+M_PI_2, hz );
+        line( drawn_matches, hz[0]-shift, hz[1]-shift, 200, 1, CV_AA, 0);
         cv::putText( drawn_matches, (frame_number.str()).c_str(), cv::Point(5,15) ,cv::FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
         cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
