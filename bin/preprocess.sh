@@ -16,9 +16,9 @@ then
 fi
 $SLAMDIR/bin/downsample $indir/framedata $indir/attitude | \
     cut -d, -f2,3,4 | \
-    $SLAMDIR/bin/euler2qbw > $outdir/${name}.img &
+    $SLAMDIR/bin/euler2qbw > $outdir/${name}.qbw &
 < $indir/framedata cut -d, -f2| sed "s:\([0-9]*\):$indir/img/\1.jpg:" > \
-    $outdir/${name}.qbw
+    $outdir/${name}.img
 
 
 
