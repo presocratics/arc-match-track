@@ -34,10 +34,11 @@ struct outside_theta {
     }
     bool operator() (const ARC_Pair& value ) 
     { 
+        double d;
         cv::Point2f del = value.roi.reflection-value.roi.source;
-        //dev = (value.age>1) ? dev+0.04 : dev;
+        d = (value.age>1) ? dev+0.04 : dev;
         double match_theta = atan2( del.y, del.x );
-        return( fabs(theta-match_theta)>dev );
+        return( fabs(theta-match_theta)>d );
     }
     private:
     double theta;
