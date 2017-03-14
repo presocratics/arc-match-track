@@ -5,6 +5,7 @@
 //#include </usr/include/opencv/highgui.h>
 #include <opencv2/highgui/highgui_c.h>
 #include "ARC_Pair.hpp"
+#include <math.h>
 
 cv::Mat get_masked_frame ( cv::Rect roi, double slope, cv::Mat* frame, cv::Mat* mask );
 void createTemplatesFromVector(cv::Mat image, cv::Size patchSize, std::vector<cv::Point> *points,

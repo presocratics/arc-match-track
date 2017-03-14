@@ -23,7 +23,8 @@ cv::Rect findBestMatchLocation( const cv::Mat& image, const cv::Rect& source_rec
         double* nsigma, const cv::Mat& mask )
 {
     cv::Mat image_gray;
-    cvtColor( image, image_gray, CV_RGB2GRAY, 1 );
+    //cvtColor( image, image_gray, CV_RGB2GRAY, 1 );
+    image_gray = image;
     cv::Mat image_copy = image_gray.clone();
     
     // Create template.
@@ -92,8 +93,8 @@ int getReflections( const cv::Mat& frame, const cv::Size& patchSize,
     }
 
 	frame.copyTo( sourceCopy );
-	cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
-    cv::equalizeHist( sourceCopy, sourceCopy );
+    //cv::cvtColor( sourceCopy, sourceCopy, CV_RGB2GRAY, 1 );
+    //cv::equalizeHist( sourceCopy, sourceCopy );
 
     std::vector<cv::Point> points; 
 

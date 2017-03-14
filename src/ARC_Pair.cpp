@@ -43,7 +43,8 @@ ARC_Pair::convert_to_point ( const cv::Rect& r, const cv::Mat& img, const cv::Si
     little += 0.5*cv::Point( r.size()-s );
     little -= r.size() - s;
 
-    cvtColor( img, gray, CV_BGR2GRAY );
+    //cv::cvtColor( img, gray, CV_BGR2GRAY );
+    gray = img;
     mask = cv::Mat::zeros( img.size(), CV_8UC1 );
     rectangle( mask, little, 255, CV_FILLED );
 

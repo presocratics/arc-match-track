@@ -26,7 +26,7 @@ using std::cout;
 using std::endl;
 using std::cerr;
 
-configuration conf;
+//configuration conf;
 
 
 /* 
@@ -102,10 +102,10 @@ get_angle ( const Quaternion& qbw )
     cv::Matx33d Rcb, Rbw;  // Rotation matrices: camera-body, body-world
     cv::Vec3d diff;
 
-    solve( conf.k, x, h );  // h=K.inv * x
+    //solve( conf.k, x, h );  // h=K.inv * x
     normalize( h, xs ); // Normalize h
 
-    Rcb=conf.camIMU.rotation();
+    //Rcb=conf.camIMU.rotation();
     Rbw=qbw.rotation();
 
     xsr = Rcb*Rbw.t()*S*Rbw*Rcb.t()*xs;
@@ -114,6 +114,7 @@ get_angle ( const Quaternion& qbw )
     angle = atan2(diff[1], diff[0]);
 
     return angle;
+    return 0;
 }		/* -----  end of function get_angle  ----- */
 
 /* 
@@ -636,7 +637,7 @@ int main(int argc, char** argv)
 {
     FILE	*img_fp;										/* input-file pointer */
     FILE	*qbw_fp;										/* input-file pointer */
-    FILE    *conf_fp;
+    //FILE    *conf_fp;
     std::list<ARC_Pair> pairs;                   // Container for selected reflections and matches.
     std::vector<cv::Point2f> GFT;
     char *image;
@@ -653,9 +654,11 @@ int main(int argc, char** argv)
         exit( EXIT_FAILURE );
     }
 
+    /*
     if( (conf_fp=fopen(argv[3], "r"))==NULL )
         err_sys("fopen: config");
     read_config( conf_fp, &conf );
+    */
     
     char	*qbw_fp_file_name = argv[2];		/* input-file name    */
 
@@ -708,25 +711,26 @@ int main(int argc, char** argv)
     // Init Video
     fscanf( img_fp, "%s", image );
     fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
-    cv::Mat first_frame=cv::imread( image, CV_LOAD_IMAGE_COLOR );
-    cv::VideoWriter vidout;
-    vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
-           20.0, first_frame.size(), true );
-    if( !vidout.isOpened() )
-    {
-       std::cerr << "Could not open video file: " << a.video_filename << std::endl;
-       exit( EXIT_FAILURE );
-    }
+    //cv::Mat first_frame=cv::imread( image, CV_LOAD_IMAGE_COLOR );
+    //cv::VideoWriter vidout;
+    //vidout.open( a.video_filename, CV_FOURCC('F','M','P','4'), 
+     //      20.0, first_frame.size(), true );
+    //if( !vidout.isOpened() )
+    //{
+     //  std::cerr << "Could not open video file: " << a.video_filename << std::endl;
+      // exit( EXIT_FAILURE );
+    //}
 
     //Begin image loop.
-    cv::Point2f mid_pt( 320, 240 );
+    cv::Point2f mid_pt( 400, 300 );
     cv::Mat cur_frame, gray, prev_gray;
     while( fscanf( img_fp, "%s", image )!=EOF )
     {
         double angle;
         fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
         Quaternion quat( cv::Vec4d(qbw[0], qbw[1], qbw[2], qbw[3]) );
-        angle = get_angle(quat);
+        //angle = get_angle(quat);
+        angle = M_PI_2;
 
         cv::Mat water_mask, edges;
         //cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
@@ -736,8 +740,8 @@ int main(int argc, char** argv)
             std::cerr << "\nERROR : failed to open input file " << image << std::endl;
             exit (EXIT_FAILURE);
         }
-        undistort( cur_frame, gray, conf.k, std::vector<double>(conf.kc, conf.kc+4) );
-        cvtColor(gray, gray, CV_BGR2GRAY);
+        //undistort( cur_frame, gray, conf.k, std::vector<double>(conf.kc, conf.kc+4) );
+        cv::cvtColor(cur_frame, gray, CV_BGR2GRAY);
         if( a.blur )
         {
             medianBlur( gray, gray, a.blur );        
@@ -762,10 +766,10 @@ int main(int argc, char** argv)
                 rectangle( mask, blockedRegionSource, 0, CV_FILLED );
                 rectangle( mask, blockedRegionReflection, 0, CV_FILLED );
             }
-            goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 5, mask ); 
+            goodFeaturesToTrack( gray, GFT, a.good_features_to_track, a.eig, 32, mask ); 
         }
         // Update regions.
-        update_regions( cur_frame, &pairs, a.patch_size, GFT, 16 );
+        update_regions( gray, &pairs, a.patch_size, GFT, 8 );
         pairs.remove_if( below_threshold( a.std ) ); // patch 50x50
         pairs.remove_if( outside_theta( angle, a.theta_dev ) );
         pairs.remove_if( overlap( a.patch_size ) );
@@ -825,14 +829,23 @@ int main(int argc, char** argv)
 
         std::stringstream frame_number;
         frame_number << i;
-        cv::Point2f ol[2];
-        slope_endpoints( angle, ol );
-        line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
+        //cv::Point2f ol[2];
+        //slope_endpoints( angle, ol );
+        //line( drawn_matches, ol[0], ol[1], 200, 1, CV_AA, 0 );
         cv::putText( drawn_matches, (frame_number.str()).c_str(), cv::Point(5,15) ,cv::FONT_HERSHEY_SIMPLEX, .5, 200 );
         swap(prev_gray, gray);
         cv::imshow( DEFAULT_WINDOW_NAME, drawn_matches );
         cv::waitKey(1);
-        vidout << drawn_matches;
+        //std::stringstream cmd;
+        //cmd << "basename " << image;
+        //FILE *baseFp;
+        //baseFp = popen( cmd.str().c_str(), "r" );
+        //char base[255];
+        //fgets( base, 255, baseFp );
+        //int len = strlen(base);
+        //base[len-1]='\0';
+        //imwrite( base, drawn_matches );
+        //vidout << drawn_matches;
         ++i;
     }
     for( std::list<ARC_Pair>::iterator it=pairs.begin();
