@@ -726,6 +726,10 @@ int main(int argc, char** argv)
     cv::Mat cur_frame, gray, prev_gray;
     while( fscanf( img_fp, "%s", image )!=EOF )
     {
+        char fnout[1029];
+        strcpy(fnout,image);
+        strcat(fnout, ".txt");
+        FILE *fout = fopen(fnout, "w");
         double angle;
         fscanf( qbw_fp, "%lf,%lf,%lf,%lf", qbw, qbw+1, qbw+2, qbw+3 );
         Quaternion quat( cv::Vec4d(qbw[0], qbw[1], qbw[2], qbw[3]) );
@@ -735,11 +739,12 @@ int main(int argc, char** argv)
         cv::Mat water_mask, edges;
         //cv::setTrackbarPos( "frame_number", DEFAULT_WINDOW_NAME, (int) i );
 
-        cur_frame=cv::imread( image, CV_LOAD_IMAGE_UNCHANGED );           // open image 
-        if ( !cur_frame.data ) {
+        cv::Mat bayer = cv::imread(image, CV_LOAD_IMAGE_UNCHANGED);
+        if ( !bayer.data ) {
             std::cerr << "\nERROR : failed to open input file " << image << std::endl;
             exit (EXIT_FAILURE);
         }
+        cv::cvtColor(bayer, cur_frame, CV_BayerBG2BGR, 3);
         //undistort( cur_frame, gray, conf.k, std::vector<double>(conf.kc, conf.kc+4) );
         cv::cvtColor(cur_frame, gray, CV_BGR2GRAY);
         if( a.blur )
@@ -809,6 +814,7 @@ int main(int argc, char** argv)
                 {
                     cv::line( drawn_matches, s, r, black, 1, CV_AA, 0 );
                 }
+                /*
                 if( a.output==ARC_MATLAB_OUT )
                 {
                     std::cout << image << "," 
@@ -816,13 +822,28 @@ int main(int argc, char** argv)
                               << *it
                               << std::endl;
                 }
+                */
+                //else if (a.output==ARC_REFSLAM_OUT)
+                {
+                    fprintf(fout,"%d,%d,%d,%d,%d\n", it->id, 
+                           it->roi.source.x,
+                           it->roi.source.y,
+                           it->roi.reflection.x,
+                           it->roi.reflection.y);
+                }
+                /*
                 else
                 {
                     cout << *it << endl;
                 }
+                */
             }
             ++it->age;
             ++it;
+        }
+        for (std::vector<cv::Point2f>::iterator it = GFT.begin();
+                it!=GFT.end(); ++ it) {
+            printf("%d,%f,%f\n", 0, it->x, it->y);
         }
         printf("\n");
         //Point2f src_pt( 320, 80 );
@@ -847,6 +868,7 @@ int main(int argc, char** argv)
         //imwrite( base, drawn_matches );
         //vidout << drawn_matches;
         ++i;
+        fclose(fout);
     }
     for( std::list<ARC_Pair>::iterator it=pairs.begin();
             it!=pairs.end(); ++it )
